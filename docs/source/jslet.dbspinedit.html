@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js"><span id='jslet-ui-DBSpinEdit'>/**
+</span> * @class 
+ * @extend jslet.ui.DBFieldControl
+ * 
+ * DBSpinEdit. 
+ * 
+ *     @example
+ *     var jsletParam = {type:&quot;DBSpinEdit&quot;,dataset:&quot;employee&quot;,field:&quot;age&quot;, minValue:18, maxValue: 100, step: 5};
+ * 
+ *    //1. Declaring:
+ *     &lt;div data-jslet='type:&quot;DBSpinEdit&quot;,dataset:&quot;employee&quot;,field:&quot;age&quot;, minValue:18, maxValue: 100, step: 5'&gt;&lt;/div&gt;
+ *     or
+ *     &lt;div data-jslet='jsletParam'&gt;&lt;/div&gt;
+ *
+ *    //2. Binding
+ *     &lt;div id=&quot;ctrlId&quot;&gt;&lt;/div&gt;
+ *     //Js snippet
+ *     var el = document.getElementById('ctrlId');
+ *     jslet.ui.bindControl(el, jsletParam);
+ *
+ *    //3. Create dynamically
+ *     jslet.ui.createControl(jsletParam, document.body);
+ */
+jslet.ui.DBSpinEdit = jslet.Class.create(jslet.ui.DBFieldControl, {
+<span id='jslet-ui-DBSpinEdit-method-initialize'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	initialize: function ($super, el, params) {
+		var Z = this;
+		Z.allProperties = 'styleClass,dataset,field,step';
+
+		Z._step = 1;
+		
+		$super(el, params);
+	},
+
+<span id='jslet-ui-DBSpinEdit-property-step'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get step.
+	 * 
+	 * @param {Integer | undefined} step Step value.
+	 * 
+	 * @return {this | Integer}
+	 */
+	step: function(step) {
+		if(step === undefined) {
+			return this._step;
+		}
+		jslet.Checker.test('DBSpinEdit.step', step).isNumber();
+		this._step = step;
+		return this;
+	},
+
+<span id='jslet-ui-DBSpinEdit-method-isValidTemplateTag'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	isValidTemplateTag: function (el) {
+		var tag = el.tagName.toLowerCase();
+		return tag == 'div';
+	},
+
+<span id='jslet-ui-DBSpinEdit-method-bind'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	bind: function () {
+		var Z = this,
+			jqEl = jQuery(Z.el);
+		if(!jqEl.hasClass('jl-spinedit')) {
+			jqEl.addClass('input-group jl-spinedit');
+		}
+		Z._createControl();
+		Z.renderAll();
+	},
+
+	_createControl: function() {
+		var Z = this,
+			jqEl = jQuery(Z.el),
+			s = '&lt;input type=&quot;text&quot; class=&quot;form-control&quot;&gt;' + 
+		    	'&lt;div class=&quot;jl-spinedit-btn-group&quot;&gt;' +
+		    	'&lt;button class=&quot;btn btn-default jl-spinedit-up&quot; tabindex=&quot;-1&quot;&gt;&lt;i class=&quot;fa fa-caret-up&quot;&gt;&lt;/i&gt;&lt;/button&gt;' + 
+		    	'&lt;button class=&quot;btn btn-default jl-spinedit-down&quot; tabindex=&quot;-1&quot;&gt;&lt;i class=&quot;fa fa-caret-down&quot;&gt;&lt;/i&gt;&lt;/button&gt;';
+		jqEl.html(s);
+		
+		var editor = jqEl.find('input')[0],
+			upButton = jqEl.find('.jl-spinedit-up')[0],
+			downButton = jqEl.find('.jl-spinedit-down')[0];
+		Z.editor = editor;
+		editor.name = Z._field;
+		jQuery(Z.editor).on(&quot;keydown&quot;, function(event){
+			if(Z._isDisabled()) {
+				return;
+			}
+			var keyCode = event.keyCode;
+			if(keyCode === jslet.ui.KeyCode.UP) {
+				Z.decValue();
+				event.preventDefault();
+				return;
+			}
+			if(keyCode === jslet.ui.KeyCode.DOWN) {
+				Z.incValue();
+				event.preventDefault();
+				return;
+			}
+		});
+		new jslet.ui.DBText(editor, {
+			dataset: Z._dataset,
+			field: Z._field,
+			beforeUpdateToDataset: Z.beforeUpdateToDataset,
+			valueIndex: Z._valueIndex,
+			tabIndex: Z._tabIndex
+		});
+		
+		var jqBtn = jQuery(upButton);
+		jqBtn.on('click', function () {
+			Z.incValue();
+		});
+		
+		jqBtn.focus(function(event) {
+			jslet.ui.globalFocusManager.activeDataset(Z._dataset.name()).activeField(Z._field).activeValueIndex(Z._valueIndex);
+		});
+		jqBtn.blur(function(event) {
+			jslet.ui.globalFocusManager.activeDataset(null).activeField(null).activeValueIndex(null);
+		});
+		
+		jqBtn = jQuery(downButton);
+		jqBtn.on('click', function () {
+			Z.decValue();
+		});
+		
+		jqBtn.focus(function(event) {
+			jslet.ui.globalFocusManager.activeDataset(Z._dataset.name()).activeField(Z._field).activeValueIndex(Z._valueIndex);
+		});
+		jqBtn.blur(function(event) {
+			jslet.ui.globalFocusManager.activeDataset(null).activeField(null).activeValueIndex(null);
+		});
+	},
+	
+	_isDisabled: function() {
+		var Z = this,
+			fldObj = Z._dataset.getField(Z._field);
+		return fldObj.disabled() || fldObj.readOnly();
+	},
+	
+	beforeUpdateToDataset: function () {
+		var Z = this,
+			val = Z.el.value;
+		var fldObj = Z._dataset.getField(Z._field),
+			range = fldObj.dataRange(),
+			minValue = Number.NEGATIVE_INFINITY, 
+			maxValue = Number.POSITIVE_INFINITY;
+		
+		if(range) {
+			if(range.min || range.min === 0) {
+				minValue = parseFloat(range.min);
+			}
+			if(range.max || range.min === 0) {
+				maxValue = parseFloat(range.max);
+			}
+		}
+		if (val) {
+			val = parseFloat(val);
+		}
+		jQuery(Z.el).attr('aria-valuenow', val);
+		Z.el.value = val;
+		return true;
+	},
+
+	setValueToDataset: function (val) {
+		var Z = this;
+		if (Z.silence) {
+			return;
+		}
+		Z.silence = true;
+		if (val === undefined) {
+			val = Z.value;
+		}
+		try {
+			Z._dataset.setFieldValue(Z._field, val, Z._valueIndex);
+		} finally {
+			Z.silence = false;
+		}
+	},
+
+	incValue: function () {
+		var Z = this,
+			val = Z.getValue();
+		if (!val) {
+			val = 0;
+		}
+		var maxValue = Z._getRange().maxValue;
+		if (val === maxValue) {
+			return;
+		} else if (val &lt; maxValue) {
+			val += Z._step;
+		} else {
+			val = maxValue;
+		}
+		if (val &gt; maxValue) {
+			val = maxValue;
+		}
+		jQuery(Z.el).attr('aria-valuenow', val);
+		Z.setValueToDataset(val);
+		return this;
+	},
+
+	_getRange: function() {
+		var Z = this,
+			fldObj = Z._dataset.getField(Z._field),
+			range = fldObj.dataRange(),
+			minValue = Number.NEGATIVE_INFINITY, 
+			maxValue = Number.POSITIVE_INFINITY;
+		
+		if(range) {
+			if(range.min || range.min === 0) {
+				minValue = parseFloat(range.min);
+			}
+			if(range.max || range.min === 0) {
+				maxValue = parseFloat(range.max);
+			}
+		}
+		return {minValue: minValue, maxValue: maxValue};
+	},
+	
+	decValue: function () {
+		var Z = this,
+			val = Z.getValue();
+		if (!val) {
+			val = 0;
+		}
+		var minValue = Z._getRange().minValue;
+		if (val === minValue) {
+			return;
+		} else if (val &gt; minValue) {
+			val -= Z._step;
+		} else {
+			val = minValue;
+		}
+		if (val &lt; minValue)
+			val = minValue;
+		jQuery(Z.el).attr('aria-valuenow', val);
+		Z.setValueToDataset(val);
+		return this;
+	},
+	
+<span id='jslet-ui-DBSpinEdit-method-innerFocus'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	innerFocus: function() {
+		this.editor.focus();
+	},
+	
+<span id='jslet-ui-DBSpinEdit-method-doMetaChanged'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	doMetaChanged: function($super, metaName) {
+		$super(metaName);
+		var Z = this,
+			jqEl = jQuery(this.el),
+			fldObj = Z._dataset.getField(Z._field);
+		
+		if(!metaName || metaName == 'disabled' || metaName == 'readOnly') {
+			var disabled = fldObj.disabled() || fldObj.readOnly(),
+				jqUpBtn = jqEl.find('.jl-spinedit-up'),
+				jqDownBtn = jqEl.find('.jl-spinedit-down');
+				
+			if (disabled) {
+				jqUpBtn.attr('disabled', 'disabled');
+				jqDownBtn.attr('disabled', 'disabled');
+			} else {
+				jqUpBtn.attr('disabled', false);
+				jqDownBtn.attr('disabled', false);
+			}
+		}
+		if(!metaName || metaName == 'dataRange') {
+			var range = fldObj.dataRange();
+			jqEl.attr('aria-valuemin', range &amp;&amp; (range.min || range.min === 0) ? range.min: '');
+			jqEl.attr('aria-valuemin', range &amp;&amp; (range.max || range.max === 0) ? range.max: '');
+		}
+		if(!metaName || metaName == 'tabIndex') {
+			Z.setTabIndex();
+		}
+	},
+	
+<span id='jslet-ui-DBSpinEdit-method-renderAll'>	/**
+</span>	 * @override
+	 */
+	renderAll: function(){
+		this.refreshControl(jslet.data.RefreshEvent.updateAllEvent(), true);
+		return this;
+	},
+	
+<span id='jslet-ui-DBSpinEdit-method-tableId'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	tableId: function($super, tableId){
+		$super(tableId);
+		this.editor.jslet.tableId(tableId);
+	},
+	
+<span id='jslet-ui-DBSpinEdit-method-destroy'>	/**
+</span>	 * @override
+	 */
+	destroy: function(){
+		var jqEl = jQuery(this.el);
+		jQuery(this.editor).off();
+		this.editor = null;
+		jqEl.find('.jl-upbtn-up').off();
+		jqEl.find('.jl-downbtn-up').off();
+	}
+	
+});
+jslet.ui.register('DBSpinEdit', jslet.ui.DBSpinEdit);
+jslet.ui.DBSpinEdit.htmlTemplate = '&lt;div&gt;&lt;/div&gt;';
+
+</pre>
+</body>
+</html>

@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js"><span id='jslet-ui-DBList'>/**
+</span> * @class 
+ * @extend jslet.ui.DBFieldControl
+ * 
+ * DBList. Show data on list, it can display tree style or table style. Example:
+ * 
+ *     @example
+ *      var jsletParam = {type:&quot;DBList&quot;,dataset:&quot;employee&quot;,field:&quot;department&quot;};
+ * 
+ *     //1. Declaring:
+ *      &lt;div data-jslet='type:&quot;DBList&quot;,dataset:&quot;employee&quot;,field:&quot;department&quot;' /&gt;
+ *      or
+ *      &lt;div data-jslet='jsletParam' /&gt;
+ *  
+ *     //2. Binding
+ *      &lt;div id=&quot;ctrlId&quot;  /&gt;
+ *      //Js snippet
+ *      var el = document.getElementById('ctrlId');
+ *      jslet.ui.bindControl(el, jsletParam);
+ *
+ *     //3. Create dynamically
+ *      jslet.ui.createControl(jsletParam, document.body);
+ */
+jslet.ui.DBList = jslet.Class.create(jslet.ui.DBFieldControl, {
+	showStyles: ['auto', 'table', 'tree'],
+<span id='jslet-ui-DBList-method-initialize'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	initialize: function ($super, el, params) {
+		var Z = this;
+		Z.allProperties = 'styleClass,dataset,field,showStyle,correlateCheck';
+		
+		Z._showStyle = 'auto';
+		
+		Z._correlateCheck = false;
+		
+		$super(el, params);
+	},
+
+<span id='jslet-ui-DBList-property-showStyle'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get the content style of pop up panel.
+	 * 
+	 * @param {String | undefined} showStyle The content style of the pop up panel, optional value: &quot;auto&quot;(default), &quot;table&quot;, &quot;tree&quot;.
+	 * 
+	 * @return {this | String}
+	 */
+	showStyle: function(showStyle) {
+		if(showStyle === undefined) {
+			return this._showStyle;
+		}
+		showStyle = jQuery.trim(showStyle);
+		var checker = jslet.Checker.test('DBComboSelect.showStyle', showStyle).isString();
+		showStyle = showStyle.toLowerCase();
+		checker.testValue(showStyle).inArray(this.showStyles);
+		this._showStyle = showStyle;
+		return this;
+	},
+	
+<span id='jslet-ui-DBList-property-correlateCheck'>	/**
+</span>	 * @property
+	 * 
+	 * Identify whether correlate checking the tree nodes or not.
+	 * 
+	 * @param {Boolean | undefined} correlateCheck True - correlate checking the tree nodes, false - otherwise.
+	 * 
+	 * @return {this | Boolean}
+	 */
+	correlateCheck: function(correlateCheck) {
+		if(correlateCheck === undefined) {
+			return this._correlateCheck;
+		}
+		this._correlateCheck = correlateCheck;
+		return this;
+	},
+	
+<span id='jslet-ui-DBList-method-isValidTemplateTag'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	isValidTemplateTag: function (el) {
+		return el.tagName.toLowerCase() == 'div';
+	},
+
+<span id='jslet-ui-DBList-method-bind'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	bind: function () {
+		this.renderAll();
+	},
+	
+<span id='jslet-ui-DBList-method-renderAll'>	/**
+</span>	 * @override
+	 */
+	renderAll: function() {
+		var Z = this,
+			jqEl = jQuery(Z.el);
+		if(jqEl.hasClass('jl-dblist')) {
+			jqEl.addClass('jl-dblist');
+		}
+		var fldObj = Z._dataset.getField(Z._field),
+			lkfld = fldObj.lookup(),
+			pfld = lkfld.parentField(),
+			showType = Z._showStyle.toLowerCase(),
+			lkds = lkfld.dataset(),
+			isMulti = fldObj.valueStyle() === jslet.data.FieldValueStyle.MULTIPLE;
+		if(showType == 'auto' &amp;&amp; pfld) {
+			showType = 'tree';
+		}
+		if (showType == 'tree') {
+			var treeParam = { 
+				type: 'DBTreeView', 
+				dataset: lkds, 
+				readOnly: false, 
+				displayFields: lkfld.displayFields(), 
+				hasCheckBox: isMulti,
+				correlateCheck: Z._correlateCheck,
+				expandLevel: 99
+			};
+			if(isMulti) {
+				treeParam.afterCheckBoxClick = function() {
+					Z.updateToDataset();
+				};
+			} else {
+				treeParam.onItemClick = function() {
+					Z.updateToDataset();
+				};
+			}
+	
+			window.setTimeout(function() {
+				jslet.ui.createControl(treeParam, Z.el, '100%', '100%');
+				jQuery(Z.el.childNodes[0]).on('focus', function(event) {
+					jslet.ui.globalFocusManager.activeDataset(Z._dataset.name()).activeField(Z._field).activeValueIndex(Z._valueIndex);
+				}).on('blur', function(event) {
+					jslet.ui.globalFocusManager.activeDataset(null).activeField(null).activeValueIndex(null);
+				});
+			}, 1);
+		} else {
+			var tableParam = {type: 'DBTable', dataset: lkds, readOnly: true, hasSelectCol: isMulti, hasSeqCol: false, hasFindDialog: false, hasFilterDialog: false};
+			if(isMulti) {
+				tableParam.afterSelect = tableParam.afterSelectAll = function() {
+					Z.updateToDataset();
+				};
+			} else {
+				tableParam.onRowClick = function() {
+					Z.updateToDataset();
+				};
+			}
+			window.setTimeout(function() {
+				jslet.ui.createControl(tableParam, Z.el, '100%', '100%');
+			}, 1);
+		}
+		return this;
+	},
+	
+<span id='jslet-ui-DBList-method-doMetaChanged'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	doMetaChanged: function($super, metaName) {
+		$super(metaName);
+		var Z = this,
+			fldObj = Z._dataset.getField(Z._field);
+		if(!metaName || metaName == &quot;disabled&quot; || metaName == &quot;readOnly&quot;) {
+			Z.el.disabled = true;
+		} else {
+			Z.el.disabled = false;
+		}
+		
+		if(metaName &amp;&amp; metaName == 'required') {
+			var jqEl = jQuery(Z.el);
+			if (fldObj.required()) {
+				jqEl.addClass('jl-ctrl-required');
+			} else {
+				jqEl.removeClass('jl-ctrl-required');
+			}
+		}
+		
+		if(!metaName || metaName == 'tabIndex') {
+			Z.setTabIndex();
+		}
+		
+	},
+	
+	updateToDataset: function () {
+		var Z = this;
+		if (Z._keep_silence_) {
+			return true;
+		}
+		
+		var fldObj = Z._dataset.getField(Z._field),
+			lkfld = fldObj.lookup(),
+			lkds = lkfld.dataset(),
+			isMulti = fldObj.valueStyle() === jslet.data.FieldValueStyle.MULTIPLE,
+			value;
+		if(!isMulti) {
+			value = lkds.keyValue();
+		} else {
+			value = lkds.selectedKeyValues();
+		}
+		Z._dataset.editRecord();
+		Z._keep_silence_ = true;
+		try {
+			Z._dataset.setFieldValue(Z._field, value, Z._valueIndex);
+			Z.refreshControl(jslet.data.RefreshEvent.updateRecordEvent(Z._field));
+		} finally {
+			Z._keep_silence_ = false;
+		}
+		return true;
+	}, // end updateToDataset
+	
+<span id='jslet-ui-DBList-method-doValueChanged'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	doValueChanged: function() {
+		var Z = this;
+		if (Z._keep_silence_) {
+			return;
+		}
+		var errObj = Z.getFieldError();
+		if(errObj &amp;&amp; errObj.message) {
+			Z.el.value = errObj.inputText || '';
+			Z.renderInvalid(errObj);
+			return;
+		} else {
+			Z.renderInvalid(null);
+		}
+		var fldObj = Z._dataset.getField(Z._field),
+			fldValue = fldObj.getValue(),
+			lkfld = fldObj.lookup(),
+			pfld = lkfld.parentField(),
+			lkds = lkfld.dataset(),
+			isMulti = fldObj.valueStyle() === jslet.data.FieldValueStyle.MULTIPLE;
+		if(!isMulti) {
+			lkds.findByKey(fldValue);
+		} else {
+			var oldRecno = lkds.recno();
+			lkds.disableControls();
+			try {
+				lkds.selectAll(false);
+				if(fldValue) {
+					for(var i = 0, len = fldValue.length; i &lt; len; i++) {
+						lkds.findByKey(fldValue[i]);
+						lkds.selected(true);
+					}
+				}
+			} finally {
+				lkds.recno(oldRecno);
+				lkds.enableControls();
+			}
+		}
+	},
+
+<span id='jslet-ui-DBList-method-destroy'>	/**
+</span>	 * @override
+	 */
+	destroy: function($super) {
+		var Z = this;
+		$super();
+	}
+});
+
+jslet.ui.register('DBList', jslet.ui.DBList);
+jslet.ui.DBList.htmlTemplate = '&lt;div&gt;&lt;/div&gt;';
+</pre>
+</body>
+</html>

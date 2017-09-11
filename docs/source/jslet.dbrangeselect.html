@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js"><span id='jslet-ui-DBRangeSelect'>/**
+</span> * @class 
+ * @extend jslet.ui.DBFieldControl
+ * 
+ * DBRangeSelect. Display a select which options produce with 'beginItem' and 'endItem'. Example:
+ * 
+ *     @example
+ *      var jsletParam = {type:&quot;DBRangeSelect&quot;,dataset:&quot;employee&quot;,field:&quot;age&quot;,beginItem:10,endItem:100,step:5};
+ * 
+ *     //1. Declaring:
+ *      &lt;select data-jslet='type:&quot;DBRangeSelect&quot;,dataset:&quot;employee&quot;,field:&quot;age&quot;,beginItem:10,endItem:100,step:5' /&gt;
+ *      or
+ *      &lt;select data-jslet='jsletParam' /&gt;
+ * 
+ *     //2. Binding
+ *      &lt;select id=&quot;ctrlId&quot;  /&gt;
+ *      //Js snippet
+ *      var el = document.getElementById('ctrlId');
+ *      jslet.ui.bindControl(el, jsletParam);
+ *
+ *     //3. Create dynamically
+ *      jslet.ui.createControl(jsletParam, document.body);
+ */
+jslet.ui.DBRangeSelect = jslet.Class.create(jslet.ui.DBFieldControl, {
+<span id='jslet-ui-DBRangeSelect-method-initialize'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	initialize: function ($super, el, params) {
+		var Z = this;
+		Z.allProperties = 'styleClass,dataset,field,beginItem,endItem,step';
+		if (!Z.requiredProperties) {
+			Z.requiredProperties = 'field,beginItem,endItem,step';
+		}
+
+		Z._beginItem = 0;
+
+		Z._endItem = 10;
+
+		Z._step = 1;
+		
+		$super(el, params);
+	},
+
+<span id='jslet-ui-DBRangeSelect-property-beginItem'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get the begin item of range.
+	 * 
+	 * @param {Integer | undefined} beginItem Begin item of range.
+	 * 
+	 * @return {this | Integer}
+	 */
+	beginItem: function(beginItem) {
+		if(beginItem === undefined) {
+			return this._beginItem;
+		}
+		jslet.Checker.test('DBRangeSelect.beginItem', beginItem).isNumber();
+		this._beginItem = parseInt(beginItem);
+		return this;
+	},
+
+<span id='jslet-ui-DBRangeSelect-property-endItem'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get the end item of range.
+	 * 
+	 * @param {Integer | undefined} endItem End item of range.
+	 * 
+	 * @return {this | Integer}
+	 */
+	endItem: function(endItem) {
+		if(endItem === undefined) {
+			return this._endItem;
+		}
+		jslet.Checker.test('DBRangeSelect.endItem', endItem).isNumber();
+		this._endItem = parseInt(endItem);
+		return this;
+	},
+
+<span id='jslet-ui-DBRangeSelect-property-step'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get the step.
+	 * 
+	 * @param {Integer | undefined} step Step.
+	 * 
+	 * @return {this | Integer}
+	 */
+	step: function(step) {
+		if(step === undefined) {
+			return this._step;
+		}
+		jslet.Checker.test('DBRangeSelect.step', step).isNumber();
+		this._step = parseInt(step);
+		return this;
+	},
+
+<span id='jslet-ui-DBRangeSelect-method-isValidTemplateTag'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	isValidTemplateTag: function (el) {
+		return (el.tagName.toLowerCase() == 'select');
+	},
+
+<span id='jslet-ui-DBRangeSelect-method-bind'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	bind: function () {
+		var Z = this,
+			fldObj = Z._dataset.getField(Z._field),
+			valueStyle = fldObj.valueStyle();
+		
+		if(Z.el.multiple &amp;&amp; valueStyle != jslet.data.FieldValueStyle.MULTIPLE) {
+			fldObj.valueStyle(jslet.data.FieldValueStyle.MULTIPLE);
+		} else if(valueStyle == jslet.data.FieldValueStyle.MULTIPLE &amp;&amp; !Z.el.multiple) {
+			Z.el.multiple = &quot;multiple&quot;;	
+		}
+		Z.renderAll();
+		Z.el.name = Z._field;
+		var jqEl = jQuery(Z.el);
+		jqEl.on('change', Z._doChanged);// end observe
+		jqEl.focus(function(event) {
+			jslet.ui.globalFocusManager.activeDataset(Z._dataset.name()).activeField(Z._field).activeValueIndex(Z._valueIndex);
+		});
+		jqEl.blur(function(event) {
+			jslet.ui.globalFocusManager.activeDataset(null).activeField(null).activeValueIndex(null);
+		});
+		if(Z.el.multiple) {
+			jqEl.on('click', 'option', function () {
+				Z._currOption = this;
+			});// end observe
+		}
+		jqEl.addClass('form-control');//Bootstrap class
+	}, // end bind
+
+	_doChanged: function (event) {
+		var Z = this.jslet;
+		if(Z.el.multiple) {
+			if(Z.inProcessing) {
+				Z.inProcessing = false;
+			}
+			var fldObj = Z._dataset.getField(Z._field),
+				limitCount = fldObj.valueCountLimit();
+			if(limitCount) {
+				var values = Z.getValue(),
+					count = 1;
+				if(jslet.isArray(values)) {
+					count = values.length;
+				}
+				if (count &gt;= limitCount) {
+					jslet.showInfo(jslet.formatMessage(jsletlocale.DBCheckBoxGroup.invalidCheckedCount,
+							[''	+ limitCount]));
+					
+					window.setTimeout(function(){
+						if(Z._currOption) {
+							Z.inProcessing = true;
+							Z._currOption.selected = false;
+						}
+					}, 10);
+					return;
+				}
+			}
+		}
+		this.jslet.updateToDataset();
+	},
+		
+	renderOptions: function () {
+		var Z = this,
+			arrhtm = [];
+		
+		var fldObj = Z._dataset.getField(Z._field);
+		if (!fldObj.required()){
+			arrhtm.push('&lt;option value=&quot;_null_&quot;&gt;');
+			arrhtm.push(fldObj.nullText());
+			arrhtm.push('&lt;/option&gt;');
+		}
+
+		for (var i = Z._beginItem; i &lt;= Z._endItem; i += Z._step) {
+			arrhtm.push('&lt;option value=&quot;');
+			arrhtm.push(i);
+			arrhtm.push('&quot;&gt;');
+			arrhtm.push(i);
+			arrhtm.push('&lt;/option&gt;');
+		}
+		jQuery(Z.el).html(arrhtm.join(''));
+	}, // end renderOptions
+
+<span id='jslet-ui-DBRangeSelect-method-doMetaChanged'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	doMetaChanged: function($super, metaName){
+		$super(metaName);
+		var Z = this,
+			fldObj = Z._dataset.getField(Z._field);
+		if(!metaName || metaName == &quot;disabled&quot; || metaName == &quot;readOnly&quot;) {
+			var disabled = fldObj.disabled() || fldObj.readOnly();
+			Z.el.disabled = disabled;
+			jslet.ui.setEditableStyle(Z.el, disabled, disabled, true, fldObj.required());
+		}
+		if(!metaName || metaName == 'tabIndex') {
+			Z.setTabIndex();
+		}
+	},
+	
+<span id='jslet-ui-DBRangeSelect-method-doValueChanged'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	doValueChanged: function() {
+		var Z = this;
+		if (Z._keep_silence_) {
+			return;
+		}
+
+		if (!Z.el.multiple) {
+			var value = Z.getValue();
+			if (value !== null) {
+				Z.el.value = value;
+			} else {
+				Z.el.value = null;
+			}
+		} else {
+			var arrValue = Z.getValue(),
+				optCnt = Z.el.options.length, opt, selected, i;
+			Z._keep_silence_ = true;
+			try {
+				for (i = 0; i &lt; optCnt; i++) {
+					opt = Z.el.options[i];
+					if (opt) {
+						opt.selected = false;
+					}
+				}
+
+				var j, vcnt = arrValue.length - 1;
+				for (i = 0; i &lt; optCnt; i++) {
+					opt = Z.el.options[i];
+					for (j = vcnt; j &gt;= 0; j--) {
+						selected = (arrValue[j] == opt.value);
+						if (selected) {
+							opt.selected = selected;
+						}
+					} // end for j
+				} // end for i
+			} finally {
+				Z._keep_silence_ = false;
+			}
+		}
+	},
+	
+<span id='jslet-ui-DBRangeSelect-method-focus'>	/**
+</span>	 * @override
+	 */
+	focus: function() {
+		this.el.focus();
+		return this;
+	},
+	
+<span id='jslet-ui-DBRangeSelect-method-renderAll'>	/**
+</span>	 * @override
+	 */
+	renderAll: function () {
+		this.renderOptions();
+		this.refreshControl(jslet.data.RefreshEvent.updateAllEvent(), true);
+		return this;
+	},
+
+	updateToDataset: function () {
+		var Z = this;
+		if (Z._keep_silence_) {
+			return;
+		}
+		var value,
+			isMulti = Z.el.multiple;
+		if (!isMulti) {
+			value = Z.el.value;
+			var fldObj = Z._dataset.getField(Z._field);
+			if (value == '_null_' &amp;&amp; !fldObj.required()) {
+				value = null;
+			}
+		} else {
+			var opts = jQuery(Z.el).find('option'),
+				optCnt = opts.length - 1, opt;
+			value = [];
+			for (var i = 0; i &lt;= optCnt; i++) {
+				opt = opts[i];
+				if (opt.selected) {
+					value.push(opt.value);
+				}
+			}
+		}
+		Z._keep_silence_ = true;
+		try {
+			if (!isMulti) {
+				Z._dataset.setFieldValue(Z._field, value, Z._valueIndex);
+			} else {
+				Z._dataset.setFieldValue(Z._field, value);
+			}
+		} finally {
+			Z._keep_silence_ = false;
+		}
+	},
+	
+<span id='jslet-ui-DBRangeSelect-method-destroy'>	/**
+</span>	 * @override
+	 */
+	destroy: function($super){
+		jQuery(this.el).off();
+		$super();
+	}
+});
+
+jslet.ui.register('DBRangeSelect', jslet.ui.DBRangeSelect);
+jslet.ui.DBRangeSelect.htmlTemplate = '&lt;select&gt;&lt;/select&gt;';
+</pre>
+</body>
+</html>

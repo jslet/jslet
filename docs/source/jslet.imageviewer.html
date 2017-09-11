@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js"><span id='jslet-ui-ImageViewer'>/**
+</span> * @class
+ * 
+ * A dialog to view image. Example:
+ * 
+ *     @example
+ *     var imgViewer = new jslet.ui.ImageViewer({width: 500, height: 600, isModal: true});
+ *     imgViewer.show('./img/igm1.jpg', 'Dog');
+ * 
+ * @param {Object} dialogCfg Dialog configuration.
+ * @param {Integer} dialogCfg.width Dialog width.
+ * @param {Integer} dialogCfg.height Dialog height.
+ * @param {Boolean} dialogCfg.isModal Show image viewer as a modal dialog. 
+ */
+jslet.ui.ImageViewer = function(dialogCfg) {
+	this._imageUrl = null;
+	this._width = 400;
+	this._height = 500;
+	this._isModal = false;
+	if(dialogCfg){
+		if(dialogCfg.width) {
+			this.width(dialogCfg.width);
+		}
+		if(dialogCfg.height) {
+			this.height(dialogCfg.height);
+		}
+		this.isModal(dialogCfg.isModal);
+	}
+};
+
+jslet.ui.ImageViewer.prototype = {
+	
+<span id='jslet-ui-ImageViewer-method-width'>	/**
+</span>	 * Set or get the dialog width.
+	 * 
+	 * @param {Integer | undefined} width Dialog width;
+	 * 
+	 * @return {this | Integer}
+	 */
+	width: function(width) {
+		if(width === undefined) {
+			return this._width;
+		}
+		jslet.Checker.test('ImageViewer.width', width).isNumber();
+		return this;
+	},
+	
+<span id='jslet-ui-ImageViewer-method-height'>	/**
+</span>	 * Set or get the dialog height.
+	 * 
+	 * @param {Integer | undefined} height Dialog height;
+	 * 
+	 * @return {this | Integer}
+	 */
+	height: function(height) {
+		if(height === undefined) {
+			return this._height;
+		}
+		jslet.Checker.test('ImageViewer.height', height).isNumber();
+		return this;
+	},
+	
+<span id='jslet-ui-ImageViewer-method-isModal'>	/**
+</span>	 * Identify showing the dialog as modal or not.
+	 * 
+	 * @param {Boolean | undefined} isModal True - Showing as modal, false -otherwise;
+	 * 
+	 * @return {this | Boolean}
+	 */
+	isModal: function(isModal) {
+		if(isModal === undefined) {
+			return this._isModal;
+		}
+		this._isModal = isModal? true: false;
+		return this;
+	},
+	
+<span id='jslet-ui-ImageViewer-method-imageUrl'>	/**
+</span>	 * Set image URL and show it.
+	 * 
+	 * @param {String} imageUrl Image URL.
+	 * 
+	 * @return {this}
+	 */
+	imageUrl: function(imageUrl) {
+		this._imageUrl = imageUrl;
+		this.show(imageUrl);
+		return this;
+	},
+	
+<span id='jslet-ui-ImageViewer-method-show'>	/**
+</span>	 * Show dialog.
+	 * 
+	 */
+	show: function(imageUrl, name) {
+		var Z = this;
+		var creating = false;
+		if(!Z._dlgId) {
+			Z._createDialog();
+			creating = true;
+		}
+		var owin = jslet('#' + Z._dlgId);
+		var jqViewer = jQuery(owin.el).find('*[name=viewer]').css('background-image', 'url(' + imageUrl + ')');
+		owin.changeCaption(jsletlocale.ImageViewer.caption + (name? ' - ' + name: ''));
+		if(Z._isModal) {
+			owin.showModal();
+		} else {
+			owin.show();
+		}
+		
+		owin.setZIndex(999);
+	},
+	
+	_createDialog: function() {
+		var opt = { type: 'window', caption: jsletlocale.ImageViewer.caption, isCenter: true, resizable: true, minimizable: false, maximizable: true, 
+				width: this._width, height: this._height, animation: 'fade', styleClass: 'jl-isdlg'};
+		var owin = jslet.ui.createControl(opt);
+		var html = '&lt;div name=&quot;viewer&quot; style=&quot;width: 100%; height: 100%;background-size:contain;background-origin:content;background-position:50% 50%;background-repeat:no-repeat;&quot;/&gt;';
+		owin.setContent(html);
+		this._dlgId = owin.el.id;
+		jslet.ui.install(owin.el);
+	}
+};
+</pre>
+</body>
+</html>

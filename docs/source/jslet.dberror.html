@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js"><span id='jslet-ui-DBError'>/**
+</span> * @class 
+ * @extend jslet.ui.DBControl
+ * 
+ * DBError. Display dataset error. Example:
+ * 
+ *     @example
+ *      var jsletParam = {type:&quot;DBError&quot;,dataset:&quot;employee&quot;};
+ *  
+ *     //1. Declaring:
+ *      &lt;div data-jslet='type:&quot;DBError&quot;,dataset:&quot;employee&quot;' /&gt;
+ *      or
+ *      &lt;div data-jslet='jsletParam' /&gt;
+ *  
+ *     //2. Binding
+ *      &lt;div id=&quot;ctrlId&quot;  /&gt;
+ *      //Js snippet
+ *      var el = document.getElementById('ctrlId');
+ *      jslet.ui.bindControl(el, jsletParam);
+ *
+ *     //3. Create dynamically
+ *      jslet.ui.createControl(jsletParam, document.body);
+ */
+jslet.ui.DBError = jslet.Class.create(jslet.ui.DBControl, {
+<span id='jslet-ui-DBError-method-initialize'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	initialize: function ($super, el, params) {
+		this.allProperties = 'styleClass,dataset';
+		$super(el, params);
+	},
+
+<span id='jslet-ui-DBError-method-isValidTemplateTag'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	isValidTemplateTag: function (el) {
+		var tagName = el.tagName.toLowerCase();
+		return tagName == 'div';
+	},
+
+<span id='jslet-ui-DBError-method-bind'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	bind: function () {
+		var Z = this,
+			jqEl = jQuery(Z.el);
+		if (!jqEl.hasClass('jl-errorpanel')) {
+			jqEl.addClass('jl-errorpanel');
+		}
+
+		Z.renderAll();
+	},
+
+<span id='jslet-ui-DBError-method-refreshControl'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	refreshControl: function (evt) {
+		if (evt &amp;&amp; evt.eventType == jslet.data.RefreshEvent.ERROR) {
+			this.el.innerHTML = evt.message || '';
+		}
+	},
+
+<span id='jslet-ui-DBError-method-renderAll'>	/**
+</span>	 * @override
+	 */
+	renderAll: function () {
+		this.refreshControl();
+	},
+	
+});
+
+jslet.ui.register('DBError', jslet.ui.DBError);
+jslet.ui.DBError.htmlTemplate = '&lt;div&gt;&lt;/div&gt;';
+</pre>
+</body>
+</html>

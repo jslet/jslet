@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Take a glance at Jslet framework">
+    <link rel="stylesheet" type="text/css" href="../../css/demo.css" />
+    
+    <title>Jslet - 表格外观设置</title>
+    <script type="text/javascript" data-main="../../config.js" src="../../lib/requirejs/require.min.js"></script>
+    <script type="text/javascript">
+	    require(['dbcontrol/table/appearance']);
+    </script>
+    
+	<style>
+		.oddRow{
+			background-color: #FEFFF1;
+		}
+		
+		.femaleRow{
+			background-color: hotpink;
+		}
+		
+		.unknownRow{
+			background-color: lightblue;
+		}
+		
+		.managerCell{
+			font-weight: bold;
+			font-style: italic;
+			color: green;
+		}
+	</style>
+    
+</head>
+<body>
+    <div class="demo-header">
+    <h4 id="top">Jslet - 表格外观设置</h4>
+	</div>
+	<hr />
+	
+    <h4>相邻行设置不同颜色：</h4>
+	<div id="tblFillOdd" data-jslet='type:"DBTable",dataset:"employee",onFillRow:doFillRowOdd' style="width: 100%;height: 180px">
+	</div>
+	<p></p>
+	
+    <h4>表格行的颜色根据“性别”字段不同而不同：</h4>
+	<div data-jslet='type:"DBTable",dataset:"employee",onFillRow: doFillRowGender' style="width: 100%;height: 220px">
+	</div>
+	<p></p>
+
+    <h4>设置表格单元格的样式：</h4>
+	<p>如果“职位”是经理以上，则使用不同样式 </p>
+	<div data-jslet='type:"DBTable",dataset:"employee", onFillCell: doFillCell' style="width: 100%;height: 180px">
+	</div>
+	<p></p>
+
+    <h4>去掉无表格线:</h4>
+	<div data-jslet='type:"DBTable",dataset:"employee",noborder:true' style="width: 100%;height: 180px">
+	</div>
+	<p></p>
+
+	<div class="demo-desc">
+	</div>
+	<hr />
+	<h4>源码</h4>
+    <pre class="prettyprint linenums"><code>
+	//datasetMetaStore定义在公共js:common/datasetmetastore.js中
+	//将数据集定义信息仓库加到datasetFactory中，创建Dataset时会仓库里去定义信息
+	jslet.data.datasetFactory.addMetaStore(window.datasetMetaStore);
+	//通过工厂方法，可以自动创建主数据集及相关的数据集
+    jslet.data.datasetFactory.createDataset('employee').done(function() {
+		var dsEmployee = jslet.data.getDataset('employee');
+		dsEmployee.query();
+    	jslet.ui.install();
+    });
+    
+    //相邻行设置不同颜色
+    window.doFillRowOdd = function(otr, dataset) {
+		var recno = dataset.recno();
+		if(recno % 2 == 0)
+			$(otr).removeClass("oddRow");
+		else
+			$(otr).addClass("oddRow");
+    }
+
+    //表格行的颜色根据“性别”字段不同而不同
+    window.doFillRowGender = function(otr, dataset) {
+		var gender = dataset.getFieldValue('gender');
+		var jqTr = $(otr);
+		if(gender == 'M'){
+			jqTr.removeClass("femaleRow");
+			jqTr.removeClass("unknownRow");
+		}
+		else
+		if(gender == 'F'){
+			jqTr.addClass("femaleRow");
+			jqTr.removeClass("unknownRow");
+		}else{
+			jqTr.removeClass("femaleRow");
+			jqTr.addClass("unknownRow");
+		}
+    }
+	
+    //设置表格单元格的样式
+    window.doFillCell = function(otd, dataset, fieldName) {
+		if(fieldName != "name")
+			return;
+		var posValue = dataset.getFieldValue("position");
+
+		if(posValue > 1)
+			$(otd).removeClass("managerCell");
+		else
+			$(otd).addClass("managerCell");
+    }
+	</code></pre>
+
+    <script type="text/javascript">
+       window.LOADER_BASE_URL = "../../lib/prettify";
+    </script>
+    <script type="text/javascript" src="../../lib/prettify/run_prettify.js"></script>
+		
+</body>
+</html>

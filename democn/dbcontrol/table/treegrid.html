@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="../../css/demo.css" />
+    
+    <title>Jslet - 树形表格</title>
+    <script type="text/javascript" data-main="../../config.js" src="../../lib/requirejs/require.min.js"></script>
+    <script type="text/javascript">
+	    require(['dbcontrol/table/treegrid']);
+    </script>
+</head>
+<body>
+    <div class="demo-header">
+    <h4 id="top">Jslet - 树形表格</h4>
+	</div>
+	<hr />
+	<div id="tblAgency" data-jslet="type: 'DBTable', dataset: 'agency', disableHeadSort: true, treeField: 'name'"></div>
+	<div class="demo-desc">
+	<p>演示以下内容：</p>
+    <p><button id="btnExpand" class="btn btn-default btn-sm">展开当前行</button><button id="btnCollapse" class="btn btn-default btn-sm">折叠当前行</button>
+    <button id="btnExpandAll" class="btn btn-default btn-sm">展开所有行</button><button id="btnCollapseAll" class="btn btn-default btn-sm">折叠所有行</button></p>
+	</div>
+	<hr />
+	<h4>源码</h4>
+	<h5>HTML</h5>
+    <pre class="prettyprint linenums"><code>
+	&gt;div id="tblEmployee" data-jslet="type: 'DBTable', dataset: 'agency', disableHeadSort: true, treeField: 'name'">&gt;/div>    
+	</code></pre>
+	<h5>Javascript</h5>
+    <pre class="prettyprint linenums"><code>
+    var dsCfg = {name: 'agency',
+    		//树形表格的数据集必须要设置这4个属性
+    		keyField: 'itemid', codeField: 'code', nameField: 'name', parentField: 'parentid',
+    		fields: [
+	    		 {name: 'name', dataType: 'S', length: 20, label: 'Name', required: true},
+	    		 {name: 'code', dataType: 'S', length: 10, label: 'Code', required: true},
+	    		 {name: 'itemid', dataType: 'N', length: 10, label: 'ID'},
+	    		 {name: 'parentid', dataType: 'N', length: 10, label: 'Parent ID', readOnly: true}
+    		]};
+    var dsAgency = new jslet.data.Dataset(dsCfg);
+    
+    //创建演示数据
+    var records = [{ itemid: 'cn', parentid: '0', code: '00', name: 'China' },
+		{ itemid: '1', parentid: 'cn', code: '01', name: 'Guangdong' },
+		{ itemid: '2', parentid: '1', code: '0101', name: 'Guangzhou' },
+		{ itemid: '3', parentid: '1', code: '0102', name: 'Shenzhen' },
+		{ itemid: '4', parentid: '3', code: '010201', name: 'Nanshan' },
+		{ itemid: '5', parentid: '3', code: '010202', name: 'Futian' },
+		{ itemid: '6', parentid: '1', code: '0103', name: 'Dongguang' },
+		{ itemid: '7', parentid: 'cn', code: '02', name: 'Hunan' },
+		{ itemid: '8', parentid: '7', code: '0201', name: 'Changsha' },
+		{ itemid: '9', parentid: '7', code: '0202', name: 'Zhuzhou' },
+		{ itemid: '10', parentid: '7', code: '0203', name: 'YueYang' },
+		{ itemid: '11', parentid: '7', code: '0204', name: 'Hengyang' },
+		{ itemid: '12', parentid: '7', code: '0205', name: 'Shaoyang' }
+	];
+
+    dsAgency.records(records);
+	
+    var tblAgency;
+    
+    jslet.ui.install(function() {
+    	tblAgency = jslet('#tblAgency');
+    	//界面创建成功后，调用DBTable的方法
+    	tblAgency.expandAll();
+    });
+    
+    //绑定按钮事件
+    $('#btnExpand').click(function() {
+    	tblAgency.expand();
+    });
+    
+    $('#btnExpandAll').click(function() {
+    	tblAgency.expandAll();
+    });
+    
+    $('#btnCollapse').click(function() {
+    	tblAgency.collapse();
+    });
+    
+    $('#btnCollapseAll').click(function() {
+    	tblAgency.collapseAll();
+    });
+ 	</code></pre>
+
+    <script type="text/javascript">
+       window.LOADER_BASE_URL = "../../lib/prettify";
+    </script>
+    <script type="text/javascript" src="../../lib/prettify/run_prettify.js"></script>
+		
+</body>
+</html>

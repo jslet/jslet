@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js"><span id='jslet-ui-DBAutoComplete'>/**
+</span> * @class
+ * @extend jslet.ui.DBText
+ * 
+ * DBAutoComplete. Example:
+ * 
+ *     @example
+ *      var jsletParam = {type:&quot;DBAutoComplete&quot;,field:&quot;department&quot;, matchType:&quot;start&quot;};
+ *     //1. Declaring:
+ *      &lt;input id=&quot;cboAuto&quot; type=&quot;text&quot; data-jslet='jsletParam' /&gt;
+ *      
+ *     //2. Binding
+ *      &lt;input id=&quot;cboAuto&quot; type=&quot;text&quot; data-jslet='jsletParam' /&gt;
+ *      //Js snippet
+ *      var el = document.getElementById('cboAuto');
+ *      jslet.ui.bindControl(el, jsletParam);
+ *
+ *     //3. Create dynamically
+ *      jslet.ui.createControl(jsletParam, document.body);
+ */
+jslet.ui.DBAutoComplete = jslet.Class.create(jslet.ui.DBText, {
+	
+	MatchModes: ['start','end', 'any'],
+	
+<span id='jslet-ui-DBAutoComplete-method-initialize'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	initialize: function ($super, el, params) {
+		var Z = this;
+		if (!Z.allProperties) {
+			Z.allProperties = 'styleClass,dataset,field,lookupField,minChars,minDelay,displayTemplate,matchMode,beforePopup,onGetFilterField,filterFields';
+		}
+		
+		Z._lookupField = null;
+		
+		Z._minChars = 0;
+
+		Z._minDelay = 0;
+		
+		Z._beforePopup = null;
+		
+		Z._filterFields = null;
+		
+		Z._defaultFilterFields = null;
+		
+		Z._onGetFilterField = null;
+		
+		Z._matchMode = 'start';
+		
+		Z._timeoutHandler = null; 
+		$super(el, params);
+	},
+
+<span id='jslet-ui-DBAutoComplete-property-lookupField'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get lookup field name.
+	 * 
+	 * @param {String | undefined} lookupField Lookup field name.
+	 * 
+	 * @return {this | String}
+	 */
+	lookupField: function(lookupField) {
+		if(lookupField === undefined) {
+			return this._lookupField;
+		}
+		jslet.Checker.test('DBAutoComplete.lookupField', lookupField).isString();
+		this._lookupField = lookupField;
+		return this;
+	},
+   
+<span id='jslet-ui-DBAutoComplete-property-minChars'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get minimum characters before searching. &lt;br /&gt;
+	 * Suppose minChars = 3, when user input 1 character, the search panel would not pop up. After user input 3 characters, the search panel pops up.
+	 * 
+	 * @param {Integer | undefined} minChars Minimum characters before searching.
+	 * 
+	 * @return {this | Integer}
+	 */
+	minChars: function(minChars) {
+		if(minChars === undefined) {
+			return this._minChars;
+		}
+		jslet.Checker.test('DBAutoComplete.minChars', minChars).isGTEZero();
+		this._minChars = parseInt(minChars);
+		return this;
+	},
+   
+<span id='jslet-ui-DBAutoComplete-property-minDelay'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get delay time(ms) before auto searching. If user input the value very quickly, the searching panel would not pop up.
+	 * 
+	 * @param {Integer | undefined} minDelay Delay time.
+	 * 
+	 * @return {this | Integer}
+	 */
+	minDelay: function(minDelay) {
+		if(minDelay === undefined) {
+			return this._minDelay;
+		}
+		jslet.Checker.test('DBAutoComplete.minDelay', minDelay).isGTEZero();
+		this._minDelay = parseInt(minDelay);
+		return this;
+	},
+   
+<span id='jslet-ui-DBAutoComplete-property-matchMode'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get match mode.
+	 * 
+	 * @param {String | undefined} matchMode match mode, optional values: 'start'(default), 'end', 'any'.
+	 * 
+	 * @return {this | String}
+	 */
+	matchMode: function(matchMode) {
+		if(matchMode === undefined) {
+			return this._matchMode;
+		}
+		matchMode = jQuery.trim(matchMode);
+		var checker = jslet.Checker.test('DBAutoComplete.matchMode', matchMode).isString();
+		matchMode = matchMode.toLowerCase();
+		checker.testValue(matchMode).inArray(this.MatchModes);
+		this._matchMode = matchMode;
+		return this;
+	},
+   
+<span id='jslet-ui-DBAutoComplete-property-filterFields'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get filter fields, more than one fields are separated with ','. &lt;br /&gt;
+	 * Filter fields is used to match the inputting value.
+	 * 
+	 * @param {String | undefined} filterFields Filter fields.
+	 * 
+	 * @return {this | String}
+	 */
+	filterFields: function(filterFields) {
+		var Z = this;
+		if(filterFields === undefined) {
+			return Z._filterFields;
+		}
+		jslet.Checker.test('DBAutoComplete.filterFields', filterFields).isString();
+		Z._filterFields = filterFields;
+		return this;
+	},
+	
+<span id='jslet-ui-DBAutoComplete-event-beforePopup'>	/**
+</span>	 * @event
+	 * 
+	 * Set or get before pop up event handler, you can use this to customize the display result. Example:
+	 * 
+	 *     @example
+	 *     autoCompleteObj.beforePopup(function(dataset, inputValue){});
+	 * 
+	 * @param {Function | undefined} beforePopup Before pop up event handler.
+	 * @param {jslet.data.Dataset} beforePopup.dataset Dataset object.
+	 * @param {String} beforePopup.inputValue Input value.
+	 * 
+	 * @return {this | Function}
+	 */
+	beforePopup: function(beforePopup) {
+		if(beforePopup === undefined) {
+			return this._beforePopup;
+		}
+		this._beforePopup = beforePopup;
+		return this;
+	},
+	
+<span id='jslet-ui-DBAutoComplete-event-onGetFilterField'>	/**
+</span>	 * @event
+	 * 
+	 * Set or get filter field event handler, you can use this to customize the display result.. Example:
+	 * 
+	 *     @example
+	 *     autoCompleteObj.onGetFilterField(function(dataset, inputValue){});
+	 *   
+	 * @param {Function | undefined} onGetFilterField Filter field event handler.
+	 * @param {jslet.data.Dataset} onGetFilterField.dataset Dataset object.
+	 * @param {String} onGetFilterField.inputValue Input value.
+	 * @param {String} onGetFilterField.return Filter field name.
+	 * 
+	 * @return {this | Function}
+	 */
+	onGetFilterField: function(onGetFilterField) {
+		if(onGetFilterField === undefined) {
+			return this._onGetFilterField;
+		}
+		this._onGetFilterField = onGetFilterField;
+		return this;
+	},
+	
+<span id='jslet-ui-DBAutoComplete-method-isValidTemplateTag'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	isValidTemplateTag: function (el) {
+		return el.tagName.toLowerCase() == 'input' &amp;&amp;
+			el.type.toLowerCase() == 'text';
+	},
+
+<span id='jslet-ui-DBAutoComplete-method-doBlur'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	doBlur: function () {
+		var Z = this;
+		if (Z.el.disabled || Z.el.readOnly) {
+			return;
+		}
+		var	fldObj = Z._dataset.getField(Z._field);
+		if (fldObj.readOnly() || fldObj.disabled()) {
+			return;
+		}
+		if (Z.contentPanel &amp;&amp; Z.contentPanel.isShowing()) {
+			if(Z._isSelecting) {
+				return;
+			}
+			var value = Z.el.value, canBlur = true;
+			if(!Z._lookupField) {
+				fldObj = Z._dataset.getField(Z._field);
+				var	lkf = fldObj.lookup(),
+					lkds = lkf.dataset();
+				if(value.length &gt; 0 &amp;&amp; lkds.recordCount() === 0) {
+					canBlur = false;
+				}
+			}
+			if (Z.contentPanel &amp;&amp; Z.contentPanel.isShowing()) {
+				Z.contentPanel.closePopup();
+			}
+			Z.updateToDataset();
+			Z.refreshControl(jslet.data.RefreshEvent.updateRecordEvent(Z._field));
+			if(!canBlur) {
+				Z.el.focus();
+			}
+		} else {
+			Z.updateToDataset();
+			Z.refreshControl(jslet.data.RefreshEvent.updateRecordEvent(Z._field));
+		}
+	},
+
+	doChange: null,
+
+<span id='jslet-ui-DBAutoComplete-method-doKeydown'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	doKeydown: function (event) {
+		if (this.disabled || this.readOnly) {
+			return;
+		}
+		event = jQuery.event.fix( event || window.event );
+
+		var keyCode = event.which, 
+			Z = this.jslet,
+			K = jslet.ui.KeyCode;
+		if(keyCode &gt;= K.F1 &amp;&amp; keyCode &lt;= K.F12 || keyCode === K.SHIFT || keyCode === K.CONTROL || keyCode === K.ALT || 
+				keyCode === K.CAPSLOCK || keyCode === K.INSERT || keyCode === K.HOME || keyCode === K.END || 
+				keyCode === K.PAGEUP || keyCode === K.PAGEDOWN || keyCode === K.LEFT || keyCode === K.RIGHT) { 
+			return;
+		}
+		if(keyCode === K.ESCAPE &amp;&amp; Z.contentPanel) {
+			Z.contentPanel.closePopup();
+			return;
+		}
+		if (keyCode === K.UP || keyCode === K.DOWN) {
+			if(Z.contentPanel &amp;&amp; Z.contentPanel.isPop) {
+				var fldObj = Z._dataset.getField(Z._lookupField || Z._field),
+				lkf = fldObj.lookup(),
+				lkds = lkf.dataset();
+				if (keyCode === K.UP) { //up arrow
+					lkds.prior();
+					event.preventDefault();
+		       		event.stopImmediatePropagation();
+				}
+				if (keyCode === K.DOWN) {//down arrow
+					lkds.next();
+					event.preventDefault();
+		       		event.stopImmediatePropagation();
+				}
+			} else {
+				if(!Z.tableId()) {
+					Z._invokePopup();
+				}
+			}
+			return;
+		} 
+
+		if (keyCode === K.DELETE || keyCode === K.BACKSPACE || keyCode === K.IME) {
+			Z._invokePopup();
+			return;
+		}
+		if (keyCode !== K.ENTER &amp;&amp; keyCode !== K.TAB) {
+			Z._invokePopup();
+		} else if (Z.contentPanel) {
+			if(Z.contentPanel.isShowing()) {
+				Z.contentPanel.confirmSelect();
+			}
+		}
+	},
+
+<span id='jslet-ui-DBAutoComplete-method-doKeypress'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	doKeypress: function (event) {
+		if (this.disabled || this.readOnly) {
+			return;
+		}
+//		var keyCode = event.keyCode ? event.keyCode : 
+//			event.which	? event.which: event.charCode;
+//		var Z = this.jslet;
+//		if (keyCode != 13 &amp;&amp; keyCode != 9) {
+//			Z._invokePopup();
+//		} else if (Z.contentPanel) {
+//			if(Z.contentPanel.isShowing()) {
+//				Z.contentPanel.confirmSelect();
+//			}
+//		}
+	},
+
+	_invokePopup: function () {
+		var Z = this;
+		if (Z._timeoutHandler) {
+			clearTimeout(Z._timeoutHandler);
+		}
+		var delayTime = 100;
+		if (Z._minDelay) {
+			delayTime = parseInt(Z._minDelay);
+		}
+		
+		Z._timeoutHandler = setTimeout(function () {
+			Z._populate(Z.el.value); 
+		}, delayTime);
+	},
+
+	_getDefaultFilterFields: function(lookupFldObj) {
+		var Z = this;
+		if(Z._defaultFilterFields) {
+			return Z._defaultFilterFields;
+		}
+		var codeFld = lookupFldObj.codeField(),
+			nameFld = lookupFldObj.nameField(),
+			lkDs = lookupFldObj.dataset(),
+			codeFldObj = lkDs.getField(codeFld),
+			nameFldObj = lkDs.getField(nameFld),
+			arrFields = [];
+		if(codeFldObj &amp;&amp; codeFldObj.visible()) {
+			arrFields.push(codeFld);
+		}
+		if(codeFld != nameFld &amp;&amp; nameFldObj &amp;&amp; nameFldObj.visible()) {
+			arrFields.push(nameFld);
+		}
+		Z._defaultFilterFields = arrFields;
+		return arrFields;
+	},
+	
+	_getFilterFields: function(lkFldObj, inputValue) {
+		var Z = this;
+		var filterFlds = null;
+		
+		var eventFunc = jslet.getFunction(Z._onGetFilterField);
+		if (eventFunc) {
+			filterFlds = eventFunc.call(Z, lkFldObj.dataset(), inputValue);
+			jslet.Checker.test('DBAutoComplete.onGetFilterField#return', filterFlds).isString();
+		}
+		filterFlds = filterFlds || Z._filterFields;
+		var arrFields;
+		if (filterFlds) {
+			arrFields = filterFlds.split(',');
+		} else {
+			arrFields = Z._getDefaultFilterFields(lkFldObj);
+		}
+		if(arrFields.length === 0) {
+			throw new Error('Not specified [filter fields]!');
+		}
+		var filterValue = inputValue;
+		if (Z._matchMode == 'start') {
+			filterValue = filterValue + '%';
+		} else {
+			if (Z._matchMode == 'end') {
+				filterValue = '%' + filterValue;
+			} else {
+				filterValue = '%' + filterValue + '%';
+			}
+		}
+		var fldName, result = '';
+		for(var i = 0, len = arrFields.length; i &lt; len; i++) {
+			fldName = arrFields[i];
+			if(i &gt; 0) {
+				result += ' || ';
+			}
+			result += 'like([' + fldName + '],&quot;' + filterValue + '&quot;)';
+		}
+		return result;
+	},
+	
+	_populate: function (inputValue) {
+		var Z = this;
+		if (Z._minChars &gt; 0 &amp;&amp; inputValue &amp;&amp; inputValue.length &lt; Z._minChars) {
+			return;
+		}
+		var fldObj = Z._dataset.getField(Z._lookupField || Z._field),
+			lkFld = fldObj.lookup();
+		if (!lkFld) {
+			console.error(Z._field + ' is NOT a lookup field!');
+			return;
+		}
+		
+		var lkds = lkFld.dataset(),
+			oldFlag = lkds.autoRefreshHostDataset();
+		lkds.autoRefreshHostDataset(true);
+		try {
+			var	editFilter = lkFld.editFilter();
+			var eventFunc = jslet.getFunction(Z._beforePopup);
+			if (eventFunc) {
+				eventFunc.call(Z, lkds, inputValue, editFilter);
+			} else if (inputValue) {
+				var filter = Z._getFilterFields(lkFld, inputValue);
+				if(editFilter) {
+					if(filter) {
+						filter = '(' + editFilter + ') &amp;&amp; (' + filter + ')';
+					} else {
+						filter = editFilter;
+					}
+				}
+				lkds.filter(filter);
+				lkds.filtered(true);
+			} else {
+				if(editFilter) {
+					lkds.filter(editFilter);
+					lkds.filtered(true);
+				} else {
+					lkds.filter(null);
+					if(!lkds.fixedFilter()) {
+						lkds.filtered(false);
+					}
+				}
+			}
+		} finally {
+			lkds.autoRefreshHostDataset(oldFlag);
+		}
+		//Clear field value which specified by 'lookupField'.
+		if(Z._lookupField) {
+			var dataRec = Z._dataset.getRecord();
+			if(dataRec) {
+				dataRec[Z._lookupField] = null;
+			}
+		}
+		if (!Z.contentPanel) {
+			Z.contentPanel = new jslet.ui.DBAutoCompletePanel(Z);
+		} else {
+			if(Z.contentPanel.isShowing()) {
+				return;
+			}
+		}
+		var jqEl = jQuery(Z.el),
+			r = jqEl.offset(),
+			h = jqEl.outerHeight(),
+			x = r.left,
+			y = r.top + h;
+		
+		if (jsletlocale.isRtl){
+			x = x + jqEl.outerWidth() - Z.contentPanel.dlgWidth;
+		}
+		Z.contentPanel.showPopup(x, y, 0, h);
+	},
+	
+	_destroyPopPanel: function() {
+		var Z = this;
+		if (Z.contentPanel){
+			Z.contentPanel.destroy();
+			Z.contentPanel = null;
+		}
+	},
+		
+<span id='jslet-ui-DBAutoComplete-method-doLookupChanged'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	doLookupChanged: function (isMetaChanged) {
+		if(isMetaChanged) {
+			this._destroyPopPanel();
+		}
+	},
+	
+<span id='jslet-ui-DBAutoComplete-method-destroy'>	/**
+</span>	 * @override
+	 */
+	destroy: function($super){
+		this._destroyPopPanel();
+		jQuery(this.el).off();
+		$super();
+	}
+	
+});
+
+<span id='DBAutoCompletePanel'>/**
+</span> * @private
+ * @class DBAutoCompletePanel
+ * 
+ */
+jslet.ui.DBAutoCompletePanel = function (autoCompleteObj) {
+	var Z = this;
+	Z.dlgWidth = 320;
+	Z.dlgHeight = 180;
+
+	var lkf, lkds;
+	Z.comboCfg = autoCompleteObj;
+	Z.dataset = autoCompleteObj.dataset();
+	Z.field = autoCompleteObj.lookupField() || autoCompleteObj.field();
+	Z.lkDataset = null;
+
+	Z.confirmSelect = function () {
+		Z.comboCfg._isSelecting = true;
+		var fldValue = Z.lkDataset.keyValue();
+		if (fldValue || fldValue === 0) {
+			Z.dataset.setFieldValue(Z.field, fldValue, Z.valueIndex);			
+			Z.comboCfg.el.focus();
+		}
+		if (Z.comboCfg.afterSelect) {
+			Z.comboCfg.afterSelect(Z.dataset, Z.lkDataset);
+		}
+		Z.closePopup();
+	};
+
+	function create () {
+		if (!Z.panel) {
+			Z.panel = document.createElement('div');
+			Z.panel.style.width = '100%';
+			Z.panel.style.height = '100%';
+			jQuery(Z.panel).on(&quot;mousedown&quot;, function(event){
+				Z.comboCfg._isSelecting = true;
+				event.stopPropagation();
+			});
+		}
+		//process variable
+		var fldObj = Z.dataset.getField(Z.field),
+			lkfld = fldObj.lookup(),
+			lkds = lkfld.dataset();
+		Z.lkDataset = lkds;
+		var fields = lkds.getNormalFields(),
+			totalChars = 0;
+		for(var i = 0, len = fields.length; i &lt; len; i++) {
+			fldObj = fields[i];
+			if(fldObj.visible()) {
+				totalChars += fldObj.displayWidth();
+			}
+		}
+		var totalWidth = totalChars * (jslet.global.defaultCharWidth || 12) + 30;
+		Z.dlgWidth = totalWidth;
+		if(Z.dlgWidth &lt; 150) {
+			Z.dlgWidth = 150;
+		}
+		if(Z.dlgWidth &gt; 500) {
+			Z.dlgWidth = 500;
+		}
+
+		Z.panel.innerHTML = '';
+
+		var cntw = Z.dlgWidth - 4,
+			cnth = Z.dlgHeight - 4,
+			tableparam = { type: 'DBTable', dataset: lkds, readOnly: true, noborder:true, hasSelectCol: false, hasSeqCol: false, hideHead: true };
+		tableparam.onRowClick = Z.confirmSelect;
+
+		Z.otable = jslet.ui.createControl(tableparam, Z.panel, '100%', cnth);
+		Z.otable.el.focus();
+		Z.otable.el.style.border = &quot;0&quot;;
+		
+		return Z.panel;
+	}
+
+	Z.showPopup = function (left, top, ajustX, ajustY) {
+		Z.comboCfg._isSelecting = false;
+		Z.isPop = true;
+		Z.popup.show(left, top, Z.dlgWidth, Z.dlgHeight, ajustX, ajustY);
+	};
+
+	Z.doClosePopup = function () {
+		Z.isPop = false;
+		var oldRecno = Z.lkDataset.recno() || 0;
+		try {
+			Z.lkDataset.filter(null);
+		} finally {
+			if(oldRecno &gt;= 0) {
+				Z.lkDataset.recno(oldRecno);
+			}
+		}
+	};
+	
+	Z.closePopup = function () {
+		Z.popup.hide();
+	};
+	
+	Z.isShowing = function(){
+		return Z.isPop;
+	};
+	
+	create();
+	Z.popup = new jslet.ui.PopupPanel(autoCompleteObj.el);
+	Z.popup.contentElement(Z.panel);
+	Z.popup.onHidePopup(Z.doClosePopup);
+	Z.isPop = false;
+	
+	Z.destroy = function(){
+		jQuery(Z.panel).off();
+		Z.otable.onRowClick = null;
+		Z.otable.destroy();
+		Z.otable = null;
+		Z.panel = null;
+		Z.popup.destroy();
+		Z.popup = null;
+		Z.comboCfg = null;
+		Z.dataset = null;
+		Z.field = null;
+		Z.lkDataset = null;
+	};
+};
+
+jslet.ui.register('DBAutoComplete', jslet.ui.DBAutoComplete);
+jslet.ui.DBAutoComplete.htmlTemplate = '&lt;input type=&quot;text&quot;&gt;&lt;/input&gt;';
+</pre>
+</body>
+</html>

@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js"><span id='jslet-ui-ProgressBar'>/**
+</span> * @class
+ * @extend jslet.ui.Control
+ * 
+ * ProgressBar. Example:
+ * 
+ *     @example
+ *     var jsletParam = {type:&quot;ProgressBar&quot;,value:10, labelText: 'Starting...']};
+ * 
+ *     //1. Declaring:
+ *       &lt;div data-jslet='jsletParam' style=&quot;width: 300px&quot;&gt;&lt;/div&gt;
+ *  
+ *     //2. Binding
+ *       &lt;div id='ctrlId'&gt;&lt;/div&gt;
+ *     //Js snippet
+ *       var el = document.getElementById('ctrlId');
+ *      jslet.ui.bindControl(el, jsletParam);
+ *
+ *     //3. Create dynamically
+ *      jslet.ui.createControl(jsletParam, document.body);
+ *
+ */
+jslet.ui.ProgressBar = jslet.Class.create(jslet.ui.Control, {
+<span id='jslet-ui-ProgressBar-method-initialize'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	initialize: function ($super, el, params) {
+		var Z = this;
+		Z.el = el;
+		Z.allProperties = 'styleClass,value,labelText';
+
+		Z._value = 0;
+		
+		Z._labelText = '0%';
+		
+		Z._binded = false;
+		
+		$super(el, params);
+	},
+
+<span id='jslet-ui-ProgressBar-property-value'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get progress bar value.
+	 * 
+	 * @param {Integer | undefined} value Progress bar value.
+	 * 
+	 * @return {this | Integer}
+	 */
+	value: function(value) {
+		if(value === undefined) {
+			return this._value;
+		}
+		value = parseInt(value);
+		if(!value) {
+			value = 0;
+		}
+		if(value &lt; 0) {
+			value = 0;
+		}
+		if(value &gt; 100) {
+			value = 100;
+		}
+		this._value = value;
+		this._setValue();
+		return this;
+	},
+	
+<span id='jslet-ui-ProgressBar-property-labelText'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get progress bar label text.
+	 * 
+	 * @param {String | undefined} labelText Progress bar label text.
+	 * 
+	 * @return {this | String}
+	 */
+	labelText: function(labelText) {
+		if(labelText === undefined) {
+			return this._labelText;
+		}
+		this._labelText = labelText;
+		if(this._binded) {
+			var jqEl = jQuery(this.el);
+			var jqLabel = jqEl.find('.jl-progressbar-label');
+			jqLabel.text(labelText);
+		}
+		return this;
+	},
+		
+<span id='jslet-ui-ProgressBar-method-bind'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	bind: function () {
+		this.renderAll();
+		this._binded = true;
+	},
+
+<span id='jslet-ui-ProgressBar-method-renderAll'>	/**
+</span>	 * @override
+	 */
+	renderAll: function () {
+		var Z = this;
+		var jqEl = jQuery(Z.el);
+		if (!jqEl.hasClass('jl-progressbar')) {
+			jqEl.addClass('jl-progressbar jl-border-box jl-round5');
+		}
+		jqEl.attr('role', 'progressbar').attr('aria-valuemax', '100').attr('aria-valuemin', '0').attr('aria-valuenow', this._value);
+		jqEl.html('&lt;div class=&quot;jl-progressbar-label&quot;&gt;' + Z._labelText + '&lt;/div&gt;&lt;div class=&quot;jl-progressbar-value&quot;&gt;&lt;/div&gt;');
+	},
+	
+	_setValue: function() {
+		var Z = this;
+		if(!Z._binded) {
+			return;
+		}
+		var jqEl = jQuery(Z.el);
+		var jqLabel = jqEl.find('.jl-progressbar-label');
+		var jqValue = jqEl.find('.jl-progressbar-value');
+		Z._oldValue = -1;
+		var value = Z._value, strValue = value + '%';
+		if(value != Z._oldValue) {
+			jqLabel.text(strValue);
+			jqValue.css('width', strValue);
+			jqEl.attr('aria-valuenow', value);
+			Z._oldValue = value;
+		}
+	},
+	
+<span id='jslet-ui-ProgressBar-method-destroy'>	/**
+</span>	 * @override
+	 */
+	destroy: function($super){
+		$super();
+	}
+});
+jslet.ui.register('ProgressBar', jslet.ui.ProgressBar);
+jslet.ui.ProgressBar.htmlTemplate = '&lt;div&gt;&lt;/div&gt;';
+</pre>
+</body>
+</html>

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="../../css/demo.css" />
+    
+    <title>Jslet - 自定义绘制单元格</title>
+    <script type="text/javascript" data-main="../../config.js" src="../../lib/requirejs/require.min.js"></script>
+    <script type="text/javascript">
+	    require(['dbcontrol/table/cellrender']);
+    </script>
+</head>
+<body>
+    <div class="demo-header">
+    <h4 id="top">Jslet - 自定义绘制单元格</h4>
+	</div>
+	<hr />
+	<div id="tblEmployee" data-jslet="type: 'DBTable', dataset: 'employee',editable: true,editableFields:'name,gender,department'"></div>
+	<div class="demo-desc">
+	<p>演示内容：</p>
+    <p>直接在表格中显示“照片”。</p>
+	</div>
+	<hr />
+	<h4>源码</h4>
+    <pre class="prettyprint linenums"><code>
+	//datasetMetaStore定义在公共js:common/datasetmetastore.js中
+	//将数据集定义信息仓库加到datasetFactory中，创建Dataset时会仓库里去定义信息
+	jslet.data.datasetFactory.addMetaStore(window.datasetMetaStore);
+	//通过工厂方法，可以自动创建主数据集及相关的数据集
+    jslet.data.datasetFactory.createDataset('employee').done(function() {
+    	initialize();
+    });
+    
+    function initialize() {
+		var dsEmployee = jslet.data.getDataset('employee');
+		dsEmployee.query();
+	    //“照片”列的自定义绘制   	
+	    var photoCellRender = {
+	    	//创建单元格时
+	        createCell: function (otd, colCfg) {
+	            var oimg = document.createElement("img");
+	            oimg.style.width = "100%";
+	            oimg.style.height = "150px";
+	            otd.appendChild(oimg);
+	        },
+	
+	        //刷新单元格时
+	        refreshCell: function (otd, colCfg) {
+	            otd.firstChild.src = "../../photo/" + this.dataset().getFieldValue(colCfg.field);
+	        }
+	    };
+	    
+	    var tblCfg = { type: "DBTable", dataset: "employee", rowHeight: 150, onlySpecifiedCol: true,
+	        columns: [{ field: "id" }, { field: "name" }, { field: "age" }, { field: "photo", cellRender: photoCellRender}]
+	    };
+	    
+	    var tblEl = $('#tblEmployee')[0];
+	    jslet.ui.bindControl(tblEl, tblCfg);
+    }
+	</code></pre>
+
+    <script type="text/javascript">
+       window.LOADER_BASE_URL = "../../lib/prettify";
+    </script>
+    <script type="text/javascript" src="../../lib/prettify/run_prettify.js"></script>
+		
+</body>
+</html>

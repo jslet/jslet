@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="../../css/demo.css" />
+    
+    <title>Jslet - 表格基础功能</title>
+    <script type="text/javascript" data-main="../../config.js" src="../../lib/requirejs/require.min.js"></script>
+    <script type="text/javascript">
+	    require(['dbcontrol/table/basic']);
+    </script>
+</head>
+<body>
+    <div class="demo-header">
+    <h4 id="top">Jslet - 表格基础功能</h4>
+	</div>
+	<hr />
+	<div id="tblEmployee" data-jslet="type: 'DBTable', dataset: 'employee', hasSelectCol: true"></div>
+	<div class="demo-desc">
+	<p>演示以下内容：</p>
+	<ol class="content-list">
+    <li>
+        <input id="chkShowSeqenceCol" type="checkbox" checked >显示序号列&nbsp;</input>
+        <input id="chkShowSelectCol" type="checkbox" checked >显示选择列;
+	</li>
+		
+    <li>设置固定行: <input id="txtFixedRows" type="text" value="1" size="9" />&nbsp;
+			<button id="btnFixedRows"> 设置 </button>;
+	</li>
+			
+	<li>设置固定列: <input id="txtFixedCols" type="text" value="1" size="9" />&nbsp;
+			<button id="btnFixedCols"> 设置 </button>;
+	</li>
+			
+    <li>点击列头文字排序（升序/降序）; 按 <b>"CTRL" + 鼠标点击列头 </b>可进行多列排序；</li>
+		
+    <li>可拖动列头线改变列宽;</li>
+	
+    <li>可拖动列头改变列的显示顺序;</li>
+	
+    <li>支持键盘在单元格之间漫游；</li>
+	
+    <li>按“CTRL + A”支持全选；</li>
+	
+    <li>按“CTRL + C”支持复制到剪贴板；</li>
+	
+    <li>按“CTRL + F”弹出查找对话框；</li>
+	
+    <li>支持数据筛选，点击每一列的下拉箭头弹出筛选对话框；</li>
+    
+    <li>支持右键菜单；</li>
+	
+    <li>Boolean型字段自动显示为“Checked/Unchecked”图标形式</li>
+		
+    <li>设置行点击事件：<button id="btnSetRowClick"> 设置 </button><button id="btnClearRowClick"> 清除 </button>，设置后，单击表格行；
+	</li>
+			
+    <li>
+        设置行双击事件: <button id="btnSetRowDblClick"> 设置 </button><button id="btnClearRowDblClick"> 清除 </button>，设置后，双击表格行;
+	</li>
+			
+    <li>设置选择行事件: <button id="btnSetSelect" onclick="jslet('#tblEmployee').onSelect(doSelect)"> 设置 </button>
+			<button id="btnClearSelect" onclick="jslet('#tblEmployee').onSelect(null)"> 清除 </button>设置后，点击“选择列”;
+	</li>
+			
+    <li>
+        选择字段值相同的行: <input id="txtSelectBy" value="gender" size="20" />
+		<button id="btnSelectBy" onclick="jslet('#tblEmployee').selectBy($('#selectby').val())"> 设置  </button>, 
+		设置后，在表格中选择一行数据;
+	</li>
+	</ol>
+	</div>
+	<hr />
+	<h4>源码</h4>
+    <pre class="prettyprint linenums"><code>
+	//datasetMetaStore定义在公共js:common/datasetmetastore.js中
+	//将数据集定义信息仓库加到datasetFactory中，创建Dataset时会仓库里去定义信息
+	jslet.data.datasetFactory.addMetaStore(window.datasetMetaStore);
+	//通过工厂方法，可以自动创建主数据集及相关的数据集
+    jslet.data.datasetFactory.createDataset('employee').done(function() {
+    	jslet.ui.install(function() {
+    		var dsEmployee = jslet.data.getDataset('employee');
+    		dsEmployee.query();
+    	});
+    });
+    
+    //绑定按钮事件
+	$('#chkShowSeqenceCol').click(function() {
+		var checked = $('#chkShowSeqenceCol')[0].checked;
+		//设置表格是否有序号列
+		jslet('#tblEmployee').hasSeqCol(checked).renderAll();
+	});
+	
+	$('#chkShowSelectCol').click(function() {
+		var checked = $('#chkShowSelectCol')[0].checked;
+		//设置表格是否有选择列
+		jslet('#tblEmployee').hasSelectCol(checked).renderAll();
+	});
+	
+	$('#btnFixedRows').click(function() {
+		var count = parseInt($('#txtFixedRows').val());
+		//设置表格固定行数
+		jslet('#tblEmployee').fixedRows(count).renderAll();
+	});
+
+	$('#btnFixedCols').click(function() {
+		var count = parseInt($('#txtFixedCols').val());
+		//设置表格固定列数
+		jslet('#tblEmployee').fixedCols(count).renderAll();
+	});
+	
+	$('#btnSetRowClick').click(function() {
+		var dsEmployee = jslet.data.getDataset('employee');
+		//设置表格单击事件
+		jslet('#tblEmployee').onRowClick(function() {
+			jslet.ui.info('你点击了第：' + (dsEmployee.recno() + 1) + ' 行!', null, null, 1000); 
+		});
+	});
+	
+	$('#btnClearRowClick').click(function() {
+		//清除表格单击事件
+		jslet('#tblEmployee').onRowClick(null);
+	});
+	
+	$('#btnSetRowDblClick').click(function() {
+		var dsEmployee = jslet.data.getDataset('employee');
+		//设置表格双击事件
+		jslet('#tblEmployee').onRowClick(null); //先清除单击事件
+		jslet('#tblEmployee').onRowDblClick(function() {
+			jslet.ui.info('你双击了第：' + (dsEmployee.recno() + 1) + ' 行!', null, null, 1000); 
+		});
+	});
+	
+	$('#btnClearRowDblClick').click(function() {
+		//清除表格双击事件
+		jslet('#tblEmployee').onRowDblClick(null);
+	});
+	
+	$('#btnSetSelect').click(function() {
+		var dsEmployee = jslet.data.getDataset('employee');
+		//设置表格选择事件，
+		jslet('#tblEmployee').onSelect(function() {
+			jslet.ui.info('你选择了第：' + (dsEmployee.recno() + 1) + ' 行!', null, null, 1000); 
+		});
+	});
+	
+	$('#btnClearSelect').click(function() {
+		//清除表格选择
+		jslet('#tblEmployee').onSelect(null);
+	});
+	
+	$('#btnSelectBy').click(function() {
+		var dsEmployee = jslet.data.getDataset('employee');
+		var selectBy = $('#txtSelectBy').val();
+		//设置表格分组选择（相同值一起选择）
+		jslet('#tblEmployee').selectBy(selectBy);
+	});
+	</code></pre>
+
+    <script type="text/javascript">
+       window.LOADER_BASE_URL = "../../lib/prettify";
+    </script>
+    <script type="text/javascript" src="../../lib/prettify/run_prettify.js"></script>
+		
+</body>
+</html>

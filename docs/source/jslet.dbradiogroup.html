@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js"><span id='jslet-ui-DBRadioGroup'>/**
+</span> * @class 
+ * @extend jslet.ui.DBFieldControl
+ * 
+ * DBRadioGroup. Display a group of radio that user can select one option. Example:
+ * 
+ *     @example
+ *      var jsletParam = {type:&quot;DBRadioGroup&quot;,dataset:&quot;employee&quot;,field:&quot;department&quot;};
+ * 
+ *     //1. Declaring:
+ *      &lt;div data-jslet='type:&quot;DBRadioGroup&quot;,dataset:&quot;employee&quot;,field:&quot;department&quot;'' /&gt;
+ *      or
+ *      &lt;div data-jslet='jsletParam' /&gt;
+ * 
+ *     //2. Binding
+ *      &lt;div id=&quot;ctrlId&quot;  /&gt;
+ *      //Js snippet
+ *      var el = document.getElementById('ctrlId');
+ *      jslet.ui.bindControl(el, jsletParam);
+ *
+ *     //3. Create dynamically
+ *      jslet.ui.createControl(jsletParam, document.body);
+ */
+jslet.ui.DBRadioGroup = jslet.Class.create(jslet.ui.DBFieldControl, {
+<span id='jslet-ui-DBRadioGroup-method-initialize'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	initialize: function ($super, el, params) {
+		var Z = this;
+		Z.allProperties = 'styleClass,dataset,field,columnCount';
+		
+		Z._columnCount = 99999;
+		
+		Z._itemIds = null;
+		
+		$super(el, params);
+	},
+
+<span id='jslet-ui-DBRadioGroup-property-columnCount'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get column count.
+	 * 
+	 * @param {Integer | undefined} columnCount Column count.
+	 * 
+	 * @return {this | Integer}
+	 */
+	columnCount: function(columnCount) {
+		if(columnCount === undefined) {
+			return this._columnCount;
+		}
+		jslet.Checker.test('DBRadioGroup.columnCount', columnCount).isGTEZero();
+		this._columnCount = parseInt(columnCount);
+		return this;
+	},
+	
+<span id='jslet-ui-DBRadioGroup-method-isValidTemplateTag'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	isValidTemplateTag: function (el) {
+		var tagName = el.tagName.toLowerCase();
+		return tagName == 'div';
+	},
+
+<span id='jslet-ui-DBRadioGroup-method-bind'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	bind: function () {
+		var Z = this;
+		Z.renderAll();
+		var jqEl = jQuery(Z.el);
+		jqEl.on('keydown', function(event) {
+			var keyCode = event.which, idx, activeEle, activeId;
+			
+			if(keyCode === jslet.ui.KeyCode.LEFT) { //Arrow Left
+				if(!Z._itemIds || Z._itemIds.length === 0) {
+					return;
+				}
+				activeEle = document.activeElement;
+				activeId = activeEle &amp;&amp; activeEle.id;
+				
+				idx = Z._itemIds.indexOf(activeId);
+				if(idx === 0) {
+					return;
+				}
+				document.getElementById(Z._itemIds[idx - 1]).focus();
+				event.preventDefault();
+	       		event.stopImmediatePropagation();
+			} else if( keyCode === jslet.ui.KeyCode.RIGHT) { //Arrow Right
+				if(!Z._itemIds || Z._itemIds.length === 0) {
+					return;
+				}
+				activeEle = document.activeElement;
+				activeId = activeEle &amp;&amp; activeEle.id;
+				
+				idx = Z._itemIds.indexOf(activeId);
+				if(idx === Z._itemIds.length - 1) {
+					return;
+				}
+				document.getElementById(Z._itemIds[idx + 1]).focus();
+				event.preventDefault();
+	       		event.stopImmediatePropagation();
+			}
+		});
+		jqEl.on('click', 'input[type=&quot;radio&quot;]', function(event){
+			var ctrl = this;
+			window.setTimeout(function(){ //Defer firing 'updateToDataset' when this control is in DBTable to make row changed firstly.
+				event.delegateTarget.jslet.updateToDataset(ctrl);
+			}, 5);
+		});
+		jqEl.on('focus', 'input[type=&quot;radio&quot;]', function (event) {
+			jslet.ui.globalFocusManager.activeDataset(Z._dataset.name()).activeField(Z._field).activeValueIndex(Z._valueIndex);
+		});
+		jqEl.on('blur', 'input[type=&quot;radio&quot;]', function (event) {
+			jslet.ui.globalFocusManager.activeDataset(null).activeField(null).activeValueIndex(null);
+		});
+		jqEl.addClass('form-control');
+		jqEl.css('height', 'auto');
+	},
+
+<span id='jslet-ui-DBRadioGroup-method-doMetaChanged'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	doMetaChanged: function($super, metaName) {
+		$super(metaName);
+		var Z = this,
+			fldObj = Z._dataset.getField(Z._field);
+		if(!metaName || metaName == &quot;disabled&quot; || metaName == &quot;readOnly&quot; || metaName == 'tabIndex') {
+			var disabled = fldObj.disabled(),
+				readOnly = fldObj.readOnly();
+		
+			Z.disabled = disabled || readOnly;
+			disabled = Z.disabled;
+			var radios = jQuery(Z.el).find('input[type=&quot;radio&quot;]'),
+				required = fldObj.required(),
+				radioEle,
+				tabIdx = fldObj.tabIndex();
+			
+			for(var i = 0, cnt = radios.length; i &lt; cnt; i++){
+				radioEle = radios[i];
+				jslet.ui.setEditableStyle(radioEle, disabled, readOnly, false, required);
+				radioEle.tabIndex = tabIdx;
+			}
+		}
+	},
+	
+<span id='jslet-ui-DBRadioGroup-method-doValueChanged'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	doValueChanged: function() {
+		var Z = this;
+		if (Z._keep_silence_) {
+			return;
+		}
+		var value = Z.getValue(),
+			radios = jQuery(Z.el).find('input[type=&quot;radio&quot;]'), 
+			radio;
+		for(var i = 0, cnt = radios.length; i &lt; cnt; i++){
+			radio = radios[i];
+			radio.checked = (value == jQuery(radio.parentNode).attr('value'));
+		}
+	},
+	
+<span id='jslet-ui-DBRadioGroup-method-doLookupChanged'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	doLookupChanged: function () {
+		var Z = this;
+		var fldObj = Z._dataset.getField(Z._field), lkf = fldObj.lookup();
+		if (!lkf) {
+			console.error(jslet.formatMessage(jsletlocale.Dataset.lookupNotFound,
+					[fldObj.name()]));
+			return;
+		}
+		var lkds = lkf.dataset(),
+			cnt = lkds.recordCount();
+		if(cnt === 0) {
+			Z.el.innerHTML = jsletlocale.DBRadioGroup.noOptions;
+			return;
+		}
+		var oldRecno = lkds.recno();
+		try {
+			var template = ['&lt;table cellpadding=&quot;0&quot; cellspacing=&quot;0&quot;&gt;'],
+				isNewRow = false, 
+				itemId;
+			var editFilter = lkf.editFilter();
+			Z._innerEditFilterExpr = null;
+			var editItemDisabled = lkf.editItemDisabled();
+			if(editFilter) {
+				Z._innerEditFilterExpr = new jslet.data.Expression(lkds, editFilter);
+			}
+			var disableOption = false, k = -1;
+			
+			Z._itemIds = [];
+			for (var i = 0; i &lt; cnt; i++) {
+				lkds.recnoSilence(i);
+				disableOption = false;
+				if(Z._innerEditFilterExpr &amp;&amp; !Z._innerEditFilterExpr.eval()) {
+					if(!editItemDisabled) {
+						continue;
+					} else {
+						disableOption = true;
+					}
+				}
+				k++;
+				isNewRow = (k % Z._columnCount === 0);
+				if (isNewRow) {
+					if (k &gt; 0) {
+						template.push('&lt;/tr&gt;');
+					}
+					template.push('&lt;tr&gt;');
+				}
+				itemId = jslet.nextId();
+				Z._itemIds.push(itemId);
+				template.push('&lt;td style=&quot;white-space: nowrap;vertical-align:middle&quot; value=&quot;');
+				template.push(lkds.getFieldValue(lkf.keyField()));
+				template.push('&quot;&gt;&lt;input name=&quot;');
+				template.push(Z._field);
+				template.push('&quot; type=&quot;radio&quot; id=&quot;');
+				template.push(itemId);
+				template.push('&quot; ' + (disableOption? ' disabled': '') + '/&gt;&lt;label for=&quot;');
+				template.push(itemId);
+				template.push('&quot;&gt;');
+				template.push(lkf.getCurrentDisplayValue());
+				template.push('&lt;/label&gt;&lt;/td&gt;');
+			} // end while
+			if (cnt &gt; 0) {
+				template.push('&lt;/tr&gt;');
+			}
+			template.push('&lt;/table&gt;');
+			Z.el.innerHTML = template.join('');
+		} finally {
+			lkds.recnoSilence(oldRecno);
+		}
+		Z.doMetaChanged();
+	}, // end renderOptions
+
+	updateToDataset: function(currCheckBox) {
+		var Z = this;
+		if (Z._keep_silence_ || Z.disabled) {
+			return;
+		}
+		Z._keep_silence_ = true;
+		try {
+			Z._dataset.setFieldValue(Z._field, jQuery(currCheckBox.parentNode).attr('value'));
+			currCheckBox.checked = true;
+		} finally {
+			Z._keep_silence_ = false;
+		}
+	},
+	
+<span id='jslet-ui-DBRadioGroup-method-innerFocus'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	innerFocus: function() {
+		var itemIds = this._itemIds;
+		if (itemIds &amp;&amp; itemIds.length &gt; 0) {
+			document.getElementById(itemIds[0]).focus();
+		}
+	},
+	
+<span id='jslet-ui-DBRadioGroup-method-renderAll'>	/**
+</span>	 * @override
+	 */
+	renderAll: function () {
+		var Z = this, 
+			jqEl = jQuery(Z.el);
+		if(!jqEl.hasClass(&quot;jl-radiogroup&quot;)) {
+			jqEl.addClass(&quot;jl-radiogroup&quot;);
+		}
+		Z.refreshControl(jslet.data.RefreshEvent.updateAllEvent(), true);
+		return this;
+	},
+	
+<span id='jslet-ui-DBRadioGroup-method-destroy'>	/**
+</span>	 * @override
+	 */
+	destroy: function($super){
+		var jqEl = jQuery(this.el);
+		jqEl.off();
+		$super();
+	}
+});
+
+jslet.ui.register('DBRadioGroup', jslet.ui.DBRadioGroup);
+jslet.ui.DBRadioGroup.htmlTemplate = '&lt;div&gt;&lt;/div&gt;';
+</pre>
+</body>
+</html>

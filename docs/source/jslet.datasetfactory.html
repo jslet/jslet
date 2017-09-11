@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js"><span id='jslet-data-DatasetFactory'>/**
+</span> * @class
+ * 
+ * Dataset factory. Example:
+ * 
+ *     @example
+ *     var dsFactory = new jslet.data.DatasetFactory();
+ *     dsFactory.createDataset(''); 
+ */
+jslet.data.DatasetFactory = function() {
+	
+	this._maxCreatingLevels = {};
+	
+	this._creatingDatasets = [];
+	
+	this._metaStores = [];
+	
+	this._doDatasetCreatedDebounce = jslet.debounce(this._doDatasetCreated, 100);
+}
+
+jslet.data.DatasetFactory.prototype = {
+	
+<span id='jslet-data-DatasetFactory-method-addMetaStore'>	/**
+</span>	 * Add a dataset meta store object. Example:
+	 * 
+	 *     @example
+	 *     
+	 *     //Array meta store
+	 *     var datasetMetas = [{name: 'ds1', fields:[{name: 'field1', dataType: 'S', length: 20}, ...]}, ...];
+	 *     var arrayMetaStore = {
+	 *          getDatasetMeta: function(datasetName) {
+	 *              var dsMeta;
+	 *              for(var i = 0, len = datasetMetas.length; i++) {
+	 *                  dsMeta = datasetMetas[i];
+	 *                  if(dsMeta.name === datasetName) {
+	 *                      return dsMeta
+	 *                  }
+	 *              }
+	 *              return null;
+	 *          }
+	 *     }
+	 *     jslet.data.datasetFactory.addMetaStore(arrayMetaStore);
+	 *     
+	 *     //IndexedDB meta store
+	 *     var indexedDBMetaStore = new jslet.data.IndexedDBMetaStore('demo');
+	 *     jslet.data.datasetFactory.addMetaStore(indexedDBMetaStore);
+	 *     
+	 * @param {jslet.data.DatasetMetaStore} metaStore A meta store object.
+	 * 
+	 * @return {this}
+	 */
+	addMetaStore: function(metaStore) {
+		jslet.Checker.test('DatasetFactory.addMetaStore', metaStore).required();
+		jslet.Checker.test('DatasetMetaStore.getDatasetMeta', metaStore.getDatasetMeta).required().isFunction();
+		this._metaStores.push(metaStore);
+		return this;
+	},
+	
+<span id='jslet-data-DatasetFactory-method-createDataset'>	/**
+</span>	 * Create dataset with dataset configuration which is stored in other place, like DB, IndexedDB.&lt;br /&gt;
+	 * It will fire global event: {@link jslet.global.dataset#onDatasetCreating}, you can listen this event, load dataset configuration and create it.&lt;br /&gt;
+	 * This method will not return dataset object. You can call {@link jslet.data#getDataset} to get the dataset object. 
+	 * 
+	 * @fires onDatasetCreating 
+	 * 
+	 * @param {String | String[]} datasetNames Dataset name;
+	 * @param {Object} creatingOption Creating option, pattern:
+	 * {maxCreatingLevel: x, includeFields: ['fieldName1','fieldName2',...], excludeFields: ['fieldName8',...], onlyLookupFields: true|false}
+	 * @param {Integer} creatingOption.maxCreatingLevel Specified the max creating level when creating dataset nested(host dataset -&gt; lookup dataset -&gt; lookup dataset-&gt; ...). 
+	 * @param {String[]} creatingOption.includeFields Only create dataset with the specified field names.
+	 * @param {String[]} creatingOption.excludeFields Create dataset without the specified field names.
+	 * @param {String[]} creatingOption.visibleFields Visible field names.
+	 * @param {Boolean} creatingOption.onlyLookupFields If onlyLookupFields is true, it will create dataset with fields which specified by the following dataset's properties: keyField, codeField, nameField, parentField and statusField;
+	 * @param {jslet.data.DatasetType} creatingOption.datasetType The optional values are:  jslet.data.DatasetType.NORMAL, jslet.data.DatasetType.LOOKUP, jslet.data.DatasetType.DETAIL;
+	 * @param {String} creatingOption.realDatasetName Dataset creator uses &quot;realDatasetName&quot; to load dataset records.
+	 * @param {String} creatingOption.hostDatasetName Host dataset name.
+	 */
+	createDataset: function(datasetNames, creatingOption) {
+		var Z = this;
+		if(!Z._metaStores || Z._metaStores.length === 0) {
+			throw new Error(jsletlocale.DatasetFactory.datasetMetaStoreRequired);
+		}
+		jslet.Checker.test('createDataset#datasetNames', datasetNames).required();
+		var deferred = jQuery.Deferred();
+		function beforeCreateOneDataset(dsName, creatingOption) {
+			var dsObj = jslet.data.getDataset(dsName);
+			if(dsObj) {
+				return null;
+			}
+			console.log('Creating dataset: ' + dsName)
+			var dsType = null, hostDsName = null;
+			if(creatingOption) {
+				var hostDsName = creatingOption.hostDatasetName;
+				if(hostDsName &amp;&amp; !Z._canCreatingDataset(hostDsName)) {
+					return null;
+				}
+				if(creatingOption.maxCreatingLevel) {
+					Z._maxCreatingLevels[dsName] = creatingOption.maxCreatingLevel;
+				}
+				dsType = creatingOption.datasetType;
+				hostDsName = creatingOption.hostDatasetName;
+			}
+			var isLookup = dsType &amp;&amp; dsType === jslet.data.DatasetType.LOOKUP;
+			Z._startCreateDataset(dsName, hostDsName, isLookup);
+			return dsName;
+		};
+		
+		function doCreate(dsName, creatingOption, metaStoreIndex) {
+			var metaStoreIndex = metaStoreIndex || 0;
+			if(metaStoreIndex &gt; Z._metaStores.length - 1) {
+				Z._innerCreateDataset(dsName, null, null, deferred);
+				return;
+			}
+			var metaStore = Z._metaStores[metaStoreIndex];
+			var realDsName = dsName;
+			if(creatingOption &amp;&amp; creatingOption.realDatasetName) {
+				realDsName = creatingOption.realDatasetName;
+			}
+			var result = metaStore.getDatasetMeta(dsName);
+			if(result &amp;&amp; result.done) { //return promise;
+				result.done(function(dsMeta) {
+					if(dsMeta) {
+						Z._innerCreateDataset(dsName, dsMeta, creatingOption, deferred);
+					} else {
+						doCreate(dsName, creatingOption, metaStoreIndex + 1);
+					}
+				}).fail(function() {
+						doCreate(dsName, creatingOption, metaStoreIndex + 1);
+				});
+			} else {
+				if(result) {
+					Z._innerCreateDataset(dsName, result, creatingOption, deferred);
+				} else {
+					doCreate(dsName, creatingOption, metaStoreIndex + 1);
+				}
+			}
+		}
+		
+		var dsName;
+		if(jslet.isArray(datasetNames)) {
+			var arrNames = [], i,
+				len = datasetNames.length;
+			for(i = 0; i &lt; len; i++) {
+				dsName = datasetNames[i];
+				dsName = Z._beforeCreateOneDataset(dsName, creatingOption);
+				if(dsName) {
+					arrNames.push(dsName);
+				}
+			}
+			len = arrNames.length;
+			for(i = 0; i &lt; len; i++) {
+				doCreate(arrNames[i], creatingOption);
+			}
+		} else {
+			if(beforeCreateOneDataset(datasetNames, creatingOption)) {
+				doCreate(datasetNames, creatingOption);
+			}
+		}
+		return deferred.promise();
+	},
+
+	_innerCreateDataset: function(dsName, dsMeta, creatingOption, deferred) {
+		if(!dsMeta) {
+			throw new Error(jslet.formatMessage(jsletlocale.DatasetFactory.metaNotFound, [dsName]));
+		}
+		if(!dsMeta.isEnum &amp;&amp; creatingOption &amp;&amp; creatingOption.datasetType === jslet.data.DatasetType.LOOKUP) {
+			dsMeta = jQuery.extend({}, dsMeta);
+			this._filterOutLookupFields(dsMeta, creatingOption);
+		}
+
+		dsMeta.createdByFactory = true;
+		var dsObj = new jslet.data.Dataset(dsMeta);
+		
+		//Create dataset query criteria dataset
+		if(dsMeta.criteriaFields) {
+			var queryMeta = {name: dsName + '_criteria', fields: dsMeta.criteriaFields};
+			new jslet.data.Dataset(queryMeta);
+		}
+		this._doDatasetCreatedDebounce.call(this, deferred);
+	},
+	
+	_filterOutLookupFields: function(dsMeta, creatingOption) {
+		var	onlyLookupFields = creatingOption.onlyLookupFields? true: false,
+			includeFields = creatingOption.includeFields,
+			excludeFields = creatingOption.excludeFields,
+			visibleFields = creatingOption.visibleFields;
+		var enableFields = {}, filtered = false, 
+			codeField = dsMeta.codeField,
+			nameField = dsMeta.nameField;
+		if(creatingOption.onlyLookupFields) {
+			filtered = true;
+			if(dsMeta.keyField) {
+				enableFields[dsMeta.keyField] = true;
+			}
+			if(codeField) {
+				enableFields[codeField] = true;
+			}
+			if(nameField) {
+				enableFields[nameField] = true;
+			}
+			if(dsMeta.parentField) {
+				enableFields[dsMeta.parentField] = true;
+			}
+			if(dsMeta.statusField) {
+				enableFields[dsMeta.statusField] = true;
+			}
+		}
+		var i, len, fldName;
+		if(includeFields) {
+			filtered = true;
+			for(i = 0, len = includeFields.length; i &lt; len; i++) {
+				enableFields[includeFields[i]] = true;
+			}
+		}
+		if(excludeFields) {
+			filtered = true;
+			for(i = 0, len = excludeFields.length; i &lt; len; i++) {
+				fldName = excludeFields[i];
+				if(enableFields[fldName]) {
+					enableFields[fldName] = false;
+				}
+			}
+		}
+		var fields = dsMeta.fields, fldCfg,
+			filteredFields = [];
+		
+		for(i = 0, len = fields.length; i &lt; len; i++) {
+			fldCfg = fields[i];
+			fldName = fldCfg.name;
+			if(!filtered || filtered &amp;&amp; enableFields[fldName]) {
+				fldCfg = jQuery.extend({}, fldCfg);
+				filteredFields.push(fldCfg);
+				if(visibleFields &amp;&amp; visibleFields.indexOf(fldName) &gt;= 0) {
+					fldCfg.visible = true;
+				} else {
+					fldCfg.visible = (fldName == codeField || fldName == nameField);
+				}
+			}
+		}
+		dsMeta.fields = filteredFields;
+	},
+		
+	_startCreateDataset: function(dsName, hostDsName, isLookup) {
+		var hostDsCfg;
+		if(hostDsName) {
+			hostDsCfg = this._getDsCfg(hostDsName);
+			if(!hostDsCfg) {
+				hostDsCfg = {name: hostDsName, level: 0, relative: []};
+				this._creatingDatasets.push(hostDsCfg);
+			}
+			if(!this._getDsCfg(dsName)) {
+				var relative = hostDsCfg.relative;
+				if(!relative) {
+					hostDsCfg.relative = [];
+					relative = hostDsCfg.relative;
+				}
+				relative.push({name: dsName, level: (isLookup? hostDsCfg.level + 1: 0), parent: hostDsCfg});
+			}
+			console.debug(dsName + '-&gt;' + hostDsName);
+		}
+	},
+	
+	_canCreatingDataset: function(hostDsName) {
+		var hostDsCfg = this._getDsCfg(hostDsName);
+		if(!hostDsCfg) {
+			return true;
+		}
+		var dsCfg = hostDsCfg;
+		var maxLevel = 0;
+		while(true) {
+			if(!dsCfg.parent) {
+				maxLevel = this._maxCreatingLevels[dsCfg.name];
+				break;
+			}
+			dsCfg = dsCfg.parent;
+		}
+		if(maxLevel &amp;&amp; hostDsCfg.level === maxLevel) {
+			return false
+		}
+		return true;
+	},
+	
+	_checkAllCreated: function(hostDsCfg) {
+		var result = true, 
+			dsCfg, 
+			relative = hostDsCfg.relative;
+		
+		for(var i = 0, len = relative.length; i &lt; len; i++) {
+			dsCfg = relative[i];
+			if(!jslet.data.getDataset(dsCfg.name)) {
+				return false;
+			}
+			if(dsCfg.relative) {
+				result = this._checkAllCreated(dsCfg);
+				if(!result) {
+					return false;
+				}
+			}
+		}
+		return true;
+	},
+	
+	_getDsCfg: function(dsName, datasets) {
+		if(!dsName) {
+			return null;
+		}
+		var datasets, dsCfg;
+		if(datasets === undefined) {
+			datasets = this._creatingDatasets;
+		}
+		for(var i = 0, len = datasets.length; i &lt; len; i++) {
+			dsCfg = datasets[i];
+			if(dsCfg.name == dsName) {
+				return dsCfg;
+			}
+			if(dsCfg.relative) {
+				dsCfg = this._getDsCfg(dsName, dsCfg.relative);
+				if(dsCfg) {
+					return dsCfg;
+				}
+			}
+		}
+		return null;
+	},
+	
+	_doDatasetCreated: function(deferred) {
+		var datasets = this._creatingDatasets,
+			rootDsCfg, rootDsName,
+			allCreated = true;
+		for(var i = datasets.length - 1; i &gt;= 0; i--) {
+			rootDsCfg = datasets[i];
+			rootDsName = rootDsCfg.name;
+			if(this._checkAllCreated(rootDsCfg)) {
+				datasets.splice(i, 1);
+				delete this._maxCreatingLevels[rootDsName];
+			} else {
+				allCreated = false;
+				break;
+			}
+		}
+		if(allCreated) {
+			deferred.resolve();
+		}
+	}
+}
+jslet.data.datasetFactory = new jslet.data.DatasetFactory();
+
+<span id='jslet-data-DatasetMetaStore'>/**
+</span> * @class
+ * 
+ * This class is a interface for datase meta. Any class which exists 'getDatasetMeta' method can be as a datase meta store. &lt;br /&gt;
+ * Dataset meta store can be an object array, IndexedDB object or a query from server side. &lt;br /&gt;  
+ * we extremely suggest you store dataset meta to IndexedDB.
+ */
+jslet.data.DatasetMetaStore = {
+<span id='jslet-data-DatasetMetaStore-method-getDatasetMeta'>	/**
+</span>	 * This method will be called by jslet.data.DatasetFactory. Do not call it manually. &lt;br /&gt;
+	 * This method uses to get dataset meta when creating dataset. &lt;br /&gt;
+	 * It can be called asynchronously or synchronously. Example:
+	 * 
+	 *     @example
+	 *     //synchronously
+	 *     function getDatasetMeta(dsName) {
+	 *          var defer = jQuery.Deferred();
+	 *          var getMetaUrl = ...;
+	 *          var settings = ...;
+	 *          jQuery.ajax(getMetaUrl, settings).done(function(datasetMeta, textStatus, jqXHR) {
+	 *          	defer.resolve(datasetMeta);
+	 *          })
+	 *          return defer.promise();
+	 *     }
+	 * 
+	 *     //synchronously
+	 *     var datasetMetas = [{name: '',....}], dsMeta;
+	 *     function getDatasetMeta(dsName) {
+	 *          for(var i = 0, len = datasetMetas.length; i &lt; len; i++) {
+	 *              dsMeta = datasetMetas[i];
+	 *              if(dsMeta.name == dsName) {
+	 *                  return dsMeta;
+	 *              }
+	 *          }
+	 *          return null;
+	 *     }
+	 *     
+	 * 		
+	 * @param {String} datasetName The creating dataset name.
+	 * 
+	 * @return {Promise | Object} Dataset meta, see example to get more.
+	 */
+	getDatasetMeta: function(datasetName) {}
+}</pre>
+</body>
+</html>

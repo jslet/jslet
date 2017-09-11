@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="../../css/demo.css" />
+    
+    <title>Jslet - Message Box</title>
+    <script type="text/javascript" data-main="../../config.js" src="../../lib/requirejs/require.min.js"></script>
+    <script type="text/javascript">
+	    require(['control/basic/messagebox']);
+    </script>
+</head>
+<body>
+    <div class="demo-header">
+    <h4 id="top">Jslet - Message Box
+    </h4>
+	</div>
+	<hr />
+	<div>
+	<h4>提示类消息框</h4>
+    <p><button id="btnInfo1" class="btn btn-default btn-sm"> 单行消息（提示） </button>
+    <button id="btnInfo2" class="btn btn-default btn-sm"> 多行信息（提示） </button> 
+    <button id="btnInfo3" class="btn btn-default btn-sm"> 1s后关闭（提示） </button>
+    <button id="btnInfo4" class="btn btn-default btn-sm"> 关闭后回调（提示） </button> </p>
+
+    <p><button id="btnError" class="btn btn-default btn-sm"> 错误消息 </button>
+
+   <button id="btnWarn" class="btn btn-default btn-sm" > 警告消息 </button> </p>
+    <hr />
+	<h4>选择类消息框</h4>
+    <p><button id="btnConfirmCancel" class="btn btn-default btn-sm"> 确认/取消 </button><span id="result2" class="result"></span> </p>
+    <p><button id="btnYesNoCancel" class="btn btn-default btn-sm"> 是/否/取消 </button><span id="result3" class="result"></span> </p>
+	<h4>输入消息框</h4>
+    <p><button id="btnInput" onclick='openwin4();' class="btn btn-default btn-sm"> 单行输入框 </button><span id="result4" class="result"></span> </p>
+    <p><button id="btnMultInput" onclick='openwin5();' class="btn btn-default btn-sm"> 多行输入框 </button><span id="result5" class="result"></span> </p>
+	</div>
+	<hr />
+	<h4>源码</h4>
+    <pre class="prettyprint linenums"><code>
+	//绑定按钮事件
+	$('#btnInfo1').click(function(){
+		//单行消息（提示）
+		jslet.ui.info("Hello world!");
+	});
+	
+	$('#btnInfo2').click(function(){
+		//多行消息（提示）
+		jslet.ui.info("First line message<br />Second line message");
+	});
+	
+	$('#btnInfo3').click(function(){
+		//1s后关闭（提示）
+		jslet.ui.info("You has to fill that blank!", "Tips", null, 1000);
+	});
+	
+	$('#btnInfo4').click(function(){
+		//关闭后回调（提示） 
+		jslet.ui.info("Hello world!", null, function() {
+			alert('Callback Run!');
+		});
+	});
+
+	$('#btnError').click(function(){
+		//1s后关闭（错误）
+		jslet.ui.error("You made a mistake!", null, null, 1000);
+	});
+	
+	$('#btnWarn').click(function(){
+		//1s后关闭（警告）
+		jslet.ui.warn("You has to fill that blank!", null, null, 1000);
+	});
+	
+	$('#btnConfirmCancel').click(function(){
+		//确认/取消
+		function callBack(button){
+			$("#result2").html("You click button:" + button);
+		}
+		
+		jslet.ui.confirm("Are you sure to save this?", "Confirm", callBack);
+	});
+	
+	$('#btnYesNoCancel').click(function(){
+		//是/否/取消
+		function callBack(button){
+			$("#result3").html("你点击的按钮为: " + button);
+		}
+		
+		jslet.ui.confirm("Are you sure to save this?", null, callBack, true);
+	});
+	
+	$('#btnInput').click(function(){
+		//单行输入框）
+		//回调函数
+		function callBack(button, inputValue) {
+			if (button == "ok")
+            	$("#result4").html("你输入的文件名为:" + inputValue);
+            else
+            	$("#result4").html("你点击了取消按钮！");
+		}
+		
+		//输入值校验函数
+		function validate(inputValue) {
+			if (!inputValue) {
+				jslet.ui.info("必须录入文件名!");
+				return false;
+			}
+			return true;
+        }
+		
+        jslet.ui.prompt("请输入文件名：", "输入文件名", callBack, "test.txt", validate);
+	});
+	
+	$('#btnMultInput').click(function(){
+		//多行输入框
+		function callBack(button, inputValue) {
+			if (button == "ok")
+				$("#result5").html("你的输入值为:" + inputValue);
+			else
+				$("#result5").html("你点击了取消按钮！");
+		}
+		
+        jslet.ui.prompt("请输入说明：", "输入说明", callBack, "", null, true);
+	});	
+	</code></pre>
+
+    <script type="text/javascript">
+		window.LOADER_BASE_URL = "../../lib/prettify";
+    </script>
+    <script type="text/javascript" src="../../lib/prettify/run_prettify.js"></script>
+		
+</body>
+</html>

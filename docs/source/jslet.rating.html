@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js"><span id='jslet-ui-Rating'>/**
+</span> * @class 
+ * @extend jslet.ui.DBFieldControl
+ * 
+ * DBRating. A control which usually displays some star to user, and user can click to rate something. Example:
+ * 
+ *     @example
+ *      var jsletParam = {type:&quot;DBRating&quot;,dataset:&quot;employee&quot;,field:&quot;grade&quot;, itemCount: 5};
+ * 
+ *     //1. Declaring:
+ *      &lt;div data-jslet='type:&quot;DBRating&quot;,dataset:&quot;employee&quot;,field:&quot;grade&quot;', itemCount: 5' /&gt;
+ *      or
+ *      &lt;div data-jslet='jsletParam' /&gt;
+ * 
+ *     //2. Binding
+ *      &lt;div id=&quot;ctrlId&quot;  /&gt;
+ *      //Js snippet
+ *      var el = document.getElementById('ctrlId');
+ *      jslet.ui.bindControl(el, jsletParam);
+ *
+ *     //3. Create dynamically
+ *      jslet.ui.createControl(jsletParam, document.body);
+ */
+jslet.ui.Rating = jslet.Class.create(jslet.ui.DBFieldControl, {
+	_isDBControl: false,
+	
+<span id='jslet-ui-Rating-method-initialize'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	initialize: function ($super, el, params) {
+		var Z = this;
+		Z.allProperties = 'styleClass,value,itemCount,splitCount,readOnly';
+		
+		Z._itemCount = 5;
+
+		Z._splitCount = 0;
+		
+		Z._itemWidth = 0;
+		
+		Z._value = 0;
+		
+		Z._readOnly = false;
+		
+		Z._isReady = false;
+		
+		$super(el, params);
+	},
+
+<span id='jslet-ui-Rating-property-itemCount'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get the rate item count, In other words, the count of 'Star' sign.
+	 * 
+	 * @param {Integer | undefined} itemCount Rate item count.
+	 * 
+	 * @return {this | Integer}
+	 */
+	itemCount: function(itemCount) {
+		if(itemCount === undefined) {
+			return this._itemCount;
+		}
+		jslet.Checker.test('DBRating.itemCount', itemCount).isGTZero();
+		this._itemCount = parseInt(itemCount);
+		return this;
+	},
+
+<span id='jslet-ui-Rating-property-value'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get the rating value.
+	 * 
+	 * @param {Number | undefined} value Rating value.
+	 * 
+	 * @return {this | Number}
+	 */
+	value: function(value) {
+		if(value === undefined) {
+			return this._value;
+		}
+		jslet.Checker.test('DBRating.value', value).isGTZero();
+		this._value = value;
+		if(this._isReady) {
+			this._setValue(value);
+		}
+		return this;
+	},
+
+<span id='jslet-ui-Rating-property-readOnly'>	/**
+</span>	 * @property
+	 * 
+	 * Identity whether the rating is read only or not.
+	 * 
+	 * @param {Boolean | undefined} readOnly True - the rating is read only, false - otherwise.
+	 * 
+	 * @return {this | Boolean}
+	 */
+	readOnly: function(readOnly) {
+		if(readOnly === undefined) {
+			return this._readOnly;
+		}
+		this._readOnly = readOnly? true: false;
+		return this;
+	},
+
+<span id='jslet-ui-Rating-property-splitCount'>	/**
+</span>	 * @property
+	 * 
+	 * Value splitCount for one item. &lt;br /&gt;
+	 * if &quot;splitCount&quot; is 0.5, the possible value will be 0.5, 1, 1.5, ... &lt;br /&gt;
+	 * if &quot;splitCount&quot; is 0.25, the possible value will be 0.25, 0.5, 0.75, 1, 1.25, 1.5, ... 
+	 * 
+	 * @param {Integer | undefined} splitCount 
+	 * 
+	 * @return {this | Integer}
+	 */
+	splitCount: function(splitCount) {
+		if(splitCount === undefined) {
+			return this._splitCount;
+		}
+		jslet.Checker.test('DBRating.splitCount', splitCount).isGTEZero();
+		this._splitCount = splitCount;
+		return this;
+	},
+
+<span id='jslet-ui-Rating-method-isValidTemplateTag'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	isValidTemplateTag: function (el) {
+		return el.tagName.toLowerCase() == 'div';
+	},
+
+<span id='jslet-ui-Rating-method-bind'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	bind: function () {
+		var Z = this,
+			jqEl = jQuery(Z.el);
+		if (!jqEl.hasClass('jl-rating')) {
+			jqEl.addClass('jl-rating');
+		}
+
+		Z.renderAll();
+		jqEl.on('mousemove', 'td', jQuery.proxy(Z._mouseMove, Z));
+		jqEl.on('mouseleave', jQuery.proxy(Z._mouseOut, Z));
+		jqEl.on('mouseup', 'td', jQuery.proxy(Z._mouseUp, Z));
+		Z._isReady = true;
+	},
+
+<span id='jslet-ui-Rating-method-renderAll'>	/**
+</span>	 * @override
+	 */
+	renderAll: function () {
+		var Z = this,
+			jqEl = jQuery(Z.el),
+			i, len, 
+			html1 = '',
+			html2 = '',
+			sTd = '&lt;td&gt;&lt;i class=&quot;fa fa-star&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;/td&gt;';
+		for(i = 0, len = Z._itemCount; i &lt; len; i++) {
+			html1 += sTd;
+			html2 += sTd;
+		}
+		var html = '&lt;div class=&quot;jl-rating&quot;&gt;&lt;table&gt;&lt;tr&gt;' + html1 +
+			'&lt;/tr&gt;&lt;/table&gt;&lt;div class=&quot;jl-rating-value&quot;&gt;&lt;table&gt;&lt;tr&gt;' + html2 + 
+			'&lt;/tr&gt;&lt;/table&gt;&lt;/div&gt;&lt;/div&gt;';
+		jqEl.html(html);
+		window.setTimeout(function() {
+			Z._itemWidth = jqEl.find('td:first').outerWidth();
+			Z._setValue(Z._value);
+		}, 5);
+		return this;
+	},
+
+	_mouseMove: function domove(event) {
+		var Z = this;
+		if (Z._readOnly) {
+			return;
+		}
+		var jqEl = jQuery(Z.el);
+		jqEl.find('.jl-rating-value').width(Z._getMovedWidth(event));
+		Z._changed = true;
+	},
+
+	_getMovedWidth: function(event) {
+		var otd = event.currentTarget,
+			cellIndex = otd.cellIndex;
+		return this._itemWidth * cellIndex + event.offsetX;
+	},
+	
+	_mouseOut: function doout(event) {
+		var Z = this;
+		if (Z._readOnly) {
+			return;
+		}
+		if(Z._changed) {
+			Z._setValue(Z._value);
+		}
+	},
+
+	_mouseUp: function dodown(event) {
+		var Z = this;
+		if (Z._readOnly) {
+			return;
+		}
+		Z._changed = false;
+		var jqEl = jQuery(Z.el),
+			movedWidth = Z._getMovedWidth(event);
+
+		Z._value = Z._round(Z._itemCount * movedWidth / (Z._itemCount * Z._itemWidth));
+		Z.doUIChanged();
+	},
+	
+	_round: function(value) {
+		var splitCount = this._splitCount;
+		if(!splitCount || splitCount === 1) {
+			return Math.ceil(value);
+		}
+		var intPart = parseInt(value),
+			decPart = value - intPart,
+			unit = 1 / splitCount,
+			ceil;
+		for(var i = 1, len = splitCount; i &lt;= len; i++) {
+			ceil = i * unit;
+			if(decPart &lt; ceil) {
+				return intPart + ceil; 
+			}
+		}
+		return value;
+	},
+	
+	_setValue: function(value) {
+		jslet.Checker.test('Rating.value', value).isNumber();
+		if(value &lt; 0) {
+			value = 0;
+		}
+		var Z = this,
+			itemCnt = Z._itemCount;
+		if(value &gt; itemCnt) {
+			value = itemCnt;
+		}
+		var jqEl = jQuery(Z.el);
+		jqEl.find('.jl-rating-value').width(value * Z._itemWidth);
+	},
+	
+<span id='jslet-ui-Rating-method-destroy'>	/**
+</span>	 * @override
+	 */
+	destroy: function($super){
+		var jqEl = jQuery(this.el);
+		jqEl.off();
+		
+		$super();
+	}
+	
+});
+
+jslet.ui.register('Rating', jslet.ui.Rating);
+jslet.ui.Rating.htmlTemplate = '&lt;Div&gt;&lt;/Div&gt;';
+</pre>
+</body>
+</html>

@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js"><span id='jslet-ui-BatchEditDialog'>/**
+</span> * A dialog for dataset batch editing. Example:
+ * 
+ *     @example
+ *     var dialog = new jslet.ui.BatchEditDialog(dsObj, 'fld1,fld2');
+ *     dialog.show();
+ *       
+ * @param {jslet.data.Dataset | String} dataset Dataset object or dataset name which need to be modified in bulk.
+ * @param {String[] | String} editFields A String array or a string which separate by comma, to identify which fields will be modified in bulk.
+ */
+jslet.ui.BatchEditDialog = function(dataset, editFields) {
+	jslet.Checker.test('BatchEditDialog#dataset', dataset).required();
+	if(editFields &amp;&amp; jslet.isString(editFields)) {
+		editFields = editFields.split(',');
+	}
+	jslet.Checker.test('BatchEditDialog#editFields', editFields).isArray();
+	dataset = jslet.data.getDataset(dataset);
+	var Z = this;
+	Z._dataset = dataset;
+	Z._editFields = editFields;
+	Z._onChanging = null;
+	Z._batchDataset = new jslet.data.Dataset({name: dataset.name() + '_batch' + jslet.nextId(), fields: []});
+	var fields = dataset.getEditableFields(), 
+		fldName, i;
+	if(editFields &amp;&amp; editFields.length &gt; 0) {
+		for(i = editFields.length - 1; i &gt;= 0; i--) {
+			fldName = editFields[i];
+			if(fields.indexOf(fldName) &lt; 0) {
+				editFields.splice(i, 1);
+			}
+		}
+		fields = editFields;
+	}
+	var fldObj;
+	for(i = fields.length - 1; i &gt;= 0; i--) {
+		fldName = fields[i];
+		fldObj = dataset.getField(fldName);
+		//If the field value is unique, it can't be batch modified.
+		if(fldObj.unique()) {
+			fields.splice(i, 1);
+		}
+	}
+	Z._batchDataset.addFieldFromDataset(dataset, fields);
+	fields = Z._batchDataset.getNormalFields();
+	var len = fields.length;
+	for(i = 0; i &lt; len; i++) {
+		fldObj = fields[i];
+		fldObj.defaultValue(null);
+		fldObj.defaultExpr(null);
+		fldObj.required(false);
+	}
+};
+
+jslet.ui.BatchEditDialog.prototype = {
+<span id='jslet-ui-BatchEditDialog-event-onChanging'>	/**
+</span>	 * @event
+	 * 
+	 * Changing event. Fired when modify the field's value. Example:
+	 * 
+	 *     @example
+	 *     var dialog = new jslet.ui.BatchEditDialog(dsObj, 'fld1,fld2');
+	 *     dialog.onChanging(function(fldName, theValue) {});
+	 *     dialog.show();
+	 *     
+	 * @param {Function} onChanging Changing event handler.
+	 * @param {String} onChanging.fieldName The changing field name;
+	 * @param {Object} onChanging.theValue The changing field value;
+	 * 
+	 * @return {Boolean} True - The terminal the default field changing action. False - Perform the default changing action.
+	 */	
+	onChanging: function(onChanging) {
+		if(onChanging === undefined) {
+			return this._onChanging;
+		}
+		this._onChanging = onChanging;
+		return this;
+	},
+	
+<span id='jslet-ui-BatchEditDialog-method-show'>	/**
+</span>	 * Show the batch edit dialog.
+	 */
+	show: function() {
+		var Z = this;
+		Z._batchDataset.records(null);
+		
+		var creating = false;
+		if(!Z._dlgId) {
+			Z._createDialog();
+			creating = true;
+		}
+		var owin = jslet('#' + Z._dlgId);
+		owin.showModal();
+		owin.setZIndex(999);
+	},
+	
+	_createDialog: function() {
+		var bedLocale = jsletlocale.BatchEditDialog;
+		
+		var opt = { type: 'window', caption: bedLocale.caption, isCenter: true, resizable: true, minimizable: false, maximizable: false, animation: 'fade', styleClass: 'jl-bedlg'};
+		var owin = jslet.ui.createControl(opt);
+		var onlySelectedId = jslet.nextId(), 
+			onlyNullId = jslet.nextId();
+		
+		var html = [
+		            '&lt;div class=&quot;input-group input-group-sm&quot;&gt;',
+		            '&lt;div class=&quot;jl-bedlg-fields&quot; data-jslet=&quot;type:\'DBInspector\',dataset:\'', this._batchDataset.name(), 
+		            '\'&quot;&gt;&lt;/div&gt;&lt;/div&gt;',
+
+		            '&lt;div class=&quot;input-group input-group-sm jl-bedlg-option&quot;&gt;',
+		            '&lt;div class=&quot;col-sm-6&quot;&gt;&lt;label&gt;&lt;input id=&quot;' + onlySelectedId + '&quot; name=&quot;jlOnlySelected&quot; type=&quot;checkbox&quot; aria-label=&quot;...&quot;&gt;',
+		            bedLocale.onlySelected,
+		            '&lt;/label&gt;&lt;/div&gt;',
+		            '&lt;div class=&quot;col-sm-6&quot;&gt;&lt;label&gt;&lt;input id=&quot;' + onlyNullId + '&quot; name=&quot;jlOnlyNull&quot; type=&quot;checkbox&quot; aria-label=&quot;...&quot;&gt;',
+		            bedLocale.onlyNullValue,
+		            '&lt;/label&gt;&lt;/div&gt;',
+		            '&lt;/div&gt;',
+					
+		            '&lt;div class=&quot;input-group input-group-sm jl-bedlg-toolbar&quot;&gt;&lt;label class=&quot;control-label col-sm-7&quot;&gt;&amp;nbsp&lt;/label&gt;',
+		            '&lt;div class=&quot;col-sm-5&quot;&gt;&lt;button name=&quot;jlbtnOk&quot; class=&quot;btn btn-default btn-sm&quot;&gt;',		            
+		            bedLocale.ok,
+		            '&lt;/button&gt;&lt;button name=&quot;jlbtnCancel&quot; class=&quot;btn btn-default btn-sm&quot;&gt;',
+		            bedLocale.cancel,
+		            '&lt;/button&gt;&lt;/div&gt;&lt;/div&gt;',
+		            '&lt;/div&gt;'];
+		owin.setContent(html.join(''));
+		owin.onClosed(function () {
+			return 'hidden';
+		});
+		this._dlgId = owin.el.id;
+		var jqEl = jQuery(owin.el), 
+			Z = this;
+		
+		jqEl.find('[name=jlbtnOk]').on('click', function(event) {
+			var onlySelected = jqEl.find('[name=jlOnlySelected]').prop('checked');
+			var onlyNull = jqEl.find('[name=jlOnlyNull]').prop('checked');
+			if(Z._modifyData(onlySelected, onlyNull)) {
+				owin.close();
+			}
+		});
+		jqEl.find('[name=jlbtnCancel]').on('click', function(event) {
+			owin.close();
+		});
+		
+		jslet.ui.install(owin.el);
+	},
+	
+	_modifyData: function(onlySelected, onlyNull) {
+		var Z = this,
+			dsObj = Z._batchDataset;
+		dsObj.confirm();
+		if(dsObj.recordCount() === 0 || dsObj.existDatasetError()) {
+			jslet.showInfo(jsletlocale.BatchEditDialog.errorData);
+			return false;
+		}
+		
+		dsObj.first();
+		var fldNames = [], fldObj, fldValue, inputValue = {},
+			allFldObjs = dsObj.getNormalFields();
+		for(var i = 0, len = allFldObjs.length; i &lt; len; i++) {
+			fldObj = allFldObjs[i];
+			fldValue = fldObj.getValue();
+			if(fldValue !== null &amp;&amp; fldValue !== undefined) {
+				fldNames.push(fldObj.name());
+				inputValue[fldObj.name()] = fldValue;
+			} 
+		}
+
+		var cnt = fldNames.length, fldName;
+		Z._dataset.iterate(function() {
+			if(onlySelected &amp;&amp; !this.selected()) {
+				return;
+			}
+			for(var j = 0; j &lt; cnt; j++) {
+				fldName = fldNames[j];
+				if(onlyNull) {
+					fldValue = this.getFieldValue(fldName);
+					if(fldValue !== null &amp;&amp; fldValue !== '' &amp;&amp; fldValue !== undefined) {
+						continue;
+					} 
+				}
+				if(Z._onChanging) {
+					if(Z._onChanging.call(this, fldName, inputValue[fldName])) {
+						continue;
+					}
+				}
+				this.setFieldValue(fldName, inputValue[fldName]);
+			}
+			this.confirm();
+		});
+		return true;
+	}
+};
+
+</pre>
+</body>
+</html>

@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js"><span id='jslet-data-FieldValueConverter'>/**
+</span> * @private
+ * @class
+ * @abstract
+ * 
+ * Field value converter. 
+ */
+jslet.data.FieldValueConverter = jslet.Class.create({
+	className: 'jslet.data.FieldValueConverter',
+	
+	textToValue: function(fldObj, inputText) {
+		var value = inputText;
+		return value;
+	},
+	
+	valueToText: function(fldObj, value, isEditing) {
+		var text = value;
+		return text;
+	},
+	
+	_addFieldLabel: function(fldLabel, errMsg) {
+		return '[' + fldLabel + ']: ' + errMsg;
+	}
+});
+jslet.data.FieldValueConverter.className = 'jslet.data.FieldValueConverter';
+
+<span id='jslet-data-NumberValueConverter'>/**
+</span> * @private
+ * @class
+ * @extend jslet.data.FieldValueConverter.
+ * 
+ * Number value converter.
+ */
+jslet.data.NumberValueConverter = jslet.Class.create(jslet.data.FieldValueConverter, {
+	intRegular: {expr: /^(-)?[1-9]*\d+$/ig, message: jsletlocale.Dataset.invalidInt},
+	
+	floatRegular: {expr: /((^-?[1-9])|\d)\d*(\.[0-9]*)?$/ig, message: jsletlocale.Dataset.invalidFloat},
+	
+	textToValue: function(fldObj, inputText) {
+		if(!inputText) {
+			return null;
+		}
+		var regular;
+		if (!fldObj.scale()) {
+			regular = this.intRegular;
+		} else {
+			regular = this.floatRegular;
+		}
+		var regExpObj = regular.expr;
+		regExpObj.lastIndex = 0;
+		if (!regExpObj.test(inputText)) {
+			var invalidMsg = this._addFieldLabel(fldObj.label(), regular.message);
+			fldObj.dataset().setFieldError(fldObj.name(), invalidMsg, null, inputText);
+			return undefined;
+		}
+
+		var value = undefined,
+			scale = fldObj.scale() || 0,
+			length = fldObj.length();
+		if (scale === 0) {
+			value = parseInt(inputText);
+		} else {
+			var k = inputText.indexOf('.');
+			var actual = k &gt; 0? k: inputText.length,
+				expected = length - scale;
+			if(actual &gt; expected) {
+				var invalidMsg = this._addFieldLabel(fldObj.label(), 
+						jslet.formatMessage(jsletlocale.Dataset.invalidIntegerPart, [expected, actual]));
+				fldObj.dataset().setFieldError(fldObj.name(), invalidMsg, null, inputText);
+			} else {
+				actual = k &gt; 0 ? inputText.length - k - 1: 0;
+				if(actual &gt; scale) {
+					var invalidMsg = this._addFieldLabel(fldObj.label(), 
+							jslet.formatMessage(jsletlocale.Dataset.invalidDecimalPart, [scale, actual]));
+					fldObj.dataset().setFieldError(fldObj.name(), invalidMsg, null, inputText);
+				} else {
+					value = parseFloat(inputText);
+				}
+			}
+		}
+		
+		return value;
+	},
+
+	valueToText: function(fldObj, value, isEditing) {
+		var dataset = fldObj.dataset();
+		if (fldObj.unitConverted()) {
+			value = value * dataset._unitConvertFactor;
+		}
+
+		if (!isEditing) {
+			var rtnText = jslet.formatNumber(value, fldObj.displayFormat());
+			if (fldObj.unitConverted() &amp;&amp; dataset._unitName) {
+				rtnText += dataset._unitName;
+			}
+			return rtnText;
+		} else {
+			return value;
+		}
+	}
+});
+
+<span id='jslet-data-DateValueConverter'>/**
+</span> * @private
+ * @class
+ * @extend jslet.data.FieldValueConverter.
+ * 
+ * Date value converter.
+ */
+jslet.data.DateValueConverter = jslet.Class.create(jslet.data.FieldValueConverter, {
+	textToValue: function(fldObj, inputText) {
+		if(!inputText) {
+			return null;
+		}
+		var regular = fldObj.dateRegular();
+		var regExpObj = regular.expr;
+		regExpObj.lastIndex = 0;
+		if (!regExpObj.test(inputText)) {
+			var invalidMsg = this._addFieldLabel(fldObj.label(), regular.message);
+			fldObj.dataset().setFieldError(fldObj.name(), invalidMsg, null, inputText);
+			return undefined;
+		}
+		
+		var value = undefined;
+		try {
+			value = jslet.parseDate(inputText, fldObj.displayFormat());
+		} catch (e) {
+			var invalidMsg = this._addFieldLabel(fldObj.label(), e.message);
+			fldObj.dataset().setFieldError(fldObj.name(), invalidMsg, null, inputText);
+			value = undefined;
+		}
+		return value; 
+	},
+	
+	valueToText: function(fldObj, value, isEditing) {
+		if (!(value instanceof Date)) {
+			//Invalid value: [{1}] for DATE field: [{0}]!
+			throw new Error(jslet.formatMessage(jsletlocale.Dataset.invalidDateFieldValue, [fldObj.name(), value]));
+		}
+
+		return value ? jslet.formatDate(value, fldObj.displayFormat()): '';
+	}
+});
+
+<span id='jslet-data-StringValueConverter'>/**
+</span> * @private
+ * @class
+ * @extend jslet.data.FieldValueConverter.
+ * 
+ * String value converter.
+ */
+jslet.data.StringValueConverter = jslet.Class.create(jslet.data.FieldValueConverter, {
+	textToValue: function(fldObj, inputText) {
+		if(!inputText) {
+			return inputText;
+		}
+		var regular = fldObj.regularExpr();
+		if(regular) {
+			var regExpObj = regular.expr;
+			regExpObj.lastIndex = 0;
+			if (!regExpObj.test(inputText)) {
+				var invalidMsg = this._addFieldLabel(fldObj.label(), regular.message);
+				fldObj.dataset().setFieldError(fldObj.name(), invalidMsg, null, inputText);
+				return undefined;
+			}
+		}
+		
+		var value = inputText;
+		if (fldObj.antiXss()) {
+			value = jslet.htmlEncode(value);
+		}
+		return value;
+	},
+	
+	valueToText: function(fldObj, value, isEditing) {
+		var dataset = fldObj.dataset(),
+			dispFmt = fldObj.displayFormat();
+		if (!isEditing &amp;&amp; dispFmt) {
+			return jslet.formatString(value, dispFmt);
+		} else {
+			return value;
+		}
+	}
+	
+});
+
+<span id='jslet-data-BooleanValueConverter'>/**
+</span> * @private
+ * @class
+ * @extend jslet.data.FieldValueConverter.
+ * 
+ * Boolean value converter.
+ */
+jslet.data.BooleanValueConverter = jslet.Class.create(jslet.data.FieldValueConverter, {
+	textToValue: function(fldObj, inputText) {
+		if(!inputText) {
+			return false;
+		}
+		return inputText.toLowerCase() == 'true';
+	},
+	
+	valueToText: function(fldObj, value, isEditing) {
+		return value ? fldObj.trueText(): fldObj.falseText();
+	}
+});
+
+<span id='jslet-data-LookupValueConverter'>/**
+</span> * @private
+ * @class
+ * @extend jslet.data.FieldValueConverter.
+ * 
+ * Lookup value converter.
+ */
+jslet.data.LookupValueConverter = jslet.Class.create(jslet.data.FieldValueConverter, {
+	textToValue: function(fldObj, inputText, valueIndex) {
+		if(!inputText) {
+			return null;
+		}
+		var value = '',
+			lkFldObj = fldObj.lookup(),
+			dsLookup = lkFldObj.dataset(),
+			keyFldName = lkFldObj.keyField(),
+			codeFldName = lkFldObj.codeField(),
+			nameFldName = lkFldObj.nameField(),
+			editFilter = lkFldObj.editFilter(),
+			fixedFilter = dsLookup.fixedFilter();
+		if(editFilter) {
+			if(fixedFilter) {
+				editFilter = '(' + editFilter + ') &amp;&amp; (' + fixedFilter + ')'; 
+			}
+		} else {
+			editFilter = fixedFilter;
+		}
+		value = this._convertFieldValue(dsLookup, codeFldName, inputText, keyFldName, editFilter);
+		if (value === null) {
+			if(nameFldName !== codeFldName) {
+				value = this._convertFieldValue(dsLookup, nameFldName, inputText, keyFldName, editFilter);
+			}
+			if (value === null) {
+				var invalidMsg = jslet.formatMessage(jsletlocale.Dataset.valueNotFound, [fldObj.displayLabel()]);
+				fldObj.dataset().setFieldError(fldObj.name(), invalidMsg, valueIndex, inputText);
+				dsLookup.first();
+				return undefined;
+			}
+		}
+
+		return value;
+	},
+	
+	valueToText: function(fldObj, value, isEditing) {
+		var lkFldObj = fldObj.lookup(),
+			dsLookup = lkFldObj.dataset(),
+			result;
+		if (!isEditing) {
+			result = this._convertFieldValue(dsLookup, lkFldObj.keyField(), value,
+					lkFldObj.displayFields());
+		} else {
+			result = this._convertFieldValue(dsLookup, lkFldObj.keyField(), value, 
+					'[' + lkFldObj.codeField() + ']');
+		}
+		return result;
+	},
+	
+<span id='jslet-data-LookupValueConverter-method-_convertFieldValue'>	/**
+</span>	 * @private
+	 */
+	_convertFieldValue: function (dsLookup, srcField, srcValues, destFields, editFilter) {
+		if (destFields === null) {
+			throw new Error('NOT set destFields in method: ConvertFieldValue');
+		}
+		var isExpr = destFields.indexOf('[') &gt; -1;
+		if (isExpr) {
+			if (destFields != dsLookup._convertDestFields) {
+				dsLookup._innerConvertDestFields = new jslet.data.Expression(dsLookup,
+						destFields);
+				dsLookup._convertDestFields = destFields;
+			}
+		}
+		if (typeof (srcValues) != 'string') {
+			srcValues += '';
+		}
+		var separator = jslet.global.valueSeparator;
+		var values = srcValues.split(separator), valueCnt = values.length - 1;
+		dsLookup._ignoreFilter = true;
+		var context = dsLookup.startSilenceMove();
+		try {
+			var options = (editFilter? {extraFilter: editFilter} : null);
+
+			if (valueCnt === 0) {
+				if (!dsLookup.findByField(srcField, values[0], options)) {
+					return null;
+				}
+				if (isExpr) {
+					return dsLookup._innerConvertDestFields.eval();
+				} else {
+					return dsLookup.getFieldValue(destFields);
+				}
+			}
+	
+			var fldcnt, destValue = '';
+			for (var i = 0; i &lt;= valueCnt; i++) {
+				if (!dsLookup.findByField(srcField, values[i], options)) {
+					destValue += jslet.formatMessage(jsletlocale.Dataset.notFound, values[i]);
+				} else {
+					if (isExpr) {
+						destValue += dsLookup._innerConvertDestFields.eval();
+					} else {
+						destValue += dsLookup.getFieldValue(destFields);
+					}
+				}
+				if (i != valueCnt) {
+					destValue += separator;
+				}
+			}
+			return destValue;
+		} finally {
+			dsLookup._ignoreFilter = false;
+			dsLookup.endSilenceMove(context);
+		}
+	}
+	
+});
+
+jslet.data._valueConverters = {};
+jslet.data._valueConverters[jslet.data.DataType.NUMBER] = new jslet.data.NumberValueConverter();
+jslet.data._valueConverters[jslet.data.DataType.STRING] = new jslet.data.StringValueConverter();
+jslet.data._valueConverters[jslet.data.DataType.DATE] = new jslet.data.DateValueConverter();
+jslet.data._valueConverters[jslet.data.DataType.BOOLEAN] = new jslet.data.BooleanValueConverter();
+
+jslet.data._valueConverters.lookup = new jslet.data.LookupValueConverter();
+
+<span id='jslet-data-method-getValueConverter'>/**
+</span> * @private
+ * 
+ * Get appropriate field value converter.
+ * 
+ * @member jslet.data
+ * @param {jslet.data.Field} fldObj field object.
+ * 
+ * @return {jslet.data.FieldValueConverter} field value converter;
+ */
+jslet.data.getValueConverter = function(fldObj) {
+	if(fldObj.lookup()) {
+		return jslet.data._valueConverters.lookup;
+	}
+	var dataType = fldObj.getType();
+	return jslet.data._valueConverters[dataType];
+};
+/* End of field value converter */
+
+</pre>
+</body>
+</html>

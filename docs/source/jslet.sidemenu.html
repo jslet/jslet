@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js"><span id='jslet-ui-SideMenuBar'>/**
+</span> * @class
+ * @extend jslet.ui.Control
+ * 
+ * Side menu bar. Example:
+ * 
+ *     @example
+ *     var jsletParam = {type: 'SideMenuBar', onItemClick: globalMenuItemClick, items: [
+ *       {name: 'File', items: [
+ *         {id: 'new', name: 'New Tab', iconClass: 'icon1' }]
+ *       }]};
+ *
+ *     //1. Declaring:
+ *      &lt;div data-jslet='jsletParam' /&gt;
+ *
+ *     //2. Binding
+ *      &lt;div id='ctrlId' /&gt;
+ *      //js snippet:
+ *      var el = document.getElementById('ctrlId');
+ *      jslet.ui.bindControl(el, jsletParam);
+ *
+ *     //3. Create dynamically
+ *      jslet.ui.createControl(jsletParam, document.body);
+ */
+jslet.ui.SideMenuBar = jslet.Class.create(jslet.ui.Control, {
+<span id='jslet-ui-SideMenuBar-method-initialize'>	/**
+</span>	 * @override
+	 */
+	initialize: function ($super, el, params) {
+		var Z = this;
+		Z.el = el;
+		Z.allProperties = 'styleClass,hasSubTitle,onItemClick,items,popupWidth';
+
+		Z._hasSubTitle = true;
+		
+		Z._onItemClick = null;
+		
+		Z._items = null;
+		
+		Z._popupWidth = null;
+		
+		Z._containerId = null;
+		
+		Z._closeTimeout = null;
+		Z._showTimeout = null;
+		
+		Z.oldHeight = 0;
+		
+		$super(el, params);
+	},
+
+<span id='jslet-ui-SideMenuBar-property-hasSubTitle'>	/**
+</span>	 * @property
+	 * 
+	 * Identify to show sub-menu title or not.
+	 * 
+	 * @param {Boolean | undefined} hasSubTitle True - show sub menu title, false - otherwise.
+	 * 
+	 * @return {this | Boolean}
+	 */
+	hasSubTitle: function(hasSubTitle) {
+		if(hasSubTitle === undefined) {
+			return this._hasSubTitle;
+		}
+		this._hasSubTitle = hasSubTitle? true: false;
+		return this;
+	},
+	
+<span id='jslet-ui-SideMenuBar-event-onItemClick'>	/**
+</span>	 * @event
+	 * 
+	 * Set or get menuItem click event handler. Example:
+	 * 
+	 *     @example
+	 *     menubarObj.onItemClick(function(menuId){});
+	 * 
+	 * @param {Function | undefined} onItemClick MenuItem click event handler.
+	 * @param {String} onItemClick.menuId MenuItem click event handler.
+	 * 
+	 * @return {this | Function}
+	 */
+	onItemClick: function(onItemClick) {
+		if(onItemClick === undefined) {
+			return this._onItemClick;
+		}
+		jslet.Checker.test('SideMenuBar.onItemClick', onItemClick).isFunction();
+		this._onItemClick = onItemClick;
+		return this;
+	},
+	
+<span id='jslet-ui-SideMenuBar-property-items'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get menu items configuration.
+	 * 
+	 * @param {Object[] | undefined} items Menu items.
+	 * @param {String} items.id Menu item id.
+	 * @param {String} items.name Menu item name.
+	 * @param {Function} items.onClick Menu item onClick event, example: onClick: function(event) {}.
+	 * @param {Boolean} items.disabled True - Menu item is disabled, false - otherwise.
+	 * @param {Boolean} items.checked True - Menu item is checked, false - otherwise.
+	 * @param {String} items.iconClass Menu item icon class name.
+	 * @param {String} items.disabledIconClass Menu item icon disabled class name.
+	 * @param {String} items.itemType Menu item type, optional value: null, 'radio', 'check'.
+	 * @param {String} items.group Group name, only work when itemType equals 'radio'.
+	 * @param {Object[]} items.items Sub menu items.
+	 * 
+	 * @return {this | Object[]}
+	 */
+	items: function(items) {
+		if(items === undefined) {
+			return this._items;
+		}
+		if(!items) {
+			this._items = null;
+			return this;
+		}
+		jslet.Checker.test('SideMenuBar.items', items).isArray();
+		var item;
+		for(var i = 0, len = items.length; i &lt; len; i++) {
+			item = items[i];
+			jslet.Checker.test('SideMenuBar.items.name', item.name).isString().required();
+		}
+		this._items = items;
+		return this;
+	},
+	
+<span id='jslet-ui-SideMenuBar-property-popupWidth'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get pop up panel width.
+	 * 
+	 * @param {Integer | undefined} popupHeight The width of pop up panel width.
+	 * 
+	 * @return {this | Integer}
+	 */
+	popupWidth: function(popupWidth) {
+		if(popupWidth === undefined) {
+			return this._popupWidth;
+		}
+		jslet.Checker.test('SideMenuBar.popupWidth', popupWidth).isGTEZero();
+		this._popupWidth = parseInt(popupWidth);
+		return this;
+	},
+		
+<span id='jslet-ui-SideMenuBar-method-bind'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	bind: function () {
+		var Z = this;
+		jslet.ui.resizeEventBus.subscribe(Z);
+		if(!Z.el.id) {
+			Z.el.id = jslet.nextId();
+		}
+		var jqEl = jQuery(Z.el);
+		if (!jqEl.hasClass('jl-sidemenubar')) {
+			jqEl.addClass('jl-sidemenubar jl-unselectable jl-round4');
+		}
+		jqEl.on('mouseenter', '.jl-smb-baritem', function(event) {
+			Z._clearShowTimeout();
+			Z._clearCloseTimeout();
+			var omi = event.currentTarget;
+			Z._showTimeout = window.setTimeout(function() {
+				Z._showSubMenu(omi);
+			}, 100);
+		});
+		jqEl.on('mouseleave', function() {
+			Z._doMouseLeave();
+		});
+		var containerId = Z.el.id + '_panel';
+		Z._containerId = containerId;
+		var container = document.getElementById(containerId);
+		if(!container) {
+			container = document.createElement('div');
+			document.body.appendChild(container);
+			container.id = containerId;
+			container.className = 'jl-smb-popup';
+			jQuery(container).on('mouseleave', function() {
+				Z._doMouseLeave();
+			}).on('mouseenter', function() {
+				Z._doMouseEnter();
+			}).on('click', '.jl-smb-item', function(event) {
+				Z._doMenuClick(event.currentTarget);
+			});
+		}
+		this.renderAll();
+	},
+
+<span id='jslet-ui-SideMenuBar-method-renderAll'>	/**
+</span>	 * @override
+	 */
+	renderAll: function () {
+		var Z = this,
+			jqEl = jQuery(Z.el),
+			jqContainer = jQuery('#' + Z._containerId);
+		jqEl.find('.jl-smb-up').off();
+		jqEl.find('.jl-smb-down').off();
+		jqContainer.html('&lt;span class=&quot;jl-smb-box&quot;&gt;&lt;/span&gt;');
+		if(Z._popupWidth) {
+			jqContainer.css('width', Z._popupWidth + 'px');
+		}
+		Z._itemHeight = parseFloat(jslet.ui.getCssValue('jl-smb-baritem', 'height'));
+
+		var html = '';
+		html += '&lt;div class=&quot;jl-smb-up&quot;&gt;&lt;a href=&quot;javascript:void(0)&quot;&gt;&lt;i class=&quot;fa fa-chevron-up&quot;&gt;&lt;/i&gt;&lt;/a&gt;&lt;/div&gt;';
+		html += '&lt;div class=&quot;jl-smb-items&quot;&gt;&lt;ul class=&quot;jl-smb-ul&quot;&gt;';
+		var items = Z._items || [];
+		for (var i = 0, cnt = items.length, item; i &lt; cnt; i++) {
+			item = items[i];
+			if(item.id === null || item.id === undefined) {
+				item.id = jslet.nextId();
+			}
+			if(!item.items || item.items.length === 0) {
+				console.warn('Menu item: ' + item.name + ' does not have items!');
+				continue;
+			}
+			html += '&lt;li&gt;&lt;a class=&quot;jl-smb-baritem&quot; id=&quot;' + item.id + '&quot; href=&quot;javascript:void(0)&quot;&gt;';
+			html += '&lt;i class=&quot;jl-smb-icon ' + (item.iconClass || 'jl-hidden') + '&quot;&gt;&lt;/i&gt;';
+			html += '&lt;span&gt;' + item.name + '&lt;/span&gt;&lt;i class=&quot;jl-smb-arrow fa fa-chevron-right&quot;&gt;&lt;/i&gt;';
+			html += '&lt;/a&gt;&lt;/li&gt;';
+			Z._createMenuItem(jqContainer, item.id, item.items);
+		}
+		html += '&lt;li class=&quot;jl-smb-lastbaritem&quot;&gt;&lt;/li&gt;&lt;/ul&gt;&lt;/div&gt;';
+		html += '&lt;div class=&quot;jl-smb-down&quot;&gt;&lt;a href=&quot;javascript:void(0)&quot;&gt;&lt;i class=&quot;fa fa-chevron-down&quot;&gt;&lt;/i&gt;&lt;/a&gt;&lt;/div&gt;';
+		jqEl.html(html);
+		jqEl.find('.jl-smb-up').on('click', function() {
+			Z._hideSubMenu();
+			jqEl.find('.jl-smb-down').show();
+			var jqItems = jqEl.find('.jl-smb-items');
+			var scrTop = jqItems.scrollTop();
+			scrTop -= Z._itemHeight;
+			if(scrTop &lt;= 0) {
+				jQuery(this).hide();
+			}
+			jqItems.scrollTop(scrTop);
+		}).on('mouseenter', function() {
+			Z._hideSubMenu();
+		});
+		jqEl.find('.jl-smb-down').on('click', function() {
+			Z._hideSubMenu();
+			jqEl.find('.jl-smb-up').show();
+			var jqItems = jqEl.find('.jl-smb-items');
+			var scrTop = jqItems.scrollTop() + Z._itemHeight;
+			var maxScrTop = jqItems[0].scrollHeight - jqItems.innerHeight();
+			if(scrTop &gt; maxScrTop) {
+				jQuery(this).hide();
+			}
+			jqItems.scrollTop(scrTop);
+		}).on('mouseenter', function() {
+			Z._hideSubMenu();
+		});
+		Z.resize();
+	},
+
+	collapse: function() {
+		var Z = this,
+			jqEl = jQuery(Z.el);
+		jqEl.find('.jl-smb-baritem &gt; .jl-smb-arrow').hide();
+		jqEl.find('.jl-smb-baritem &gt; span').hide();
+	},
+	
+	expand: function() {
+		var Z = this,
+			jqEl = jQuery(Z.el);
+		jqEl.find('.jl-smb-baritem &gt; .jl-smb-arrow').show();
+		jqEl.find('.jl-smb-baritem &gt; span').show();
+	},
+	
+	_clearShowTimeout: function() {
+		var Z = this;
+		if(Z._showTimeout) {
+			window.clearTimeout(Z._showTimeout);
+			Z._showTimeout = null;
+		}
+	},
+	
+	_clearCloseTimeout: function() {
+		var Z = this;
+		if(Z._closeTimeout) {
+			window.clearTimeout(Z._closeTimeout);
+			Z._closeTimeout = null;
+		}
+	},
+	
+	_getItemById: function(items, id, isFirstLevel) {
+		var Z = this, itemCfg;
+		for(var i = 0, cnt = items.length; i &lt; cnt; i++) {
+			itemCfg = items[i]; 
+			if(itemCfg.id === id) {
+				return itemCfg;
+			}
+			if(!isFirstLevel &amp;&amp; itemCfg.items) {
+				itemCfg = Z._getItemById(itemCfg.items, id);
+				if(itemCfg) {
+					return itemCfg;
+				}
+			}
+		}
+		return null;
+	},
+	
+	_createMenuItem: function(jqContainer, id, items) {
+		var Z = this;
+		var html = Z._innerCreateMenuItem(id, items, 0);
+		jqContainer.append(html);
+	},
+	
+	_innerCreateMenuItem: function(id, items, level) {
+		var Z = this;
+		
+		function getMenuItems(menuItems, result) {
+			var itemCfg;
+			for(var k = 0, len = menuItems.length; k &lt; len; k++) {
+				itemCfg = menuItems[k];
+				if(itemCfg.items) {
+					getMenuItems(itemCfg.items, result);
+				} else {
+					result.push(itemCfg);
+				}
+			}
+		}
+		var groups = [], group = null, groupItems, menuName, menuItems, itemCfg;
+		for (var i = 0, cnt = items.length - 1; i &lt;= cnt; i++) {
+			itemCfg = items[i];
+			if(itemCfg.items) {
+				menuItems = [];
+				getMenuItems(itemCfg.items, menuItems);
+				groups.push({id: itemCfg.id || jslet.nextId(), name: itemCfg.name, items: menuItems});
+				group = null;
+			} else {
+				if(group === null) {
+					groupItems = [];
+					group = {id: jslet.nextId(), items: groupItems, isLine: true};
+					groups.push(group);
+				}
+				menuName = jQuery.trim(itemCfg.name);
+				if(menuName === '-') {
+					group = null;
+					continue;
+				}
+				groupItems.push(itemCfg);
+			}
+		}
+		var html = '&lt;ul id=&quot;' + id +'_popup&quot; class=&quot;jl-smb-popup-ul ' + (level === 0? 'jl-hidden': '') + '&quot;&gt;';
+		for(var j = 0, grpCnt = groups.length - 1; j &lt;= grpCnt; j++) {
+			group = groups[j];
+			menuName = jQuery.trim(group.name);
+			html += '&lt;li class=&quot;jl-smb-group' + (j &lt; grpCnt? ' jl-smb-line': '') + '&quot;&gt;';
+			if(!group.isLine) {
+				if(Z._hasSubTitle &amp;&amp; menuName) {
+					html += '&lt;div class=&quot;jl-smb-subtitle&quot;&gt;' + menuName + '&lt;/div&gt;';
+				}
+			}
+			
+			html += '&lt;ul id=&quot;' + group.id +'_popup&quot; class=&quot;jl-smb-popup-ul&quot;&gt;';
+			groupItems = group.items;
+			for (i = 0, cnt = groupItems.length - 1; i &lt;= cnt; i++) {
+				itemCfg = groupItems[i];
+				id = itemCfg.id;
+				if(!id &amp;&amp; id !== 0) {
+					id = jslet.nextId();
+					itemCfg.id = id;
+				}
+				menuName = jQuery.trim(itemCfg.name);
+				html += '&lt;li&gt;';
+				html += '&lt;a id=&quot;' + id + '&quot; class=&quot;jl-smb-item' + (itemCfg.disabled ? ' jl-smb-disabled': '') +
+				  '&quot; href=&quot;javascript:void(0)&quot;&gt;';
+				html += '&lt;span class=&quot;jl-smb-popup-icon ' + (itemCfg.iconClass || '') + '&quot;&gt;&lt;/span&gt;' + menuName + '&lt;/a&gt;';
+				html += '&lt;/li&gt;';
+			} //End for i
+			html += '&lt;/ul&gt;';
+			html += '&lt;/li&gt;';
+		} //End for j
+		html += '&lt;/ul&gt;';
+		return html;
+	},
+	
+	_hideSubMenu: function() {
+		this._clearShowTimeout();
+		jQuery('#' + this._containerId).hide();
+	},
+	
+	_showSubMenu: function (omi) {
+		var Z = this,
+			itemCfg = Z._getItemById(Z._items, omi.id, true);
+		if (!itemCfg.items) {
+			return;
+		}
+		var jqEl = jQuery(Z.el);
+		var jqPopupContainer = jQuery('#' + Z._containerId);
+		jqPopupContainer.children().each(function(index) {
+			var jqItem = jQuery(this);
+			if(jqItem.hasClass('jl-smb-box')) {
+				return;
+			}
+			var isHidden = jqItem.hasClass('jl-hidden');
+			if(this.id !== itemCfg.id + '_popup') {
+				if(!isHidden) {
+					jqItem.addClass('jl-hidden');
+				}
+			} else {
+				if(isHidden) {
+					jqItem.removeClass('jl-hidden');
+				}
+			}
+		});
+		var jqMi = jQuery(omi), 
+			pos = jqMi.offset(), 
+			posX = pos.left + jqMi.width() + 2,
+			posY = pos.top;
+		var delta = pos.top + jqPopupContainer.outerHeight() - jQuery(window).innerHeight() - document.body.scrollTop;
+		var jqBox = jqPopupContainer.find('.jl-smb-box');
+		if(delta &gt; 0) {
+			posY = posY - delta;
+			jqBox.css('top', delta +'px');
+		} else {
+			jqBox.css('top', '0');
+		}
+		jqPopupContainer.show();
+		jqPopupContainer.offset({left: posX, top: posY - 1});
+	},
+
+	_doMouseEnter: function() {
+		var Z = this;
+		Z._clearShowTimeout();
+		Z._clearCloseTimeout();
+	},
+	
+	_doMouseLeave: function() {
+		var Z = this;
+		Z._clearShowTimeout();
+		Z._closeTimeout = window.setTimeout(function() {
+			window.clearTimeout(Z._closeTimeout);
+			Z._closeTimeout = null;
+			Z._hideSubMenu();
+		}, 200);
+	},
+	
+	_doMenuClick: function(omi) {
+		var Z = this,
+			itemCfg = Z._getItemById(Z._items, omi.id);
+		if (itemCfg.disabled) {
+			return;
+		}
+		Z._hideSubMenu();
+		if(itemCfg.onClick) {
+			itemCfg.onClick(itemCfg);
+		}
+		if(Z._onItemClick) {
+			Z._onItemClick(itemCfg);
+		}
+	},
+	
+	resize: function(){
+		var Z = this,
+			jqEl = jQuery(Z.el),
+			height = jqEl.height();
+		if (height === Z.oldHeight){
+			return;
+		}
+		Z.oldHeight = height;
+		var jqItems = jqEl.find('.jl-smb-items');
+		jqItems.height(height);
+		var containerHeight = jqItems.innerHeight();
+		if(jqItems[0].scrollHeight &lt;= containerHeight) {
+			jqEl.find('.jl-smb-up').hide();
+			jqEl.find('.jl-smb-down').hide();
+			return;
+		}
+		if(jqItems.scrollTop() &gt; 0) {
+			jqEl.find('.jl-smb-up').show();
+		}
+		jqEl.find('.jl-smb-down').show();
+		var visiCnt = Math.floor(containerHeight / Z._itemHeight);
+		var lastItemH = containerHeight - visiCnt * Z._itemHeight;
+		jqEl.find('.jl-smb-lastbaritem').css('height', lastItemH + 'px');
+	},
+	
+<span id='jslet-ui-SideMenuBar-method-checkSizeChanged'>	/**
+</span>	 * @protected
+	 * 
+	 * Run when container size changed, it's revoked by jslet.ui.resizeEventBus.
+	 * 
+	 */
+	checkSizeChanged: function(){
+		this.resize();
+	},
+
+<span id='jslet-ui-SideMenuBar-method-destroy'>	/**
+</span>	 * @override
+	 */
+	destroy: function($super){
+		var Z = this;
+		jslet.ui.resizeEventBus.unsubscribe(Z);
+		Z._clearShowTimeout();
+		Z._activeMenuItem = null;
+		Z._preHoverItem = null;
+		Z._menubarclick = null;
+		Z._onItemClick = null;
+		var jqEl = jQuery(Z.el);
+		jqEl.off();
+		jQuery('#' + Z._containerId).off();
+		$super();
+	}
+});
+jslet.ui.register('SideMenuBar', jslet.ui.SideMenuBar);
+jslet.ui.SideMenuBar.htmlTemplate = '&lt;div&gt;&lt;/div&gt;';
+
+</pre>
+</body>
+</html>

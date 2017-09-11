@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="../css/demo.css" />
+    
+    <title>Jslet - 字段链</title>
+    <script type="text/javascript" data-main="../config.js" src="../lib/requirejs/require.min.js"></script>
+    <script type="text/javascript">
+	    require(['dataset/c-fieldchain']);
+    </script>
+</head>
+<body>
+    <div class="demo-header">
+    <h4 id="top">Jslet - 字段链</h4>
+	</div>
+	<hr />
+	<div data-jslet="type: 'DBTable', dataset: 'employee'"></div>
+	<div class="demo-desc">
+	<p>演示以下内容：</p>
+		<ol>
+		<li><h4>取字段链的值:</h4>
+		   Get the address of a department(field:<b>department.address</b>)
+			<button class="btn btn-default btn-sm" id="btnGetValue"> Get Value </button>&nbsp;<input id="result1" size="20"/>
+		</li>
+		<li><h4>查找“部门”地址在“北京”的员工(查找表达式:<b>[department.address]=='深圳'</b>): </h4>
+		<button class="btn btn-default btn-sm" id="btnFindData"> 查找  </button>
+		</li>
+		<li><h4>筛选“部门”地址在“北京”的员工(筛选表达式:<b>[department.address]=='深圳'</b>): </h4>
+			   <button class="btn btn-default btn-sm" id="btnFilterData"> 筛选  </button>&nbsp;<button class="btn btn-default btn-sm" id="btnClear"> 显示全部 </button>
+		</li>
+		<li><h4>排序: </h4>
+			根据部门地址排序（升序）： <b>department.address(Asceding</b>):<button class="btn btn-default btn-sm" id="btnSort1"> 排序 </button><br />
+			根据部门地址排序（降序）<b>department.address(Descending</b>):<button class="btn btn-default btn-sm" id="btnSort2"> 排序 </button>
+		</li>
+		</ol>
+
+	</div>
+	<h4>源码</h4>
+    <pre class="prettyprint linenums"><code>
+	//datasetMetaStore定义在公共js:common/datasetmetastore.js中
+	//将数据集定义信息仓库加到datasetFactory中，创建Dataset时会仓库里去定义信息
+	jslet.data.datasetFactory.addMetaStore(window.datasetMetaStore);
+	//通过工厂方法，可以自动创建主数据集及相关的数据集
+    jslet.data.datasetFactory.createDataset('employee').done(function() {
+    	jslet.ui.install(function() {
+    		var dsEmployee = jslet.data.getDataset('employee');
+    		dsEmployee.query();
+    	});
+    });
+    
+    //绑定按钮事件
+	$('#btnGetValue').click(function() {
+		var dsEmployee = jslet.data.getDataset('employee');
+		//取当前员工所属部门的地址
+		var address = dsEmployee.getFieldValue('department.address');
+		$('#result1').val(address);
+	});
+	
+	$('#btnFindData').click(function() {
+		var dsEmployee = jslet.data.getDataset('employee');
+		dsEmployee.first();
+		//查找部门地址在深圳的员工
+		dsEmployee.find('[department.address]=="深圳"', true);	
+	});
+	
+	$('#btnFilterData').click(function() {
+		var dsEmployee = jslet.data.getDataset('employee');
+		//筛选部门地址在深圳的员工
+		dsEmployee.filter('[department.address]=="深圳"');
+		dsEmployee.filtered(true);	
+		dsEmployee.first();
+	});
+
+	$('#btnClear').click(function() {
+		var dsEmployee = jslet.data.getDataset('employee');
+		dsEmployee.filter(null);
+		dsEmployee.filtered(false);	
+		dsEmployee.first();
+	});
+    
+	$('#btnSort1').click(function() {
+		var dsEmployee = jslet.data.getDataset('employee');
+		//按部门地址（升序）排序
+		dsEmployee.indexFields('department.address')) {
+		dsEmployee.first();
+	});
+    
+	$('#btnSort2').click(function() {
+		var dsEmployee = jslet.data.getDataset('employee');
+		//按部门地址（降序）排序
+		dsEmployee.indexFields('department.address desc')) {
+		dsEmployee.first();
+	});
+ 	</code></pre>
+
+    <script type="text/javascript">
+       window.LOADER_BASE_URL = "../lib/prettify";
+    </script>
+    <script type="text/javascript" src="../lib/prettify/run_prettify.js"></script>
+		
+</body>
+</html>

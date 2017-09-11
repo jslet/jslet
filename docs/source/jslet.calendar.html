@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js"><span id='jslet-ui-Calendar'>/**
+</span> * @class
+ * @extend jslet.ui.Control
+ * 
+ * Calendar. Example:
+ * 
+ *     @example
+ *     //1. Declaring:
+ *       &lt;div data-jslet='type:&quot;Calendar&quot;' /&gt;
+ *
+ *     //2. Binding
+ *       &lt;div id='ctrlId' /&gt;
+ *       //js snippet 
+ *       var el = document.getElementById('ctrlId');
+ *       jslet.ui.bindControl(el, {type:&quot;Calendar&quot;});
+ *	
+ *     //3. Create dynamically
+ *       jslet.ui.createControl({type:&quot;Calendar&quot;}, document.body);
+ */
+jslet.ui.Calendar = jslet.Class.create(jslet.ui.Control, {
+<span id='jslet-ui-Calendar-method-initialize'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	initialize: function ($super, el, params) {
+		var Z = this;
+		Z.el = el;
+		Z.allProperties = 'styleClass,value,onDateSelected,minDate,maxDate';
+
+		Z._value = null;
+		
+		Z._onDateSelected = null;
+		
+		Z._minDate = null;
+
+		Z._maxDate = null;
+		
+		Z._currYear = 0;
+		Z._currMonth = 0;
+		Z._currDate = 0;
+		
+		$super(el, params);
+	},
+
+<span id='jslet-ui-Calendar-property-value'>	/**
+</span>	 * @property
+	 * 
+	 * Calendar value.
+	 * 
+	 * @param {Date | undefined} value calendar value.
+	 * 
+	 * @return {this | Date}
+	 */
+	value: function(value) {
+		if(value === undefined) {
+			return this._value;
+		}
+		jslet.Checker.test('Calendar.value', value).isDate();
+		this._value = value;
+		return this;
+	},
+	
+<span id='jslet-ui-Calendar-property-minDate'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get minimum date of calendar range.
+	 * 
+	 * @param {Date | undefined} minDate Minimum date of calendar range.
+	 * 
+	 * @return {this | Date}
+	 */
+	minDate: function(minDate) {
+		if(minDate === undefined) {
+			return this._minDate;
+		}
+		jslet.Checker.test('Calendar.minDate', minDate).isDate();
+		this._minDate = minDate;
+		return this;
+	},
+	
+<span id='jslet-ui-Calendar-property-maxDate'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get maximum date of calendar range.
+	 * 
+	 * @param {Date | undefined} maxDate Maximum date of calendar range.
+	 * 
+	 * @return {this | Date}
+	 */
+	maxDate: function(maxDate) {
+		if(maxDate === undefined) {
+			return this._maxDate;
+		}
+		jslet.Checker.test('Calendar.maxDate', maxDate).isDate();
+		this._maxDate = maxDate;
+		return this;
+	},
+		
+<span id='jslet-ui-Calendar-event-onDateSelected'>	/**
+</span>	 * @event
+	 * 
+	 * Fired when user select a date. Example:
+	 * 
+	 *     @example
+	 *     calendar.onDateSelected(function(value){});
+	 *
+	 * @param {Function | undefined} onDateSelected Date selected event handler.
+	 * @param {Date} onDateSelected.value Calendar value.
+	 * 
+	 * @return {this | Function}
+	 */
+	onDateSelected: function(onDateSelected) {
+		if(onDateSelected === undefined) {
+			return this._onDateSelected;
+		}
+		jslet.Checker.test('Calendar.onDateSelected', onDateSelected).isFunction();
+		this._onDateSelected = onDateSelected;
+		return this;
+	},
+	
+<span id='jslet-ui-Calendar-method-bind'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	bind: function () {
+		this.renderAll();
+	},
+
+<span id='jslet-ui-Calendar-method-renderAll'>	/**
+</span>	 * @override
+	 */
+	renderAll: function () {
+		var Z = this,
+			jqEl = jQuery(Z.el);
+		if (!jqEl.hasClass('jl-calendar')) {
+			jqEl.addClass('jl-calendar panel panel-default');
+		}
+		var calendarLocale = jsletlocale.Calendar;
+		var template = ['&lt;div class=&quot;jl-cal-header&quot;&gt;',
+			'&lt;a class=&quot;jl-cal-btn jl-cal-yprev&quot; title=&quot;', calendarLocale.yearPrev,
+			'&quot; href=&quot;javascript:;&quot;&gt;&amp;lt;&amp;lt;&lt;/a&gt;&lt;a href=&quot;javascript:;&quot; class=&quot;jl-cal-btn jl-cal-mprev&quot; title=&quot;', calendarLocale.monthPrev, '&quot;&gt;&amp;lt;',
+			'&lt;/a&gt;&lt;a href=&quot;javascript:;&quot; class=&quot;jl-cal-title&quot;&gt;&lt;/a&gt;&lt;a href=&quot;javascript:;&quot; class=&quot;jl-cal-btn jl-cal-mnext&quot; title=&quot;', calendarLocale.monthNext, '&quot;&gt;&amp;gt;',
+			'&lt;/a&gt;&lt;a href=&quot;javascript:;&quot; class=&quot;jl-cal-btn jl-cal-ynext&quot; title=&quot;', calendarLocale.yearNext, '&quot;&gt;&amp;gt;&amp;gt;&lt;/a&gt;',
+		'&lt;/div&gt;',
+		'&lt;div class=&quot;jl-cal-body&quot;&gt;',
+			'&lt;table cellpadding=&quot;0&quot; cellspacing=&quot;0&quot;&gt;',
+				'&lt;thead&gt;&lt;tr&gt;&lt;th class=&quot;jl-cal-weekend&quot;&gt;',
+				calendarLocale.Sun,
+					'&lt;/th&gt;&lt;th&gt;',
+					calendarLocale.Mon,
+						'&lt;/th&gt;&lt;th&gt;',
+					calendarLocale.Tue,
+						'&lt;/th&gt;&lt;th&gt;',
+					calendarLocale.Wed,
+						'&lt;/th&gt;&lt;th&gt;',
+					calendarLocale.Thu,
+						'&lt;/th&gt;&lt;th&gt;',
+					calendarLocale.Fri,
+						'&lt;/th&gt;&lt;th class=&quot;jl-cal-weekend&quot;&gt;',
+					calendarLocale.Sat,
+						'&lt;/th&gt;&lt;/tr&gt;&lt;/thead&gt;&lt;tbody&gt;',
+						'&lt;tr&gt;&lt;td class=&quot;jl-cal-weekend&quot;&gt;&lt;a href=&quot;javascript:;&quot;&gt;&lt;/a&gt;&lt;/td&gt;&lt;td&gt;&lt;a href=&quot;javascript:;&quot;&gt;&lt;/a&gt;&lt;/td&gt;&lt;td&gt;&lt;a href=&quot;javascript:;&quot;&gt;&lt;/a&gt;&lt;/td&gt;&lt;td&gt;&lt;a href=&quot;javascript:;&quot;&gt;&lt;/a&gt;&lt;/td&gt;&lt;td&gt;&lt;a href=&quot;javascript:;&quot;&gt;&lt;/a&gt;&lt;/td&gt;&lt;td&gt;&lt;a href=&quot;javascript:;&quot;&gt;&lt;/a&gt;&lt;/td&gt;&lt;td class=&quot;jl-cal-weekend&quot;&gt;&lt;a href=&quot;javascript:;&quot;&gt;&lt;/a&gt;&lt;/td&gt;&lt;/tr&gt;',
+						'&lt;tr&gt;&lt;td class=&quot;jl-cal-weekend&quot;&gt;&lt;a href=&quot;javascript:;&quot;&gt;&lt;/a&gt;&lt;/td&gt;&lt;td&gt;&lt;a href=&quot;javascript:;&quot;&gt;&lt;/a&gt;&lt;/td&gt;&lt;td&gt;&lt;a href=&quot;javascript:;&quot;&gt;&lt;/a&gt;&lt;/td&gt;&lt;td&gt;&lt;a href=&quot;javascript:;&quot;&gt;&lt;/a&gt;&lt;/td&gt;&lt;td&gt;&lt;a href=&quot;javascript:;&quot;&gt;&lt;/a&gt;&lt;/td&gt;&lt;td&gt;&lt;a href=&quot;javascript:;&quot;&gt;&lt;/a&gt;&lt;/td&gt;&lt;td class=&quot;jl-cal-weekend&quot;&gt;&lt;a href=&quot;javascript:;&quot;&gt;&lt;/a&gt;&lt;/td&gt;&lt;/tr&gt;',
+						'&lt;tr&gt;&lt;td class=&quot;jl-cal-weekend&quot;&gt;&lt;a href=&quot;javascript:;&quot;&gt;&lt;/a&gt;&lt;/td&gt;&lt;td&gt;&lt;a href=&quot;javascript:;&quot;&gt;&lt;/a&gt;&lt;/td&gt;&lt;td&gt;&lt;a href=&quot;javascript:;&quot;&gt;&lt;/a&gt;&lt;/td&gt;&lt;td&gt;&lt;a href=&quot;javascript:;&quot;&gt;&lt;/a&gt;&lt;/td&gt;&lt;td&gt;&lt;a href=&quot;javascript:;&quot;&gt;&lt;/a&gt;&lt;/td&gt;&lt;td&gt;&lt;a href=&quot;javascript:;&quot;&gt;&lt;/a&gt;&lt;/td&gt;&lt;td class=&quot;jl-cal-weekend&quot;&gt;&lt;a href=&quot;javascript:;&quot;&gt;&lt;/a&gt;&lt;/td&gt;&lt;/tr&gt;',
+						'&lt;tr&gt;&lt;td class=&quot;jl-cal-weekend&quot;&gt;&lt;a href=&quot;javascript:;&quot;&gt;&lt;/a&gt;&lt;/td&gt;&lt;td&gt;&lt;a href=&quot;javascript:;&quot; class=&quot;jl-cal-disable&quot;&gt;&lt;/a&gt;&lt;/td&gt;&lt;td&gt;&lt;a href=&quot;javascript:;&quot;&gt;&lt;/a&gt;&lt;/td&gt;&lt;td&gt;&lt;a href=&quot;javascript:;&quot;&gt;&lt;/a&gt;&lt;/td&gt;&lt;td&gt;&lt;a href=&quot;javascript:;&quot;&gt;&lt;/a&gt;&lt;/td&gt;&lt;td&gt;&lt;a href=&quot;javascript:;&quot;&gt;&lt;/a&gt;&lt;/td&gt;&lt;td class=&quot;jl-cal-weekend&quot;&gt;&lt;a href=&quot;javascript:;&quot;&gt;&lt;/a&gt;&lt;/td&gt;&lt;/tr&gt;',
+						'&lt;tr&gt;&lt;td class=&quot;jl-cal-weekend&quot;&gt;&lt;a href=&quot;javascript:;&quot;&gt;&lt;/a&gt;&lt;/td&gt;&lt;td&gt;&lt;a href=&quot;javascript:;&quot; class=&quot;jl-cal-disable&quot;&gt;&lt;/a&gt;&lt;/td&gt;&lt;td&gt;&lt;a href=&quot;javascript:;&quot;&gt;&lt;/a&gt;&lt;/td&gt;&lt;td&gt;&lt;a href=&quot;javascript:;&quot;&gt;&lt;/a&gt;&lt;/td&gt;&lt;td&gt;&lt;a href=&quot;javascript:;&quot;&gt;&lt;/a&gt;&lt;/td&gt;&lt;td&gt;&lt;a href=&quot;javascript:;&quot;&gt;&lt;/a&gt;&lt;/td&gt;&lt;td class=&quot;jl-cal-weekend&quot;&gt;&lt;a href=&quot;javascript:;&quot;&gt;&lt;/a&gt;&lt;/td&gt;&lt;/tr&gt;',
+						'&lt;tr&gt;&lt;td class=&quot;jl-cal-weekend&quot;&gt;&lt;a href=&quot;javascript:;&quot;&gt;&lt;/a&gt;&lt;/td&gt;&lt;td&gt;&lt;a href=&quot;javascript:;&quot;&gt;&lt;/a&gt;&lt;/td&gt;&lt;td&gt;&lt;a href=&quot;javascript:;&quot;&gt;&lt;/a&gt;&lt;/td&gt;&lt;td&gt;&lt;a href=&quot;javascript:;&quot;&gt;&lt;/a&gt;&lt;/td&gt;&lt;td&gt;&lt;a href=&quot;javascript:;&quot;&gt;&lt;/a&gt;&lt;/td&gt;&lt;td&gt;&lt;a href=&quot;javascript:;&quot;&gt;&lt;/a&gt;&lt;/td&gt;&lt;td class=&quot;jl-cal-weekend&quot;&gt;&lt;a href=&quot;javascript:;&quot;&gt;&lt;/a&gt;&lt;/td&gt;&lt;/tr&gt;',
+						'&lt;/tbody&gt;&lt;/table&gt;&lt;/div&gt;&lt;div class=&quot;jl-cal-footer&quot;&gt;&lt;a class=&quot;jl-cal-today&quot; href=&quot;javascript:;&quot;&gt;', calendarLocale.today, '&lt;/a&gt;&lt;/div&gt;'];
+
+		jqEl.html(template.join(''));
+		var jqTable = jqEl.find('.jl-cal-body table');
+		Z._currYear = -1;
+		jqTable.on('click', Z._doTableClick);
+		
+		var dvalue = Z._value &amp;&amp; jslet.isDate(Z._value) ? Z._value : new Date();
+		this.setValue(dvalue);
+		jqEl.find('.jl-cal-today').click(function (event) {
+			var d = new Date();
+			Z.setValue(new Date(d.getFullYear(), d.getMonth(), d.getDate()));
+			Z._fireSelectedEvent();
+		});
+		
+		jqEl.find('.jl-cal-yprev').click(function (event) {
+			Z.incYear(-1);
+		});
+		
+		jqEl.find('.jl-cal-mprev').click(function (event) {
+			Z.incMonth(-1);
+		});
+		
+		jqEl.find('.jl-cal-ynext').click(function (event) {
+			Z.incYear(1);
+		});
+		
+		jqEl.find('.jl-cal-mnext').click(function (event) {
+			Z.incMonth(1);
+		});
+		
+		jqEl.on('keydown', function(event){
+			var ctrlKey = event.ctrlKey,
+				keyCode = event.keyCode;
+			var delta = 0;
+			if(keyCode == jslet.ui.KeyCode.UP) {
+				if(ctrlKey) {
+					Z.incYear(-1);
+				} else {
+					Z.incDate(-7);
+				}
+				event.preventDefault();
+				return;
+			} 
+			if(keyCode == jslet.ui.KeyCode.DOWN) {
+				if(ctrlKey) {
+					Z.incYear(1);
+				} else {
+					Z.incDate(7);
+				}
+				event.preventDefault();
+				return;
+			}
+			if(keyCode == jslet.ui.KeyCode.LEFT) {
+				if(ctrlKey) {
+					Z.incMonth(-1);
+				} else {
+					Z.incDate(-1);
+				}
+				event.preventDefault();
+				return;
+			}
+			if(keyCode == jslet.ui.KeyCode.RIGHT) {
+				if(ctrlKey) {
+					Z.incMonth(1);
+				} else {
+					Z.incDate(1);
+				}
+				event.preventDefault();
+				return;
+			}
+		});
+	},
+	
+	_getNotNullDate: function() {
+		var value =this._value;
+		if(!value) {
+			value = new Date();
+		}
+		return value;
+	},
+	
+	incDate: function(deltaDay) {
+		var value = this._getNotNullDate();
+		value.setDate(value.getDate() + deltaDay);
+		this.setValue(value);
+	},
+	
+	incMonth: function(deltaMonth) {
+		var value = this._getNotNullDate(),
+			oldDate = value.getDate();
+		value.setMonth(value.getMonth() + deltaMonth);
+		if(oldDate &gt;=29) {
+			var newDate = value.getDate();
+			if(oldDate != newDate) {
+				value = new Date(value.getFullYear(), value.getMonth(), 1) - 24*3600*1000;
+				value = new Date(value);
+			}
+		}
+		this.setValue(value);
+	},
+	
+	incYear: function(deltaYear) {
+		var value = this._getNotNullDate(),
+			oldDate = value.getDate();
+		value.setFullYear(value.getFullYear() + deltaYear);
+		if(oldDate &gt;=29) {
+			var newDate = value.getDate();
+			if(oldDate != newDate) {
+				value = new Date(value.getFullYear(), value.getMonth(), 1) - 24*3600*1000;
+				value = new Date(value);
+			}
+		}
+		this.setValue(value);
+	},
+	
+	_innerSetValue: function(value) {
+		var Z = this,
+			oldValue = Z._getNotNullDate();
+		if(value) { //Overwrite Year/Month/Date part, keep time part.
+			oldValue.setFullYear(value.getFullYear(), value.getMonth(), value.getDate());
+		}
+		Z._value = oldValue;
+	},
+	
+<span id='jslet-ui-Calendar-method-setValue'>	/**
+</span>	 * Set date value of calendar.
+	 * 
+	 * @param {Date} value Calendar date.
+	 */
+	setValue: function (value) {
+		if (!value) {
+			return;
+		}
+
+		var Z = this;
+		if (Z._minDate &amp;&amp; value &lt; Z._minDate) {
+			value = new Date(Z._minDate.getTime());
+		}
+		if (Z._maxDate &amp;&amp; value &gt; Z._maxDate) {
+			value = new Date(Z._maxDate.getTime());
+		}
+		Z._innerSetValue(value);
+		var y = value.getFullYear(), 
+			m = value.getMonth();
+		if (Z._currYear == y &amp;&amp; Z._currMonth == m) {
+			Z._setCurrDateCls();
+		} else {
+			Z._refreshDateCell(y, m);
+		}
+	},
+
+<span id='jslet-ui-Calendar-method-focus'>	/**
+</span>	 * @override.
+	 */
+	focus: function() {
+		var Z = this,
+			jqEl = jQuery(Z.el);
+		jqEl.find('.jl-cal-current')[0].focus();
+	},
+	
+	_checkNaviState: function () {
+		var Z = this,
+			jqEl = jQuery(Z.el), flag, btnToday;
+		if (Z._minDate) {
+			var minY = Z._minDate.getFullYear(),
+				minM = Z._minDate.getMonth(),
+				btnYearPrev = jqEl.find('.jl-cal-yprev')[0];
+			flag = (Z._currYear &lt;= minY);
+			btnYearPrev.style.visibility = (flag ? 'hidden' : 'visible');
+
+			flag = (Z._currYear == minY &amp;&amp; Z._currMonth &lt;= minM);
+			var btnMonthPrev = jqEl.find('.jl-cal-mprev')[0];
+			btnMonthPrev.style.visibility = (flag ? 'hidden' : 'visible');
+
+			flag = (Z._minDate &gt; new Date());
+			btnToday = jqEl.find('.jl-cal-today')[0];
+			btnToday.style.visibility = (flag ? 'hidden' : 'visible');
+		}
+
+		if (Z._maxDate) {
+			var maxY = Z._maxDate.getFullYear(),
+				maxM = Z._maxDate.getMonth(),
+				btnYearNext = jqEl.find('.jl-cal-ynext')[0];
+			flag = (Z._currYear &gt;= maxY);
+			btnYearNext.jslet_disabled = flag;
+			btnYearNext.style.visibility = (flag ? 'hidden' : 'visible');
+
+			flag = (Z._currYear == maxY &amp;&amp; Z._currMonth &gt;= maxM);
+			var btnMonthNext = jqEl.find('.jl-cal-mnext')[0];
+			btnMonthNext.jslet_disabled = flag;
+			btnMonthNext.style.visibility = (flag ? 'hidden' : 'visible');
+
+			flag = (Z._maxDate &lt; new Date());
+			btnToday = jqEl.find('.jl-cal-today')[0];
+			btnToday.style.visibility = (flag ? 'hidden' : 'visible');
+		}
+	},
+
+	_refreshDateCell: function (year, month) {
+		var Z = this,
+			jqEl = jQuery(Z.el),
+			monthnames = jsletlocale.Calendar.monthNames,
+			mname = monthnames[month],
+			otitle = jqEl.find('.jl-cal-title')[0];
+		otitle.innerHTML = mname + ',' + year;
+		var otable = jqEl.find('.jl-cal-body table')[0],
+			rows = otable.tBodies[0].rows,
+			firstDay = new Date(year, month, 1),
+			w1 = firstDay.getDay(),
+			oneDayMs = 86400000, //24 * 60 * 60 * 1000
+			date = new Date(firstDay.getTime() - (w1 + 1) * oneDayMs);
+		date = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+
+		var rowCnt = rows.length, otr, otd, m, oa;
+		for (var i = 1; i &lt;= rowCnt; i++) {
+			otr = rows[i - 1];
+			for (var j = 1, tdCnt = otr.cells.length; j &lt;= tdCnt; j++) {
+				otd = otr.cells[j - 1];
+				date = new Date(date.getTime() + oneDayMs);
+				oa = otd.firstChild;
+				if (Z._minDate &amp;&amp; date &lt; Z._minDate || Z._maxDate &amp;&amp; date &gt; Z._maxDate) {
+					oa.innerHTML = '';
+					otd.jslet_date_value = null;
+					continue;
+				} else {
+					oa.innerHTML = date.getDate();
+					otd.jslet_date_value = date;
+				}
+				m = date.getMonth();
+				if (m != month) {
+					jQuery(otd).addClass('jl-cal-disable');
+				} else {
+					jQuery(otd).removeClass('jl-cal-disable');
+				}
+			} //end for j
+		} //end for i
+		Z._currYear = year;
+		Z._currMonth = month;
+		Z._setCurrDateCls();
+		Z._checkNaviState();
+	},
+	
+	_fireSelectedEvent: function() {
+		var Z = this;
+		if (Z._onDateSelected) {
+			Z._onDateSelected.call(Z, Z._value);
+		}
+	},
+	
+	_doTableClick: function (event) {
+		event = jQuery.event.fix( event || window.event );
+		var node = event.target,
+			otd = node.parentNode;
+		
+		if (otd &amp;&amp; otd.tagName &amp;&amp; otd.tagName.toLowerCase() == 'td') {
+			if (!otd.jslet_date_value) {
+				return;
+			}
+			var el = jslet.ui.findFirstParent(otd, function (node) { return node.jslet; });
+			var Z = el.jslet;
+			Z._innerSetValue(otd.jslet_date_value);
+			Z._setCurrDateCls();
+			try{
+				otd.firstChild.focus();
+			}catch(e){
+			}
+			Z._fireSelectedEvent();
+		}
+	},
+
+	_setCurrDateCls: function () {
+		var Z = this;
+		if (!jslet.isDate(Z._value)) {
+			return;
+		}
+		var currM = Z._value.getMonth(),
+			currY = Z._value.getFullYear(),
+			currD = Z._value.getDate(),
+			jqEl = jQuery(Z.el),
+			otable = jqEl.find('.jl-cal-body table')[0],
+			rows = otable.tBodies[0].rows,
+			rowCnt = rows.length, otr, otd, m, d, y, date, jqLink;
+		for (var i = 0; i &lt; rowCnt; i++) {
+			otr = rows[i];
+			for (var j = 0, tdCnt = otr.cells.length; j &lt; tdCnt; j++) {
+				otd = otr.cells[j];
+				date = otd.jslet_date_value;
+				if (!date) {
+					continue;
+				}
+				m = date.getMonth();
+				y = date.getFullYear();
+				d = date.getDate();
+				jqLink = jQuery(otd.firstChild);
+				if (y == currY &amp;&amp; m == currM &amp;&amp; d == currD) {
+					if (!jqLink.hasClass('jl-cal-current')) {
+						jqLink.addClass('jl-cal-current');
+					}
+					try{
+						otd.firstChild.focus();
+					} catch(e){
+					}
+				} else {
+					jqLink.removeClass('jl-cal-current');
+				}
+			}
+		}
+	},
+	
+<span id='jslet-ui-Calendar-method-destroy'>	/**
+</span>	 * @override
+	 */
+	destroy: function($super){
+		var jqEl = jQuery(this.el);
+		jqEl.off();
+		jqEl.find('.jl-cal-body table').off();
+		jqEl.find('.jl-cal-today').off();
+		jqEl.find('.jl-cal-yprev').off();
+		jqEl.find('.jl-cal-mprev').off();
+		jqEl.find('.jl-cal-mnext').off();
+		jqEl.find('.jl-cal-ynext').off();
+		$super();
+	}
+});
+jslet.ui.register('Calendar', jslet.ui.Calendar);
+jslet.ui.Calendar.htmlTemplate = '&lt;div&gt;&lt;/div&gt;';
+</pre>
+</body>
+</html>

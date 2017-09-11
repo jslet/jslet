@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js"><span id='jslet-ui-DBCheckBoxGroup'>/**
+</span> * @class
+ * @extend jslet.ui.DBFieldControl
+ * 
+ * DBCheckBoxGroup. Display a group of checkbox. Example:
+ * 
+ *     @example
+ *      var jsletParam = {type:&quot;DBCheckBoxGroup&quot;,dataset:&quot;employee&quot;,field:&quot;department&quot;, columnCount: 3};
+ * 
+ *     //1. Declaring:
+ *      &lt;div data-jslet='type:&quot;DBCheckBoxGroup&quot;,dataset:&quot;employee&quot;,field:&quot;department&quot;, columnCount: 3' /&gt;
+ *      or
+ *      &lt;div data-jslet='jsletParam' /&gt;
+ *
+ *     //2. Binding
+ *      &lt;div id=&quot;ctrlId&quot;  /&gt;
+ *      //Js snippet
+ *      var el = document.getElementById('ctrlId');
+ *      jslet.ui.bindControl(el, jsletParam);
+ *
+ *     //3. Create dynamically
+ *      jslet.ui.createControl(jsletParam, document.body);
+ */
+jslet.ui.DBCheckBoxGroup = jslet.Class.create(jslet.ui.DBFieldControl, {
+<span id='jslet-ui-DBCheckBoxGroup-method-initialize'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	initialize: function ($super, el, params) {
+		var Z = this;
+		Z.allProperties = 'styleClass,dataset,field,columnCount,hasSelectAllBox';
+		
+		Z._columnCount = 99999;
+		
+		Z._hasSelectAllBox = false;
+		
+		Z._itemIds = null;
+		
+		$super(el, params);
+	},
+
+<span id='jslet-ui-DBCheckBoxGroup-property-columnCount'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get column count.
+	 * 
+	 * @param {Integer | undefined} columnCount Column count.
+	 * 
+	 * @return {this | Integer}
+	 */
+	columnCount: function(columnCount) {
+		if(columnCount === undefined) {
+			return this._columnCount;
+		}
+		jslet.Checker.test('DBCheckBoxGroup.columnCount', columnCount).isGTEZero();
+		this._columnCount = parseInt(columnCount);
+		return this;
+	},
+	
+<span id='jslet-ui-DBCheckBoxGroup-property-hasSelectAllBox'>	/**
+</span>	 * @property
+	 * 
+	 * Identify whether creating &quot;select all&quot; box.
+	 * 
+	 * @param {Boolean | undefined} hasSelectAllBox True - has &quot;select all box&quot;, false - otherwise.
+	 * 
+	 * @return {this | Boolean}
+	 */
+	hasSelectAllBox: function(hasSelectAllBox) {
+		if(hasSelectAllBox === undefined) {
+			return this._hasSelectAllBox;
+		}
+		this._hasSelectAllBox = hasSelectAllBox? true: false;
+		return this;
+	},
+	
+<span id='jslet-ui-DBCheckBoxGroup-method-isValidTemplateTag'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	isValidTemplateTag: function (el) {
+		var tagName = el.tagName.toLowerCase();
+		return tagName == 'div';
+	},
+
+<span id='jslet-ui-DBCheckBoxGroup-method-bind'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	bind: function () {
+		var Z = this;
+		var fldObj = Z._dataset.getField(Z._field);
+//		if(fldObj.valueStyle() !== jslet.data.FieldValueStyle.MULTIPLE) {
+//			fldObj.valueStyle(jslet.data.FieldValueStyle.MULTIPLE);
+//		}
+		Z.renderAll();
+		var jqEl = jQuery(Z.el);
+		jqEl.on('keydown', function(event) {
+			var keyCode = event.which, idx, activeEle, activeId;
+			
+			if(keyCode === jslet.ui.KeyCode.LEFT) { //Arrow Left
+				if(!Z._itemIds || Z._itemIds.length === 0) {
+					return;
+				}
+				activeEle = document.activeElement;
+				activeId = activeEle &amp;&amp; activeEle.id;
+				
+				idx = Z._itemIds.indexOf(activeId);
+				if(idx === 0) {
+					return;
+				}
+				document.getElementById(Z._itemIds[idx - 1]).focus();
+				event.preventDefault();
+	       		event.stopImmediatePropagation();
+			} else if( keyCode === jslet.ui.KeyCode.RIGHT) { //Arrow Right
+				if(!Z._itemIds || Z._itemIds.length === 0) {
+					return;
+				}
+				activeEle = document.activeElement;
+				activeId = activeEle &amp;&amp; activeEle.id;
+				
+				idx = Z._itemIds.indexOf(activeId);
+				if(idx === Z._itemIds.length - 1) {
+					return;
+				}
+				document.getElementById(Z._itemIds[idx + 1]).focus();
+				event.preventDefault();
+	       		event.stopImmediatePropagation();
+			}
+		});
+		
+		jqEl.on('click', 'input[type=&quot;checkbox&quot;]', function (event) {
+			var ctrl = this;
+			window.setTimeout(function(){ //Defer firing 'updateToDataset' when this control is in DBTable to make row changed firstly.
+				event.delegateTarget.jslet.updateToDataset(ctrl);
+			}, 5);
+		});
+		jqEl.on('focus', 'input[type=&quot;checkbox&quot;]', function (event) {
+			jslet.ui.globalFocusManager.activeDataset(Z._dataset.name()).activeField(Z._field).activeValueIndex(Z._valueIndex);
+		});
+		jqEl.on('blur', 'input[type=&quot;checkbox&quot;]', function (event) {
+			jslet.ui.globalFocusManager.activeDataset(null).activeField(null).activeValueIndex(null);
+		});
+		jqEl.addClass('form-control');//Bootstrap class
+		jqEl.css('height', 'auto');
+	},
+
+<span id='jslet-ui-DBCheckBoxGroup-method-doMetaChanged'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	doMetaChanged: function($super, metaName){
+		$super(metaName);
+		var Z = this,
+			fldObj = Z._dataset.getField(Z._field);
+		if(!metaName || metaName == &quot;disabled&quot; || metaName == &quot;readOnly&quot; || metaName == 'tabIndex') {
+			var disabled = fldObj.disabled(),
+				readOnly = fldObj.readOnly();
+			disabled = disabled || readOnly;
+			var chkBoxes = jQuery(Z.el).find('input[type=&quot;checkbox&quot;]'),
+				chkEle, 
+				tabIndex = fldObj.tabIndex(),
+				required = fldObj.required();
+			for(var i = 0, cnt = chkBoxes.length; i &lt; cnt; i++){
+				chkEle = chkBoxes[i];
+				jslet.ui.setEditableStyle(chkEle, disabled, readOnly, false, required);
+				chkEle.tabIndex = tabIndex;
+			}
+		}
+	},
+	
+<span id='jslet-ui-DBCheckBoxGroup-method-doValueChanged'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	doValueChanged: function() {
+		var Z = this;
+		if (Z._keep_silence_) {
+			return;
+		}
+		var checkboxs = jQuery(Z.el).find('input[type=&quot;checkbox&quot;]'),
+			chkcnt = checkboxs.length, 
+			checkbox, i;
+		for (i = 0; i &lt; chkcnt; i++) {
+			checkbox = checkboxs[i];
+			if(jQuery(checkbox).hasClass('jl-selectall')) {
+				continue;
+			}
+			checkbox.checked = false;
+		}
+		var values = Z.getValue();
+		if(values &amp;&amp; values.length &gt; 0) {
+			var valueCnt = values.length, value;
+			for (i = 0; i &lt; chkcnt; i++) {
+				checkbox = checkboxs[i];
+				for (var j = 0; j &lt; valueCnt; j++) {
+					value = values[j];
+					if (value == checkbox.value) {
+						checkbox.checked = true;
+					}
+				}
+			}
+		}
+	},
+	
+<span id='jslet-ui-DBCheckBoxGroup-method-doLookupChanged'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	doLookupChanged: function () {
+		var Z = this,
+			fldObj = Z._dataset.getField(Z._field), 
+			lkf = fldObj.lookup();
+		if (!lkf) {
+			console.error(jslet.formatMessage(jsletlocale.Dataset.lookupNotFound,
+					[fldObj.name()]));
+			return;
+		}
+//		if(fldObj.valueStyle() != jslet.data.FieldValueStyle.MULTIPLE) {
+//			fldObj.valueStyle(jslet.data.FieldValueStyle.MULTIPLE);
+//		}
+		
+		var lkds = lkf.dataset(),
+			lkCnt = lkds.recordCount();
+		if(lkCnt === 0) {
+			Z.el.innerHTML = jsletlocale.DBCheckBoxGroup.noOptions;
+			return;
+		}
+		Z._itemIds = [];
+		var template = ['&lt;table cellpadding=&quot;0&quot; cellspacing=&quot;0&quot;&gt;'],
+			isNewRow = false;
+		var editFilter = lkf.editFilter();
+		Z._innerEditFilterExpr = null;
+		var editItemDisabled = lkf.editItemDisabled();
+		if(editFilter) {
+			Z._innerEditFilterExpr = new jslet.data.Expression(lkds, editFilter);
+		}
+		var disableOption = false,
+			k = -1,
+			itemId;
+		if(Z._hasSelectAllBox &amp;&amp; lkCnt &gt; 0) {
+			template.push('&lt;tr&gt;');
+			itemId = jslet.nextId();
+			template.push('&lt;td style=&quot;white-space: nowrap;vertical-align:middle&quot;&gt;&lt;input type=&quot;checkbox&quot; class=&quot;jl-selectall&quot;');
+			template.push(' id=&quot;');
+			template.push(itemId);
+			template.push('&quot;/&gt;&lt;label for=&quot;');
+			template.push(itemId);
+			template.push('&quot;&gt;');
+			template.push(jsletlocale.DBCheckBoxGroup.selectAll);
+			template.push('&lt;/label&gt;&lt;/td&gt;');
+			k = 0;
+			Z._itemIds.push(itemId);
+		}
+		Z.el.innerHTML = '';
+		var oldRecno = lkds.recnoSilence();
+		try {
+			for (var i = 0; i &lt; lkCnt; i++) {
+				lkds.recnoSilence(i);
+				disableOption = false;
+				if(Z._innerEditFilterExpr &amp;&amp; !Z._innerEditFilterExpr.eval()) {
+					if(!editItemDisabled) {
+						continue;
+					} else {
+						disableOption = true;
+					}
+				}
+				k++;
+				isNewRow = (k % Z._columnCount === 0);
+				if (isNewRow) {
+					if (k &gt; 0) {
+						template.push('&lt;/tr&gt;');
+					}
+					template.push('&lt;tr&gt;');
+				}
+				itemId = jslet.nextId();
+				Z._itemIds.push(itemId);
+				template.push('&lt;td style=&quot;white-space: nowrap; &quot;&gt;&lt;input type=&quot;checkbox&quot; value=&quot;');
+				template.push(lkds.getFieldValue(lkf.keyField()));
+				template.push('&quot; id=&quot;');
+				template.push(itemId);
+				template.push('&quot; ' + (disableOption? ' disabled': '') + '/&gt;&lt;label for=&quot;');
+				template.push(itemId);
+				template.push('&quot;&gt;');
+				template.push(lkf.getCurrentDisplayValue());
+				template.push('&lt;/label&gt;&lt;/td&gt;');
+				isNewRow = (k % Z._columnCount === 0);
+			} // end for
+			if (lkCnt &gt; 0) {
+				template.push('&lt;/tr&gt;');
+			}
+			template.push('&lt;/table&gt;');
+			Z.el.innerHTML = template.join('');
+		} finally {
+			lkds.recnoSilence(oldRecno);
+		}
+		Z.doMetaChanged();
+	}, // end renderOptions
+
+	updateToDataset: function(currCheckBox) {
+		var Z = this;
+		if (Z._is_silence_) {
+			return;
+		}
+		var allBoxes = jQuery(Z.el).find('input[type=&quot;checkbox&quot;]'), chkBox, j, allCnt;
+		if(jQuery(currCheckBox).hasClass('jl-selectall')) {
+			var isAllSelected = currCheckBox.checked;
+			for(j = 0, allCnt = allBoxes.length; j &lt; allCnt; j++){
+				chkBox = allBoxes[j];
+				if(chkBox == currCheckBox) {
+					continue;
+				}
+				if (!chkBox.disabled) {
+					chkBox.checked = isAllSelected;
+				}
+			} //end for j
+		}
+		
+		var fldObj = Z._dataset.getField(Z._field),
+			limitCount = fldObj.valueCountLimit(), 
+			values = null;
+		if(fldObj.valueStyle() === jslet.data.FieldValueStyle.NORMAL) {
+			if(currCheckBox.checked) {
+				for(j = 0, allCnt = allBoxes.length; j &lt; allCnt; j++){
+					chkBox = allBoxes[j];
+					if(chkBox === currCheckBox || jQuery(chkBox).hasClass('jl-selectall')) {
+						continue;
+					}
+					chkBox.checked = false;
+				} //end for j
+				values = currCheckBox.value;
+			}
+		} else {
+			values = [];
+			var count = 0;
+			for(j = 0, allCnt = allBoxes.length; j &lt; allCnt; j++){
+				chkBox = allBoxes[j];
+				if(jQuery(chkBox).hasClass('jl-selectall')) {
+					continue;
+				}
+				if (chkBox.checked) {
+					values.push(chkBox.value);
+					count ++;
+				}
+			} //end for j
+	
+			if (limitCount &amp;&amp; count &gt; limitCount) {
+				currCheckBox.checked = !currCheckBox.checked;
+				jslet.showInfo(jslet.formatMessage(jsletlocale.DBCheckBoxGroup.invalidCheckedCount,
+						[''	+ limitCount]));
+				return;
+			}
+		}
+		
+		Z._is_silence_ = true;
+		try {
+			Z._dataset.setFieldValue(Z._field, values);
+		} finally {
+			Z._is_silence_ = false;
+		}
+	},
+	
+<span id='jslet-ui-DBCheckBoxGroup-method-innerFocus'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	innerFocus: function() {
+		var itemIds = this._itemIds;
+		if (itemIds &amp;&amp; itemIds.length &gt; 0) {
+			document.getElementById(itemIds[0]).focus();
+		}
+	},
+	
+<span id='jslet-ui-DBCheckBoxGroup-method-renderAll'>	/**
+</span>	 * @override
+	 */
+	renderAll: function () {
+		var Z = this, 
+			jqEl = jQuery(Z.el);
+		if(!jqEl.hasClass(&quot;jl-checkboxgroup&quot;)) {
+			jqEl.addClass(&quot;jl-checkboxgroup&quot;);
+		}
+		Z.refreshControl(jslet.data.RefreshEvent.updateAllEvent(), true);
+		return this;
+	},
+
+<span id='jslet-ui-DBCheckBoxGroup-method-destroy'>	/**
+</span>	 * @override
+	 */
+	destroy: function($super){
+		var jqEl = jQuery(this.el);
+		jqEl.off();
+		$super();
+	}
+});
+
+jslet.ui.register('DBCheckBoxGroup', jslet.ui.DBCheckBoxGroup);
+jslet.ui.DBCheckBoxGroup.htmlTemplate = '&lt;div&gt;&lt;/div&gt;';
+
+</pre>
+</body>
+</html>

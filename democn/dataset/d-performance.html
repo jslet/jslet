@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="../css/demo.css" />
+    
+    <title>Jslet - 大数据查询</title>
+    <script type="text/javascript" data-main="../config.js" src="../lib/requirejs/require.min.js"></script>
+    <script type="text/javascript">
+	    require(['dataset/d-performance', 'lib/mock/jquery.mockjax', 'mock/bom-mock']);
+    </script>
+</head>
+<body>
+    <div class="demo-header">
+    <h4 id="top">Jslet - 大数据查询</h4>
+	</div>
+	<hr />
+    <p>
+        <button id="btnQuery" class="btn btn-default btn-sm" > 查询 </button>
+    <div data-jslet='type:"DBTable",dataset:"bigtable"' style="width: 100%; height: 200px;margin-top:10px;margin-bottom:10px" ></div>
+
+	<div class="demo-desc">
+        <p>返回: 70 个字段和 20000条数据.</p>
+	</div>
+	<hr />
+	<h4>源码</h4>
+    <pre class="prettyprint linenums"><code>
+	var fields = [{ "name": "longFieldName1", shortName: 'a1', "type": "S", "length": 10, "label": "Field 1", aggraded: true }];
+	for(var i = 2; i < 71; i++) {
+		fields.push({ "name": "longFieldName" + i, shortName: 'a' + i, "type": "S", "length": 10, "label": "Field " + i});
+	}
+    var dsBigTable = new jslet.data.Dataset({name: "bigtable", fields: fields, keyField: "field1"});
+
+    dsBigTable.queryUrl('/demo/perf/find');
+	jslet.ui.install();
+	
+    //绑定按钮事件
+	$('#btnQuery').click(function() {
+        var waitingbox = new jslet.ui.WaitingBox(document.body);
+        waitingbox.show("正在查询，请稍后...");
+		dsBigTable.query().always(function() {
+			waitingbox.destroy(); 
+			waitingbox = null;
+		});
+	});
+	</code></pre>
+
+    <script type="text/javascript">
+       window.LOADER_BASE_URL = "../lib/prettify";
+    </script>
+    <script type="text/javascript" src="../lib/prettify/run_prettify.js"></script>
+		
+</body>
+</html>

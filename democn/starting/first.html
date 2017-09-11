@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>    
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    
+    <!-- Bootstrap 样式  -->
+   	<link rel="stylesheet" type="text/css" href="../../lib/bootstrap-3.2.0-dist/css/bootstrap.min.css" />
+   	<link rel="stylesheet" type="text/css" href="../../lib/bootstrap-3.2.0-dist/css/bootstrap-theme.min.css" />
+    <!-- Font Awesome 样式  -->
+   	<link rel="stylesheet" type="text/css" href="../../lib/fontawesome/css/font-awesome.min.css" />
+   	
+    <!--  Jslet 样式  -->
+   	<link rel="stylesheet" type="text/css" href="../../dist/asset/jslet.min.css" />
+   	<link rel="stylesheet" type="text/css" href="../../dist/asset/default/jslet-theme.min.css" />
+   	
+    <!--  jQuery  -->
+   	<script src="../../lib/jquery/jquery-2.2.3.min.js"></script>
+   	
+   	<!-- Jslet -->
+   	<!-- 语言包，下面是中文的，如果需要英文，则引进：../../dist/locale/en/jslet-locale.js -->
+   	<script src="../../dist/locale/zh-cn/jslet-locale.min.js"></script>
+   	
+   	<script src="../../dist/jslet-data.min.js"></script>
+   	<script src="../../dist/jslet-ui.min.js"></script>
+   	
+	<script>
+		//定义字段
+		var fieldCfg = [
+			{name: 'field0', dataType: 'E', label: '编辑按钮列'},
+			{name: 'field1', dataType: 'S', label: '字符字段', required: true},
+			{name: 'field2', dataType: 'N', label: '数字字段'},
+			{name: 'field3', dataType: 'D', label: '日期字段', defaultValue: new Date()},
+			{name: 'field4', dataType: 'B', label: 'Bool字段'}
+		];
+		//创建数据集：test
+		var dsTest = new jslet.data.Dataset({name: 'test', fields: fieldCfg});
+		//插入一条数据
+		dsTest.appendRecord();
+		//设置字段值
+		dsTest.setFieldValue('field1', 'abcd');			
+		dsTest.setFieldValue('field2', 1000);
+		//确认修改，确认时会做数据校验
+		dsTest.confirm();
+		
+		$(document).ready(function() {
+			//文档加载完成后创建Jslet控件并与数据集绑定
+			jslet.ui.install();
+		})
+	</script>
+</head>
+<body>
+	<h4>列表区</h4>
+	<div data-jslet="type: 'DBTable', dataset: 'test'" style="width: 1000px"></div>
+	<h4>编辑区</h4>
+	<div data-jslet="type: 'DBEditPanel', dataset: 'test'" style="width: 1000px"></div>
+</body>
+</html>

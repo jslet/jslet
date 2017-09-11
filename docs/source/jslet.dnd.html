@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js"><span id='jslet-ui-DnD'>/**
+</span> * @private
+ * @class
+ * 
+* Drag &amp; Drop. A common framework to implement drag &amp; drop. Example:
+* 
+*     @example
+*     //Define a delegate class
+*     dndDelegate = {}
+*     dndDelegate._doDragStart = function(){}
+*     dndDelegate._doDragging = function (oldX, oldY, x, y, deltaX, deltaY) {}
+*     dndDelegate._doDragEnd = function (oldX, oldY, x, y, deltaX, deltaY) {}
+*     dndDelegate._doDragCancel = function () {}
+* 
+*     //Initialize jslet.ui.DnD
+*     //var dnd = new jslet.ui.DnD();
+*     //Or use global jslet.ui.DnD instance to bind 'dndDelegate'
+*     jslet.ui.dnd.bindControl(dndDelegate);
+*	
+*     //After end dragging, you need unbind it
+*     jslet.ui.dnd.unbindControl();
+* 
+*/
+jslet.ui.DnD = function () {
+	var oldX, oldY, x, y, deltaX, deltaY,
+		dragDelta = 2, 
+		dragged = false, 
+		bindedControl, 
+		mouseDowned = true,
+		self = this;
+
+	this._docMouseDown = function (event) {
+		event = jQuery.event.fix( event || window.event );
+		mouseDowned = true;
+		deltaX = 0;
+		deltaY = 0;
+		oldX = event.pageX;
+		oldY = event.pageY;
+		dragged = false;
+
+		if (bindedControl &amp;&amp; bindedControl._doMouseDown) {
+			bindedControl._doMouseDown(oldX, oldY, x, y, deltaX, deltaY);
+		}
+	};
+
+	this._docMouseMove = function (event) {
+		if (!mouseDowned) {
+			return;
+		}
+		event = jQuery.event.fix( event || window.event );
+		
+		x = event.pageX;
+		y = event.pageY;
+		if (!dragged) {
+			if (Math.abs(deltaX) &gt; dragDelta || Math.abs(deltaY) &gt; dragDelta) {
+				dragged = true;
+				oldX = x;
+				oldY = y;
+				if (bindedControl &amp;&amp; bindedControl._doDragStart) {
+					bindedControl._doDragStart(oldX, oldY);
+				}
+				return;
+			}
+		}
+		deltaX = x - oldX;
+		deltaY = y - oldY;
+		if (dragged) {
+			if (bindedControl &amp;&amp; bindedControl._doDragging) {
+				bindedControl._doDragging(oldX, oldY, x, y, deltaX, deltaY);
+			}
+		} else {
+			if (bindedControl &amp;&amp; bindedControl._doMouseMove) {
+				bindedControl._doMouseMove(oldX, oldY, x, y, deltaX, deltaY);
+			}
+			oldX = x;
+			oldY = y;
+		}
+	};
+
+	this._docMouseUp = function (event) {
+		mouseDowned = false;
+		if (dragged) {
+			dragged = false;
+			if (bindedControl &amp;&amp; bindedControl._doDragEnd) {
+				bindedControl._doDragEnd(oldX, oldY, x, y, deltaX, deltaY);
+			}
+		} else {
+			if (bindedControl &amp;&amp; bindedControl._doMouseUp) {
+				bindedControl._doMouseUp(oldX, oldY, x, y, deltaX, deltaY);
+			}
+		}
+		self.unbindControl();
+	};
+
+	this._docKeydown = function (event) {
+		event = jQuery.event.fix( event || window.event );
+		if (event.which == 27) {//Esc key
+			if (dragged) {
+				dragged = false;
+				if (bindedControl &amp;&amp; bindedControl._doDragCancel) {
+					bindedControl._doDragCancel();
+					self.unbindControl();
+				}
+			}
+		}
+	};
+
+	this._docSelectStart = function (event) {
+		event = jQuery.event.fix( event || window.event );
+		event.preventDefault();
+
+		return false;
+	};
+
+<span id='jslet-ui-DnD-method-bindControl'>	/**
+</span>	 * Bind control.
+	 * 
+	 * @param {Object} ctrl The control need drag &amp; drop, there are four method in it: &lt;br /&gt;
+	 *  ctrl._doDragStart = function(){} &lt;br /&gt;
+	 *  ctrl._doDragging = function(oldX, oldY, x, y, deltaX, deltaY){} &lt;br /&gt;
+	 *  ctrl._doDragEnd = function(oldX, oldY, x, y, deltaX, deltaY){} &lt;br /&gt;
+	 *  ctrl._doDragCancel = function(){} &lt;br /&gt;
+	 *  ctrl_doDragStart = function{}
+	 */
+	this.bindControl = function (ctrl) {
+		bindedControl = ctrl;
+		var doc = jQuery(document);
+		doc.on('mousedown', this._docMouseDown);
+		doc.on('mouseup', this._docMouseUp);
+		doc.on('mousemove', this._docMouseMove);
+		doc.on('selectstart', this._docSelectStart);
+		doc.on('keydown', this._docKeydown);
+	};
+
+<span id='jslet-ui-DnD-method-unbindControl'>	/**
+</span>	 * Unbind the current control
+	 */
+	this.unbindControl = function () {
+		var doc = jQuery(document);
+		doc.off('mousedown', this._docMouseDown);
+		doc.off('mouseup', this._docMouseUp);
+		doc.off('mousemove', this._docMouseMove);
+		doc.off('selectstart', this._docSelectStart);
+		doc.off('keydown', this._docKeydown);
+		
+		bindedControl = null;
+	};
+};
+
+<span id='jslet-ui-property-dnd'>/**
+</span> * @private
+ * 
+ * Global Drag &amp; drop object.
+ * 
+ * @member jslet.ui
+ */
+jslet.ui.dnd = new jslet.ui.DnD();
+
+</pre>
+</body>
+</html>

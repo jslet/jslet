@@ -1,0 +1,1231 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js"><span id='jslet-ui-Window'>/**
+</span> * @class
+ * @extend jslet.ui.Control
+ * 
+ * Window, there are the following features: &lt;br /&gt; 
+ * 1. Show as modal or modeless; &lt;br /&gt;
+ * 2. User can change window size; &lt;br /&gt;
+ * 3. User can minimize/maximize/restore/close window; &lt;br /&gt;
+ * 4. User can move window; &lt;br /&gt;
+ * 
+ * Example:
+ *
+ *     @example
+ *     var oWin = jslet.ui.createControl({ type: &quot;Window&quot;, iconClass:&quot;winicon&quot;, caption: &quot;test window&quot;, minimizable: false, maximizable:false,onActive: doWinActive, onPositionChanged: doPositionChanged });
+ *     oWin.setContent(&quot;Open modeless window in the Body(with icon)!&quot;);
+ *     oWin.show(350,250);
+ *     //or oWin.showModel(350, 250);
+ *
+ */
+jslet.ui.Window = jslet.Class.create(jslet.ui.Control, {
+<span id='jslet-ui-Window-method-initialize'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	initialize: function ($super, el, params) {
+		var Z = this;
+		Z.el = el;
+		Z.allProperties = 'styleClass,caption,resizable,minimizable,maximizable,closable,iconClass,onSizeChanged,onClosed,onPositionChanged,onActive,width,height,minWidth,maxWidth,minHeight,maxHeight,isCenter,isSmallHeader,stopEventBubbling,animation';
+
+		Z._caption = null;
+		
+		Z._resizable = true;
+		
+		Z._minimizable = true;
+
+		Z._maximizable = true;
+		
+		Z._closable = true;
+		
+		Z._iconClass = null;
+		
+		Z._width = 0;
+		
+		Z._height = 0;
+		
+		Z._minWidth = 20;
+		
+		Z._minHeight = 30;
+		
+		Z._maxWidth = -1;
+
+		Z._maxHeight = -1;
+
+		Z._isCenter = false;
+ 
+		Z._animation = 'linear';
+		
+		Z._onSizeChanged = null;
+		
+		Z._onPositionChanged = null;
+		
+		Z._onActive = null;
+		
+		Z._onClosed = null;
+
+		Z._stopEventBubbling = false;
+		
+		Z._isModal = false;
+		
+		Z._state = null; 
+		$super(el, params);
+	},
+
+<span id='jslet-ui-Window-property-caption'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get window caption.
+	 * 
+	 * @param {String | undefined} caption Window caption.
+	 * 
+	 * @return {this | String}
+	 */
+	caption: function(caption) {
+		if(caption === undefined) {
+			return this._caption;
+		}
+		jslet.Checker.test('Window.caption', caption).isString();
+		this._caption = caption;
+		return this;
+	},
+	
+<span id='jslet-ui-Window-property-iconClass'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get the icon class of window header.
+	 * 
+	 * @param {String | undefined} iconClass The icon css class of window header.
+	 * 
+	 * @return {this | String}
+	 */
+	iconClass: function(iconClass) {
+		if(iconClass === undefined) {
+			return this._iconClass;
+		}
+		jslet.Checker.test('Window.iconClass', iconClass).isString();
+		this._iconClass = iconClass;
+		return this;
+	},
+	
+<span id='jslet-ui-Window-property-resizable'>	/**
+</span>	 * @property
+	 * 
+	 * Identify whether the window can be resized or not.
+	 * 
+	 * @param {Boolean | undefined} resizable True - window can be resized, false - otherwise.
+	 * 
+	 * @return {this | Boolean}
+	 */
+	resizable: function(resizable) {
+		if(resizable === undefined) {
+			return this._resizable;
+		}
+		this._resizable = resizable? true: false;
+		return this;
+	},
+	
+<span id='jslet-ui-Window-property-minimizable'>	/**
+</span>	 * @property
+	 * 
+	 * Identify whether the window can be minimized or not.
+	 * 
+	 * @param {Boolean | undefined} minimizable True - window can be minimized, false - otherwise.
+	 * 
+	 * @return {this | Boolean}
+	 */
+	minimizable: function(minimizable) {
+		if(minimizable === undefined) {
+			return this._minimizable;
+		}
+		this._minimizable = minimizable? true: false;
+		return this;
+	},
+	
+<span id='jslet-ui-Window-property-maximizable'>	/**
+</span>	 * @property
+	 * 
+	 * Identify whether the window can be maximized or not.
+	 * 
+	 * @param {Boolean | undefined} maximizable True - window can be maximized, false - otherwise.
+	 * 
+	 * @return {this | Boolean}
+	 */
+	maximizable: function(maximizable) {
+		if(maximizable === undefined) {
+			return this._maximizable;
+		}
+		this._maximizable = maximizable? true: false;
+		return this;
+	},
+	
+<span id='jslet-ui-Window-property-closable'>	/**
+</span>	 * @property
+	 * 
+	 * Identify whether the window can be closed or not.
+	 * 
+	 * @param {Boolean | undefined} closable True - window can be closed, false - otherwise.
+	 * 
+	 * @return {this | Boolean}
+	 */
+	closable: function(closable) {
+		if(closable === undefined) {
+			return this._closable;
+		}
+		this._closable = closable? true: false;
+		return this;
+	},
+	
+<span id='jslet-ui-Window-property-isCenter'>	/**
+</span>	 * @property
+	 * 
+	 * Identify whether the window is shown in center of container.
+	 * 
+	 * @param {Boolean | undefined} isCenter True - window is shown in center of container, false - otherwise.
+	 * 
+	 * @return {this | Boolean}
+	 */
+	isCenter: function(isCenter) {
+		if(isCenter === undefined) {
+			return this._isCenter;
+		}
+		this._isCenter = isCenter? true: false;
+		return this;
+	},
+	
+<span id='jslet-ui-Window-property-animation'>	/**
+</span>	 * @property
+	 * 
+	 * Animation effect for showing and hiding.
+	 * 
+	 * @param {String | undefined} animation Animation effect for showing and hiding, optional value: 'none', 'linear', 'slide', 'fade', default is 'linear'.
+	 * 
+	 * @return {this | String}
+	 */
+	animation: function(animation) {
+		if(animation === undefined) {
+			return this._animation;
+		}
+		this._animation = animation;
+		return this;
+	},
+	
+<span id='jslet-ui-Window-property-stopEventBubbling'>	/**
+</span>	 * @property
+	 * 
+	 * Identify whether stopping the event bubble.
+	 * 
+	 * @param {Boolean | undefined} stopEventBubbling True - stop event bubbling, false - otherwise.
+	 * 
+	 * @return {this | Boolean}
+	 */
+	stopEventBubbling: function(stopEventBubbling) {
+		if(stopEventBubbling === undefined) {
+			return this._stopEventBubbling;
+		}
+		this._stopEventBubbling = stopEventBubbling? true: false;
+		return this;
+	},
+	
+<span id='jslet-ui-Window-property-width'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get window initial width.
+	 * 
+	 * @param {Integer | undefined} width Window initial width.
+	 * 
+	 * @return {this | Integer}
+	 */
+	width: function(width) {
+		if(width === undefined) {
+			return this._width;
+		}
+		jslet.Checker.test('Window.width', width).isGTZero();
+		this._width = width;
+		return this;
+	},
+
+<span id='jslet-ui-Window-property-height'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get window initial height.
+	 * 
+	 * @param {Integer | undefined} height Window initial height.
+	 * 
+	 * @return {this | Integer}
+	 */
+	height: function(height) {
+		if(height === undefined) {
+			return this._height;
+		}
+		jslet.Checker.test('Window.height', height).isGTZero();
+		this._height = height;
+		return this;
+	},
+
+<span id='jslet-ui-Window-property-minWidth'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get window minimum width.
+	 * 
+	 * @param {Integer | undefined} minWidth Window minimum width.
+	 * 
+	 * @return {this | Integer}
+	 */
+	minWidth: function(minWidth) {
+		if(minWidth === undefined) {
+			return this._minWidth;
+		}
+		jslet.Checker.test('Window.minWidth', minWidth).isGTZero();
+		if(minWidth &lt; 20) {
+			minWidth = 20;
+		}
+		this._minWidth = minWidth;
+		return this;
+	},
+
+<span id='jslet-ui-Window-property-minHeight'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get window minimum height.
+	 * 
+	 * @param {Integer | undefined} minHeight Window minimum height.
+	 * 
+	 * @return {this | Integer}
+	 */
+	minHeight: function(minHeight) {
+		if(minHeight === undefined) {
+			return this._minHeight;
+		}
+		jslet.Checker.test('Window.minHeight', minHeight).isGTZero();
+		if(minHeight &lt; 30) {
+			minHeight = 30;
+		}
+		this._minHeight = minHeight;
+		return this;
+	},
+
+<span id='jslet-ui-Window-property-maxWidth'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get window maximum width.
+	 * 
+	 * @param {Integer | undefined} maxWidth Window maximum width.
+	 * 
+	 * @return {this | Integer}
+	 */
+	maxWidth: function(maxWidth) {
+		if(maxWidth === undefined) {
+			return this._maxWidth;
+		}
+		jslet.Checker.test('Window.maxWidth', maxWidth).isNumber();
+		this._maxWidth = maxWidth;
+		return this;
+	},
+
+<span id='jslet-ui-Window-property-maxHeight'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get window maximum height.
+	 * 
+	 * @param {Integer | undefined} maxHeight Window maximum height.
+	 * 
+	 * @return {this | Integer}
+	 */
+	maxHeight: function(maxHeight) {
+		if(maxHeight === undefined) {
+			return this._maxHeight;
+		}
+		jslet.Checker.test('Window.maxHeight', maxHeight).isNumber();
+		this._maxHeight = maxHeight;
+		return this;
+	},
+
+<span id='jslet-ui-Window-event-onSizeChanged'>	/**
+</span>	 * @event
+	 * 
+	 * Set or get window size changed event handler. Example:
+	 * 
+	 *     @example
+	 *     owin.onSizeChanged(function(width, height){
+	 *     
+	 *     });
+	 * 
+	 * @param {Function | undefined} onSizeChanged Window size changed event handler.
+	 * @param {Integer} onSizeChanged.width Changed width.
+	 * @param {Integer} onSizeChanged.height Changed height.
+	 * 
+	 * @return {this | Function}
+	 */
+	onSizeChanged: function(onSizeChanged) {
+		if(onSizeChanged === undefined) {
+			return this._onSizeChanged;
+		}
+		jslet.Checker.test('Window.onSizeChanged', onSizeChanged).isFunction();
+		this._onSizeChanged = onSizeChanged;
+		return this;
+	},
+	
+<span id='jslet-ui-Window-event-onPositionChanged'>	/**
+</span>	 * @event
+	 * 
+	 * Set or get window position changed event handler. &lt;br /&gt;
+	 * Fired when user changes the window's position. Example:
+	 * 
+	 *     @example
+	 *     owin.onPositionChanged(function(left, top){
+	 *     });
+	 * 
+	 * @param {Function | undefined} onPositionChanged window position changed event handler
+	 * @param {Integer} onPositionChanged.left The left of changing position.
+	 * @param {Integer} onPositionChanged.top The top of changing position.
+	 * 
+	 * @return {this | Function}
+	 */
+	onPositionChanged: function(onPositionChanged) {
+		if(onPositionChanged === undefined) {
+			return this._onPositionChanged;
+		}
+		jslet.Checker.test('Window.onPositionChanged', onPositionChanged).isFunction();
+		this._onPositionChanged = onPositionChanged;
+		return this;
+	},
+
+<span id='jslet-ui-Window-event-onActive'>	/**
+</span>	 * @event
+	 * 
+	 * Set or get window activated event handler. &lt;br /&gt;
+	 * Fired when the window is active. Example:
+	 * 
+	 *     @example
+	 *     owin.onActive(function(winObj){
+	 *       //windObj: jslet.ui.Window Window Object
+	 *     });
+	 * 
+	 * @param {Function | undefined} onActive Window activated event handler.
+	 * @param {jslet.ui.Window} onActive.winObj Jslet window object.
+	 * 
+	 * @return {this | Function}
+	 */
+	onActive: function(onActive) {
+		if(onActive === undefined) {
+			return this._onActive;
+		}
+		jslet.Checker.test('Window.onActive', onActive).isFunction();
+		this._onActive = onActive;
+		return this;
+	},
+	
+	
+<span id='jslet-ui-Window-event-onClosed'>	/**
+</span>	 * @event
+	 * 
+	 * Set or get window closed event handler. &lt;br /&gt;
+	 * Fired when uses closes window. Example:
+	 * 
+	 *     @example
+	 *     owin.onClosed(function(winObj){});
+	 * 
+	 * @param {Function | undefined} onClosed Window closed event handler.
+	 * @param {jslet.ui.Window} onClosed.winObj Jslet window object.
+	 * @param {String} onClosed.return If return value equals 'hidden', then hide window instead of closing.
+	 * 
+	 * @return {this | Function}
+	 */
+	onClosed: function(onClosed) {
+		if(onClosed === undefined) {
+			return this._onClosed;
+		}
+		jslet.Checker.test('Window.onClosed', onClosed).isFunction();
+		this._onClosed = onClosed;
+		return this;
+	},
+	
+<span id='jslet-ui-Window-method-bind'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	bind: function () {
+		this.renderAll();
+	},
+
+<span id='jslet-ui-Window-method-renderAll'>	/**
+</span>	 * @override
+	 */
+	renderAll: function () {
+		var Z = this;
+		if (!Z._closable) {
+			Z._minimizable = false;
+			Z._maximizable = false;
+		}
+		var jqEl = jQuery(Z.el);
+		if (!jqEl.hasClass('jl-window')) {
+			jqEl.addClass('panel panel-default jl-window');
+		}
+		if (Z._width) {
+			jqEl.width(Z._width);
+		}
+		if (Z._height) {
+			jqEl.height(Z._height);
+		}
+		jqEl.css('display','none');
+		var template = [
+		'&lt;div class=&quot;panel-heading jl-win-header jl-win-header-sm&quot; style=&quot;cursor:move&quot;&gt;',
+			Z._iconClass ? '&lt;span class=&quot;jl-win-header-icon ' + Z._iconClass + '&quot;&gt;&lt;/span&gt;' : '',
+			'&lt;span class=&quot;panel-title jl-win-caption&quot;&gt;', Z._caption ? Z._caption : '', '&lt;/span&gt;',
+			'&lt;span class=&quot;jl-win-tool jl-unselectable&quot;&gt;'];
+			template.push(Z._closable ? '&lt;button class=&quot;close jl-win-close&quot; onfocus=&quot;this.blur();&quot;&gt;x&lt;/button&gt;' : '');
+			template.push(Z._maximizable ? '&lt;button class=&quot;close jl-win-max&quot; onfocus=&quot;this.blur();&quot;&gt;□&lt;/button&gt;' : '');
+			template.push(Z._minimizable ? '&lt;button class=&quot;close jl-win-min&quot; onfocus=&quot;this.blur();&quot;&gt;-&lt;/button&gt;' : '');
+		template.push('&lt;/span&gt;&lt;/div&gt;');
+		template.push('&lt;div class=&quot;panel-body jl-win-body&quot;&gt;&lt;/div&gt;');
+
+		jqEl.html(template.join(''));
+		jqEl.on('mousemove', Z._doWinMouseMove);
+		jqEl.on('mousedown', Z._doWinMouseDown);
+		jqEl.on('dblclick', function(event){
+			event.stopPropagation();
+			event.preventDefault();
+		});
+
+		jqEl.on('click', function(event){
+			if(Z._stopEventBubbling) {
+				event.stopPropagation();
+				event.preventDefault();
+			}
+		});
+		
+		Z._changeBodyHeight();
+		var jqHeader = jqEl.find('.jl-win-header'),
+			header = jqHeader[0];
+		var jqBody = jqEl.find('.jl-win-body');
+		jqBody.on('mouseenter',function (event) {
+			window.setTimeout(function(){
+				if (jslet.temp_dragging) {
+					return;
+				}
+				Z.cursor = null;
+			},300);
+		});
+		jqBody.on('dblclick',function (event) {
+			event.stopPropagation();
+			event.preventDefault();
+		});
+		
+		jqHeader.on('mousedown',function (event) {
+			Z.activate();
+			if (Z._state == 'max') {
+				return;
+			}
+			Z.cursor = null;
+			jslet.ui.dnd.bindControl(this);
+		});
+
+		jqHeader.on('dblclick',function (event) {
+			event.stopPropagation();
+			event.preventDefault();
+			if (!Z._maximizable) {
+				return;
+			}
+			if (Z._state != 'max') {
+				Z.maximize();
+			} else {
+				Z.restore();
+			}
+		});
+
+		header._doDragStart = function (oldX, oldY, x, y, deltaX, deltaY) {
+			Z._createTrackerMask(header);
+			Z.trackerMask.style.cursor = header.style.cursor;
+			jslet.temp_dragging = true;
+		};
+
+		header._doDragging = function (oldX, oldY, x, y, deltaX, deltaY) {
+			Z.setPosition(Z.left + deltaX, Z.top + deltaY, true);
+		};
+
+		header._doDragEnd = function (oldX, oldY, x, y, deltaX, deltaY) {
+			var left = parseInt(Z.el.style.left);
+			var top = parseInt(Z.el.style.top);
+			Z.setPosition(left, top);
+			Z._removeTrackerMask();
+			Z.cursor = null;
+			jslet.temp_dragging = false;
+		};
+
+		header._doDragCancel = function (oldX, oldY, x, y, deltaX, deltaY) {
+			Z.setPosition(Z.left, Z.top);
+			Z._removeTrackerMask();
+			Z.cursor = null;
+			jslet.temp_dragging = false;
+		};
+
+		Z.el._doDragStart = function (oldX, oldY, x, y, deltaX, deltaY) {
+			Z._createTrackerMask(this);
+			Z._createTracker();
+			Z.trackerMask.style.cursor = Z.el.style.cursor;
+			jslet.temp_dragging = true;
+		};
+
+		Z.el._doDragging = function (oldX, oldY, x, y, deltaX, deltaY) {
+			Z._changeTrackerSize(deltaX, deltaY);
+		};
+
+		Z.el._doDragEnd = function (oldX, oldY, x, y, deltaX, deltaY) {
+			if (!Z.tracker) {
+				return;
+			}
+			var left = parseInt(Z.tracker.style.left);
+			var top = parseInt(Z.tracker.style.top);
+			var width = parseInt(Z.tracker.style.width);
+			var height = parseInt(Z.tracker.style.height);
+
+			Z.setPosition(left, top);
+			Z.changeSize(width, height);
+			Z._removeTrackerMask();
+			Z._removeTracker();
+			Z.cursor = null;
+			jslet.temp_dragging = false;
+		};
+
+		Z.el._doDragCancel = function (oldX, oldY, x, y, deltaX, deltaY) {
+			Z._removeTrackerMask();
+			Z._removeTracker();
+			Z.cursor = null;
+			jslet.temp_dragging = false;
+		};
+
+		if (Z._closable) {
+			var jqClose = jqEl.find('.jl-win-close');
+			jqClose.click(function (event) {
+				Z.close();
+				event = jQuery.event.fix( event || window.event );
+				event.stopPropagation();
+				event.preventDefault();
+			});
+		}
+		if (Z._minimizable) {
+			var jqMin = jqEl.find('.jl-win-min');
+			jqMin.click(function (event) {
+				Z.minimize();
+				event = jQuery.event.fix( event || window.event );
+				event.stopPropagation();
+				event.preventDefault();
+			});
+		}
+		if (Z._maximizable) {
+			var jqMax = jqEl.find('.jl-win-max'),
+				btnMax = jqMax[0];
+			jqMax.click(function (event) {
+				if (Z._state != 'max') {
+					btnMax.innerHTML = '■';
+					Z.maximize();
+				} else {
+					btnMax.innerHTML = '□';
+					Z.restore();
+				}
+				event = jQuery.event.fix( event || window.event );
+				event.stopPropagation();
+				event.preventDefault();
+			});
+		}
+	},
+
+<span id='jslet-ui-Window-method-show'>	/**
+</span>	 * Show window at specified position.
+	 * 
+	 * @param {Integer} left Position left.
+	 * @param {Integer} top Position top.
+	 */
+	show: function (left, top) {
+		var Z = this,
+			jqEl = jQuery(Z.el);
+		if (Z._isCenter) {
+			var jqOffsetP = jQuery(window),
+				pw = jqOffsetP.width(),
+				ph = jqOffsetP.height();
+			left = document.body.scrollLeft + Math.round((pw - jqEl.outerWidth()) / 2);
+			top = document.body.scrollTop + Math.round((ph - jqEl.outerHeight()) / 2);
+			if(left &lt; 0) {
+				left = 0;
+			}
+			if(top &lt; 0) {
+				top = 0;
+			} 
+		}
+
+		Z.top = top ? top : 0;
+		Z.left = left ? left : 0;
+		Z.el.style.left = Z.left + 'px';
+		Z.el.style.top = Z.top + 'px';
+		if(Z._animation == 'slide') {
+			jqEl.slideDown(function() {
+				Z._changeBodyHeight();
+				Z.activate();
+			});
+		}
+		
+		if(Z._animation == 'fade') {
+			jqEl.fadeIn(function() {
+				Z._changeBodyHeight();
+				Z.activate();
+			});
+		} else if(Z._animation == 'none') {
+			jqEl.show(function() {
+				Z._changeBodyHeight();
+				Z.activate();
+			});
+		} else {
+			jqEl.show('fast', function() {
+				Z._changeBodyHeight();
+				Z.activate();
+			});
+		}
+	},
+
+<span id='jslet-ui-Window-method-showModal'>	/**
+</span>	 * Show modal window at specified position.
+	 * 
+	 * @param {Integer} left Position left.
+	 * @param {Integer} top Position top.
+	 */
+	showModal: function (left, top) {
+		var Z = this;
+		Z._isModal = true;
+		if (!Z.overlay) {
+			Z.overlay = new jslet.ui.OverlayPanel(Z.el.parentNode);
+		}
+		jslet.ui.GlobalZIndex += 10;
+		var k = jslet.ui.GlobalZIndex;
+		Z.el.style.zIndex = k;
+		Z.show(left, top);
+		Z.overlay.setZIndex(k - 2);
+		Z.overlay.show();
+	},
+
+<span id='jslet-ui-Window-method-hide'>	/**
+</span>	 * Hide window.
+	 */
+	hide: function () {
+		var Z = this;
+		var jqEl = jQuery(Z.el);
+		if(Z._animation == 'slide') {
+			jqEl.slideUp();
+		} else if(Z._animation == 'fade') {
+			jqEl.fadeOut();
+		} else if(Z._animation == 'none') {
+			jqEl.hide();
+		} else {
+			jqEl.hide('fast');
+		}
+		if (Z.overlay) {
+			Z.overlay.hide();
+		}
+	},
+
+<span id='jslet-ui-Window-method-close'>	/**
+</span>	 * Close window, this will fire onClosed event.
+	 */
+	close: function () {
+		var Z = this;
+		if(!Z.el) {
+			return;
+		}
+		if (Z._onClosed) {
+			var action = Z._onClosed.call(Z);
+			if (action &amp;&amp; action.toLowerCase() == 'hidden') {
+				Z.hide();
+				return;
+			}
+		}
+		var pnode = Z.el.parentNode;
+		pnode.removeChild(Z.el);
+		if (Z.overlay) {
+			Z.overlay.destroy();
+			Z.overlay = null;
+		}
+		jslet.ui.GlobalZIndex -= 10;
+		Z.destroy();
+	},
+
+<span id='jslet-ui-Window-method-minimize'>	/**
+</span>	 * Minimize window.
+	 */
+	minimize: function () {
+		var Z = this;
+		if (Z._state == 'min') {
+			Z.restore();
+			return;
+		}
+		if (Z._state == 'max') {
+			Z.restore();
+		}
+		var jqEl = jQuery(Z.el);
+		Z._tempHeight = jqEl.height();
+		Z._tempWidth = jqEl.width();
+		Z.changeSize(Z._tempWidth, Z._getHeaderHeight() + 2);
+		Z._state = 'min';
+	},
+
+<span id='jslet-ui-Window-method-maximize'>	/**
+</span>	 * Maximize window.
+	 */
+	maximize: function () {
+		var Z = this,
+			offsetP = jQuery(window),
+			width = offsetP.width(),
+			height = offsetP.height(),
+			left = document.body.scrollLeft,
+			top = document.body.scrollTop;
+		
+		Z.setPosition(left, top, true);
+		if (Z._state !== 'min') {
+			var jqEl = jQuery(Z.el);
+			Z._tempHeight = jqEl.height();
+			Z._tempWidth = jqEl.width();
+		}
+		Z.changeSize(width, height);
+		Z._state = 'max';
+	},
+
+<span id='jslet-ui-Window-method-restore'>	/**
+</span>	 * Restore window.
+	 */
+	restore: function () {
+		var Z = this;
+		Z.setPosition(Z.left, Z.top, true);
+		Z.changeSize(Z._tempWidth, Z._tempHeight);
+		Z._state = null;
+	},
+
+<span id='jslet-ui-Window-method-activate'>	/**
+</span>	 * Activate window, this will fire the 'OnActive' event.
+	 */
+	activate: function () {
+		var Z = this;
+		if (!Z.overlay) {
+			Z.bringToFront();
+		}
+		if (Z._onActive) {
+			Z._onActive.call();
+		}
+	},
+
+<span id='jslet-ui-Window-method-setPosition'>	/**
+</span>	 * Change window position.
+	 * 
+	 * @param {Integer} left Position left.
+	 * @param {Integer} top Position top.
+	 * @param {Boolean} notUpdateLeftTop True - Only change html element position, 
+	 *		not change the inner position of Window object, it is usually use for moving action.
+	 */
+	setPosition: function (left, top, notUpdateLeftTop) {
+		var Z = this;
+		if(top &lt; 0) {
+			top = 0;
+		}
+		if(left &lt; 0) {
+			left = 0;
+		}
+		if (!notUpdateLeftTop) {
+			Z.left = left;
+			Z.top = top;
+		} else {
+			if (Z._onPositionChanged) {
+				var result = Z._onPositionChanged.call(Z, left, top);
+				if (result) {
+					if (result.left) {
+						left = result.left;
+					}
+					if (result.top) {
+						top = result.top;
+					}
+				}
+			}
+		}
+		Z.el.style.left = left + 'px';
+		Z.el.style.top = top + 'px';
+	},
+
+<span id='jslet-ui-Window-method-changeSize'>	/**
+</span>	 * Change window size.
+	 * 
+	 * @param {Integer} width Window width.
+	 * @param {Integer} height Window height.
+	 * @param {Boolean} notUpdateSize True - Only change html element size, 
+	 *		not change the inner size of Window object, it is usually use for moving action.
+	 */
+	changeSize: function (width, height) {
+		var Z = this;
+		if (Z._onSizeChanged) {
+			Z._onSizeChanged.call(Z, width, height);
+		}
+
+		var jqEl = jQuery(Z.el);
+		if(width) {
+			jqEl.width(width);
+		}
+		if(height) {
+			jqEl.height(height);
+		}
+		Z._changeBodyHeight();
+	},
+
+	_getHeaderHeight: function() {
+		var Z = this,
+			jqEl = jQuery(Z.el),
+			jqHeader = jqEl.find('.jl-win-header');
+		return jqHeader.outerHeight() || 30;
+	},
+	
+	_changeBodyHeight: function() {
+		var Z = this;
+		if(!Z._height) {
+			return;
+		}
+		var jqEl = jQuery(Z.el),
+			jqBody = jqEl.find('.jl-win-body');
+		jqBody.outerHeight(jqEl.innerHeight() - Z._getHeaderHeight());
+		jslet.ui.resizeEventBus.resize(Z.el);
+	},
+	
+<span id='jslet-ui-Window-method-getCaptionPanel'>	/**
+</span>	 * Get window caption element. You can use it to customize window caption.
+	 * 
+	 * @return {HtmlElement}
+	 */
+	getCaptionPanel: function () {
+		return jQuery(this.el).find('.jl-win-caption')[0];
+	},
+
+<span id='jslet-ui-Window-method-changeCaption'>	/**
+</span>	 * Change window caption.
+	 * 
+	 * @param {String} caption Window caption.
+	 */
+	changeCaption: function (caption) {
+		this.caption = caption;
+		var captionDiv = jQuery(this.el).find('.jl-win-caption');
+		captionDiv.html(caption);
+	},
+
+<span id='jslet-ui-Window-method-getContentPanel'>	/**
+</span>	 * Get window content element. You can use it to customize window content.
+	 * 
+	 * @return {HtmlElement}
+	 */
+	getContentPanel: function () {
+		return jQuery(this.el).find('.jl-win-body')[0];
+	},
+
+<span id='jslet-ui-Window-method-setContent'>	/**
+</span>	 * Set window content.
+	 * 
+	 * @param {String} html Html text for window content.
+	 */
+	setContent: function (html) {
+		if (!html){
+			jslet.showError('Window content cannot be null!');
+			return;
+		}
+		var bodyDiv = jQuery(this.el).find('.jl-win-body');
+		if (html &amp;&amp; html.toLowerCase) {
+			bodyDiv.html(html);
+		} else {
+			bodyDiv.html('');
+			
+			html.parentNode.removeChild(html);
+			bodyDiv[0].appendChild(html);
+			if (html.style &amp;&amp; html.style.display == 'none') {
+				html.style.display = 'block';
+			}
+		}
+	},
+
+<span id='jslet-ui-Window-method-bringToFront'>	/**
+</span>	 * Bring window to front.
+	 */
+	bringToFront: function () {
+		var Z = this;
+		var p = Z.el.parentNode;
+		var node, jqEl = jQuery(Z.el);
+		var maxIndex = 0, jqNode, winIdx;
+		for (var i = 0, cnt = p.childNodes.length; i &lt; cnt; i++) {
+			node = p.childNodes[i];
+			if (node.nodeType != 1 || node == Z.el) {
+				if (!Z._isModal) {
+					jqEl.find('.jl-win-header').addClass('jl-window-active');
+				}
+				continue;
+			}
+			jqNode = jQuery(node);
+			
+			if (jqNode.hasClass('jl-window')) {
+				winIdx = parseInt(node.style.zIndex) || 0;
+				if (maxIndex &lt; winIdx) {
+					maxIndex = winIdx;
+				}
+				if (!Z._isModal) {
+					jqNode.find('.jl-win-header').removeClass('jl-window-active');
+				}
+			}
+		}
+		var styleObj = jqEl.getStyleObject();
+		winIdx = parseInt(styleObj.zIndex) || 0;
+		if (winIdx &lt;= maxIndex) {
+			Z.setZIndex(maxIndex + 2);
+		}
+	},
+
+<span id='jslet-ui-Window-method-setZIndex'>	/**
+</span>	 * Set window Z-Index.
+	 * 
+	 * @param {Integer} zIndex Z-Index.
+	 */
+	setZIndex: function (zIndex) {
+		this.el.style.zIndex = zIndex;
+		if(this.overlay) {
+			this.overlay.setZIndex(zIndex - 2);
+		}
+	},
+
+	_checkSize: function (width, height) {
+		var Z = this;
+		if (width) {
+			if (width &lt; Z._minWidth || Z._maxWidth &gt; 0 &amp;&amp; width &gt; Z._maxWidth) {
+				return false;
+			}
+		}
+
+		if (height) {
+			if (height &lt; Z.minHeight || Z._maxHeight &gt; 0 &amp;&amp; height &gt; Z._maxHeight) {
+				return false;
+			}
+		}
+		return true;
+	},
+
+	_changeTrackerSize: function (deltaX, deltaY) {
+		var Z = this;
+		if (!Z.tracker || !Z.cursor) {
+			return;
+		}
+		var jqEl = jQuery(Z.el), 
+			w = jqEl.width(), 
+			h = jqEl.height(), 
+			top = null, left = null;
+
+		if (Z.cursor == 'nw') {
+			w = w - deltaX;
+			h = h - deltaY;
+			top = Z.top + deltaY;
+			left = Z.left + deltaX;
+		} else if (Z.cursor == 'n') {
+			h = h - deltaY;
+			top = Z.top + deltaY;
+		} else if (Z.cursor == 'ne') {
+			h = h - deltaY;
+			w = w + deltaX;
+			top = Z.top + deltaY;
+		} else if (Z.cursor == 'e') {
+			w = w + deltaX;
+		} else if (Z.cursor == 'se') {
+			w = w + deltaX;
+			h = h + deltaY;
+		} else if (Z.cursor == 's'){
+			h = h + deltaY;
+		} else if (Z.cursor == 'sw') {
+			h = h + deltaY;
+			w = w - deltaX;
+			left = Z.left + deltaX;
+		} else if (Z.cursor == 'w') {
+			w = w - deltaX;
+			left = Z.left + deltaX;
+		}
+
+		if (!Z._checkSize(w, h)) {
+			return;
+		}
+		var jqTracker = jQuery(Z.tracker);
+		if (w) {
+			jqTracker.width(w);
+		}
+		if (h) {
+			jqTracker.height(h);
+		}
+		if (top) {
+			Z.tracker.style.top = top + 'px';
+		}
+		if (left) {
+			Z.tracker.style.left = left + 'px';
+		}
+	},
+
+	_doWinMouseMove: function (event) {
+		if (jslet.temp_dragging) {
+			return;
+		}
+		event = jQuery.event.fix( event || window.event );
+		
+		var srcEl = event.target, jqSrcEl = jQuery(srcEl);
+		
+		if (!jqSrcEl.hasClass('jl-window')) {
+			return;
+		}
+		if (!srcEl.jslet._resizable || srcEl.jslet._state) {
+			srcEl.jslet.cursor = null;
+			srcEl.style.cursor = 'default';
+			return;
+		}
+
+		var pos = jqSrcEl.offset(),
+			x = event.pageX - pos.left,
+			y = event.pageY - pos.top,
+			w = jqSrcEl.width(),
+			h = jqSrcEl.height();
+		var delta = 8, wdelta = w - delta, hdelta = h - delta, cursor = null;
+		if (x &lt;= delta &amp;&amp; y &lt;= delta) {
+			cursor = 'nw';
+		} else if (x &gt; delta &amp;&amp; x &lt; wdelta &amp;&amp; y &lt;= delta) {
+			cursor = 'n';
+		} else if (x &gt;= wdelta &amp;&amp; y &lt;= delta) {
+			cursor = 'ne';
+		} else if (x &gt;= wdelta &amp;&amp; y &gt; delta &amp;&amp; y &lt;= hdelta) {
+			cursor = 'e';
+		} else if (x &gt;= wdelta &amp;&amp; y &gt;= hdelta) {
+			cursor = 'se';
+		} else if (x &gt; delta &amp;&amp; x &lt; wdelta &amp;&amp; y &gt;= hdelta) {
+			cursor = 's';
+		} else if (x &lt;= delta &amp;&amp; y &gt;= hdelta) {
+			cursor = 'sw';
+		} else if (x &lt;= delta &amp;&amp; y &gt; delta &amp;&amp; y &lt; hdelta) {
+			cursor = 'w';
+		}
+		
+		srcEl.jslet.cursor = cursor;
+		srcEl.style.cursor = cursor ? cursor + '-resize' : 'default';
+	},
+
+	_doWinMouseDown: function (event) {
+		var ojslet = this.jslet;
+		ojslet.activate();
+		if (ojslet.cursor) {
+			jslet.ui.dnd.bindControl(this);
+		}
+	},
+
+	_createTrackerMask: function (holder) {
+		var Z = this;
+		if (Z.trackerMask) {
+			return;
+		}
+		var jqBody = jQuery(document.body);
+
+		Z.trackerMask = document.createElement('div');
+		jQuery(Z.trackerMask).addClass('jl-win-tracker-mask');
+		Z.trackerMask.style.top = '0px';
+		Z.trackerMask.style.left = '0px';
+		Z.trackerMask.style.zIndex = 99998;
+		Z.trackerMask.style.width = jqBody.width() + 'px';
+		Z.trackerMask.style.height = jqBody.height() + 'px';
+		Z.trackerMask.style.display = 'block';
+		Z.trackerMask.onmousedown = function () {
+			if (holder &amp;&amp; holder._doDragCancel) {
+				holder._doDragCancel();
+			}
+		};
+		jqBody[0].appendChild(Z.trackerMask);
+	},
+
+	_removeTrackerMask: function () {
+		var Z = this;
+		if (Z.trackerMask) {
+			Z.trackerMask.onmousedown = null;
+			document.body.removeChild(Z.trackerMask);
+		}
+		Z.trackerMask = null;
+	},
+
+	_createTracker: function () {
+		var Z = this;
+		if (Z.tracker) {
+			return;
+		}
+		var jqEl = jQuery(Z.el), 
+			w = jqEl.width(), 
+			h = jqEl.height();
+		
+		Z.tracker = document.createElement('div');
+		var jqTracker = jQuery(Z.tracker);
+		jqTracker.addClass('jl-win-tracker');
+		Z.tracker.style.top = Z.top + 'px';
+		Z.tracker.style.left = Z.left + 'px';
+		Z.tracker.style.zIndex = 99999;
+		jqTracker.width(w);
+		jqTracker.height(h);
+		Z.tracker.style.display = 'block';
+		Z.el.parentNode.appendChild(Z.tracker);
+	},
+
+	_removeTracker: function () {
+		var Z = this;
+		if (Z.tracker) {
+			Z.el.parentNode.removeChild(Z.tracker);
+		}
+		Z.tracker = null;
+	},
+
+<span id='jslet-ui-Window-method-destroy'>	/**
+</span>	 * @override
+	 */
+	destroy: function($super){
+		var Z = this,
+			jqEl = jQuery(Z.el);
+		jslet.ui.uninstall(Z.el);
+
+		jqEl.find('.jl-win-max').off();
+		jqEl.find('.jl-win-min').off();
+		jqEl.find('.jl-win-close').off();
+
+		var jqHeader = jqEl.find('.jl-win-header'),
+			header = jqHeader[0];
+		jqHeader.off();
+		jqEl.find('.jl-win-body').off();
+		if (Z.trackerMask) {
+			Z.trackerMask.onmousedown = null;
+		}
+		Z.trackerMask = null;
+		Z.el._doDragCancel = null;
+		Z.el._doDragEnd = null;
+		Z.el._doDragging = null;
+		Z.el._doDragStart = null;
+		header._doDragCancel = null;
+		header._doDragEnd = null;
+		header._doDragging = null;
+		header._doDragStart = null;
+		if ($super) {
+			$super();
+		}
+	}
+});
+jslet.ui.register('Window', jslet.ui.Window);
+jslet.ui.Window.htmlTemplate = '&lt;div&gt;&lt;/div&gt;';
+</pre>
+</body>
+</html>

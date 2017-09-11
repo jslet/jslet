@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js"><span id='jslet-data-property-dataModule'>/**
+</span> * @private
+ * 
+ * keep all dataset object,
+ * key for dataset name, value for dataset object.
+ * @member jslet.data
+ */
+jslet.data.dataModule = {};
+
+<span id='jslet-data-method-getDataset'>/**
+</span> * Get dataset object with dataset name. If dataset not exist, return null.
+ * 
+ *     @example
+ *     var dsObj = jslet.data.getDataset('employee');
+ *     
+ * @member jslet.data
+ * @param {String} dsName Dataset name;
+ * @return {jslet.data.Dataset} Dataset object.
+ */
+jslet.data.getDataset = function (dsName) {
+	if(!dsName) {
+		return null;
+	}
+	if(jslet.isString(dsName)) {
+		return jslet.data.dataModule[dsName] || null;
+	}
+	return dsName;
+};
+
+<span id='jslet-data-DatasetType'>/**
+</span> * @enum
+ * 
+ * Dataset type.
+ * 
+ */
+jslet.data.DatasetType = {
+<span id='jslet-data-DatasetType-property-NORMAL'>	//0 - Normal dataset
+</span>	NORMAL: 0, 
+<span id='jslet-data-DatasetType-property-LOOKUP'>	//1 - Lookup dataset
+</span>	LOOKUP: 1, 
+<span id='jslet-data-DatasetType-property-DETAIL'>	//2 - Detail dataset
+</span>	DETAIL: 2  	 
+};
+
+jslet.data.onCreatingDataset = function(dsName, dsCatalog, realDsName, hostDatasetName) { };
+
+<span id='jslet-data-DataType'>/**
+</span> * @enum
+ * 
+ * Field data type.
+ */
+jslet.data.DataType = {
+<span id='jslet-data-DataType-property-NUMBER'>	//N - Number
+</span>	NUMBER: 'N', 
+<span id='jslet-data-DataType-property-STRING'>	//S - String
+</span>	STRING: 'S',
+<span id='jslet-data-DataType-property-DATE'>	//D - Date
+</span>	DATE: 'D',
+<span id='jslet-data-DataType-property-TIME'>	//T - Time
+</span>	TIME: 'T',
+<span id='jslet-data-DataType-property-BOOLEAN'>	//B - Boolean
+</span>	BOOLEAN: 'B',
+<span id='jslet-data-DataType-property-DATASET'>	//V - Dataset field
+</span>	DATASET: 'V',
+<span id='jslet-data-DataType-property-CROSS'>	//C - Cross Field
+</span>	CROSS: 'C',
+<span id='jslet-data-DataType-property-PROXY'>	//P - Proxy field
+</span>	PROXY: 'P',
+<span id='jslet-data-DataType-property-EXTEND'>	//X - Dynamic field
+</span>	EXTEND: 'X',
+<span id='jslet-data-DataType-property-ACTION'>	//A - Action
+</span>	ACTION: 'A',
+<span id='jslet-data-DataType-property-EDITACTION'>	//E - Edit
+</span>	EDITACTION: 'E'
+};
+
+<span id='jslet-data-FieldValueStyle'>/**
+</span> * @enum
+ * 
+ * Field value style, used in {@link jslet.data.Field#valueStyle}. &lt;br /&gt;
+ * Normally, one field stores one value. In jslet, you can store two additional style value: &lt;br /&gt;
+ * 1. BETWEEN: one field stores an array value with two values: [startValue, endValue]; &lt;br /&gt;
+ * 2. MULTIPLE: one field stores an array value: [value1, value2, ...]; &lt;br /&gt;
+ */
+jslet.data.FieldValueStyle = {
+<span id='jslet-data-FieldValueStyle-property-NORMAL'>	//0 - one field stores one value.
+</span>	NORMAL: 0,	
+<span id='jslet-data-FieldValueStyle-property-BETWEEN'>	//1 - one field stores an array value with two values: [startValue, endValue].
+</span>	BETWEEN: 1, 
+<span id='jslet-data-FieldValueStyle-property-MULTIPLE'>	//2 - one field stores an array value: [value1, value2, ...].
+</span>	MULTIPLE: 2 
+};
+
+<span id='jslet-data-RecordRange'>/**
+</span> * @enum
+ * 
+ * Record range, used in submit and export method.
+ */
+jslet.data.RecordRange = {
+<span id='jslet-data-RecordRange-property-ALL'>	//0 - All data records.
+</span>	ALL: 0, 
+<span id='jslet-data-RecordRange-property-SELECTED'>	//1 - Selected data records.
+</span>	SELECTED: 1,
+<span id='jslet-data-RecordRange-property-CURRENT'>	//2 - The current data record.
+</span>	CURRENT: 2,
+<span id='jslet-data-RecordRange-property-CHANGED'>	//3 - Changed(Insert/Update/Delete) record
+</span>	CHANGED: 3
+}
+
+<span id=''>/**
+</span> * @class
+ *  
+ * Edit Mask 
+ * 
+ * @param {String} mask Edit mask.
+ * @param {Boolean} keepChar Keep the literal character or not.
+ * @param {String} transform Transform character into UpperCase or LowerCase, optional value: upper, lower or null.
+ */
+jslet.data.EditMask = function(mask, keepChar, transform){
+	jslet.Checker.test('jslet.data.EditMask#mask', mask).required().isString();
+<span id='-property-mask'>	/**
+</span>	 * @property 
+	 * 
+	 * mask {String} mask rule: &lt;br /&gt;
+	 *  '#': char set: 0-9 and -, not required &lt;br /&gt;
+	 *  '0': char set: 0-9, required &lt;br /&gt;
+	 *  '9': char set: 0-9, not required &lt;br /&gt;
+	 *  'L': char set: A-Z,a-z, required &lt;br /&gt;
+	 *  'l': char set: A-Z,a-z, not required &lt;br /&gt;
+	 *  'A': char set: 0-9,a-z,A-Z, required &lt;br /&gt;
+	 *  'a': char set: 0-9,a-z,A-Z, not required &lt;br /&gt;
+	 *  'C': char set: any char, required &lt;br /&gt;
+	 *  'c': char set: any char, not required
+	 */
+	this.mask = mask; 
+	if(keepChar === undefined) {
+		keepChar = true;
+	}
+	
+<span id='-property-keepChar'>	/**
+</span>	 * @property 
+	 * 
+	 * keepChar {Boolean} Keep the literal character or not
+	 */
+	this.keepChar = keepChar ? true: false;
+<span id='-property-transform'>	/**
+</span>	 * @property 
+	 * 
+	 * transform {String} Transform character into UpperCase or LowerCase,
+	 *  optional value: upper, lower or null.
+	 */
+	this.transform = transform ? true: false;
+	
+	this.clone = function(){
+		return new jslet.data.EditMask(this.mask, this.keepChar, this.transform);
+	};
+};
+
+<span id='jslet-data-DatasetEvent'>/**
+</span> * @enum
+ * 
+ * Dataset event type.
+ */
+jslet.data.DatasetEvent = {
+<span id='jslet-data-DatasetEvent-property-BEFORESCROLL'>	BEFORESCROLL: 'beforescroll',
+</span><span id='jslet-data-DatasetEvent-property-AFTERSCROLL'>	AFTERSCROLL: 'afterscroll',
+</span>	
+<span id='jslet-data-DatasetEvent-property-BEFOREINSERT'>	BEFOREINSERT: 'beforeinsert',
+</span><span id='jslet-data-DatasetEvent-property-AFTERINSERT'>	AFTERINSERT: 'afterinsert',
+</span>	
+<span id='jslet-data-DatasetEvent-property-BEFOREUPDATE'>	BEFOREUPDATE: 'beforeupdate',
+</span><span id='jslet-data-DatasetEvent-property-AFTERUPDATE'>	AFTERUPDATE: 'afterupdate',
+</span>	
+<span id='jslet-data-DatasetEvent-property-BEFOREDELETE'>	BEFOREDELETE: 'beforedelete',
+</span><span id='jslet-data-DatasetEvent-property-AFTERDELETE'>	AFTERDELETE: 'afterdelete',
+</span>	
+<span id='jslet-data-DatasetEvent-property-BEFORECONFIRM'>	BEFORECONFIRM: 'beforeconfirm',
+</span><span id='jslet-data-DatasetEvent-property-AFTERCONFIRM'>	AFTERCONFIRM: 'afterconfirm',
+</span>	
+<span id='jslet-data-DatasetEvent-property-BEFORECANCEL'>	BEFORECANCEL: 'beforecancel',
+</span><span id='jslet-data-DatasetEvent-property-AFTERCANCEL'>	AFTERCANCEL: 'aftercancel',
+</span>	
+<span id='jslet-data-DatasetEvent-property-BEFORESELECT'>	BEFORESELECT: 'beforeselect',
+</span><span id='jslet-data-DatasetEvent-property-AFTERSELECT'>	AFTERSELECT: 'afterselect',
+</span>	
+<span id='jslet-data-DatasetEvent-property-BEFORESELECTALL'>	BEFORESELECTALL: 'beforeselectall',
+</span><span id='jslet-data-DatasetEvent-property-AFTERSELECTALL'>	AFTERSELECTALL: 'afterselectall'
+</span>};
+
+<span id='jslet-data-DataSetStatus'>/**
+</span> * @enum
+ * 
+ * Dataset status.
+ */
+jslet.data.DataSetStatus = {
+<span id='jslet-data-DataSetStatus-property-BROWSE'>	//Record is in 'browser' status.
+</span>	BROWSE: 0, 
+<span id='jslet-data-DataSetStatus-property-INSERT'>	//Record is in 'insert' status.
+</span>	INSERT: 1, 
+<span id='jslet-data-DataSetStatus-property-UPDATE'>	//Record is in 'update' status.
+</span>	UPDATE: 2, 
+<span id='jslet-data-DataSetStatus-property-DELETE'>	//Record is in 'delete' status.
+</span>	DELETE: 3
+};
+
+<span id='jslet-data-RefreshEvent'>/**
+</span> * @class
+ * Refrsh event.
+ */
+jslet.data.RefreshEvent = {
+<span id='jslet-data-RefreshEvent-method-updateRecordEvent'>	/**
+</span>	 * Create an update record event.
+	 * 
+	 * @param {String} fldName Field name.
+	 * 
+	 * @return this;
+	 */
+	updateRecordEvent: function(fldName) {
+		return {eventType: jslet.data.RefreshEvent.UPDATERECORD, fieldName: fldName};
+	},
+	
+<span id='jslet-data-RefreshEvent-method-updateColumnEvent'>	/**
+</span>	 * Create an update column event.
+	 * 
+	 * @param {String} fldName Field name.
+	 * 
+	 * @return this;
+	 */
+	updateColumnEvent: function(fldName) {
+		return {eventType: jslet.data.RefreshEvent.UPDATECOLUMN, fieldName: fldName};
+	},
+	
+<span id='jslet-data-RefreshEvent-method-updateAllEvent'>	/**
+</span>	 * Create an update all event.
+	 * 
+	 * @return this;
+	 */
+	updateAllEvent: function() {
+		return this._updateAllEvent;
+	},
+	
+<span id='jslet-data-RefreshEvent-method-changeMetaEvent'>	/**
+</span>	 * Create an event when the field meta is changed.
+	 * 
+	 * @param {String} metaName Field meta name.
+	 * @param {String} fldName Field name.
+	 * 
+	 * @return this;
+	 */
+	changeMetaEvent: function(metaName, fieldName, changeAllRows) {
+		var result = {eventType: jslet.data.RefreshEvent.CHANGEMETA, metaName: metaName, fieldName: fieldName};
+		if(changeAllRows !== undefined) {
+			result.changeAllRows = changeAllRows;
+		}
+		return result;
+	},
+	
+<span id='jslet-data-RefreshEvent-method-beforeScrollEvent'>	/**
+</span>	 * Create an event before the record cursor is changing.
+	 * 
+	 * @param {Integer} recno The record number.
+	 * 
+	 * @return this;
+	 */
+	beforeScrollEvent: function(recno) {
+		return {eventType: jslet.data.RefreshEvent.BEFORESCROLL, recno: recno};
+	},
+	
+<span id='jslet-data-RefreshEvent-method-scrollEvent'>	/**
+</span>	 * Create an event when the record cursor is changed.
+	 * 
+	 * @param {Integer} recno The record number.
+	 * @param {Integer} prevRecno The previous record number.
+	 * 
+	 * @return this;
+	 */
+	scrollEvent: function(recno, prevRecno) {
+		return {eventType: jslet.data.RefreshEvent.SCROLL, prevRecno: prevRecno, recno: recno};
+	},
+	
+<span id='jslet-data-RefreshEvent-method-insertEvent'>	/**
+</span>	 * Create an event when appended a record.
+	 * 
+	 * @param {Integer} prevRecno The previous record number.
+	 * @param {Integer} recno The record number.
+	 * 
+	 * @return this;
+	 */
+	insertEvent: function(prevRecno, recno, needUpdateAll) {
+		return {eventType: jslet.data.RefreshEvent.INSERT, prevRecno: prevRecno, recno: recno, updateAll: needUpdateAll};
+	},
+	
+<span id='jslet-data-RefreshEvent-method-deleteEvent'>	/**
+</span>	 * Create an event when deleted a record.
+	 * 
+	 * @param {Integer} recno The record number.
+	 * 
+	 * @return this;
+	 */
+	deleteEvent: function(recno) {
+		return {eventType: jslet.data.RefreshEvent.DELETE, recno: recno};
+	},
+	
+<span id='jslet-data-RefreshEvent-method-selectRecordEvent'>	/**
+</span>	 * Create an event when selected a record.
+	 * 
+	 * @param {Integer} recno The record number.
+	 * @param {Boolean} selected True - the record is selected, false - otherwise.
+	 * 
+	 * @return this;
+	 */
+	selectRecordEvent: function(recno, selected) {
+		return {eventType: jslet.data.RefreshEvent.SELECTRECORD, recno: recno, selected: selected};
+	},
+	
+<span id='jslet-data-RefreshEvent-method-selectAllEvent'>	/**
+</span>	 * Create an event when selected all records.
+	 * 
+	 * @param {Boolean} selected True - the record is selected, false - otherwise.
+	 * 
+	 * @return this;
+	 */
+	selectAllEvent: function(selected) {
+		return {eventType: jslet.data.RefreshEvent.SELECTALL, selected: selected};
+	},
+	
+<span id='jslet-data-RefreshEvent-method-changePageEvent'>	/**
+</span>	 * Create an event when the paging is changed.
+	 * 
+	 * @return this;
+	 */
+	changePageEvent: function() {
+		return this._changePageEvent;
+	},
+	
+<span id='jslet-data-RefreshEvent-method-errorEvent'>	/**
+</span>	 * Create an event when thrown an error.
+	 * 
+	 * @return this;
+	 */
+	errorEvent: function(errMessage) {
+		return {eventType: jslet.data.RefreshEvent.ERROR, message: errMessage};
+	},
+	
+<span id='jslet-data-RefreshEvent-method-lookupEvent'>	/**
+</span>	 * Create an event when the field's lookup is changed.
+	 * 
+	 * @param {String} fldName Field name.
+	 * 
+	 * @return this;
+	 */
+	lookupEvent: function(fieldName, isMetaChanged) {
+		return {eventType: jslet.data.RefreshEvent.UPDATELOOKUP, fieldName: fieldName, isMetaChanged: isMetaChanged};
+	},
+	
+<span id='jslet-data-RefreshEvent-method-aggregatedEvent'>	/**
+</span>	 * Create an event when records are aggregated.
+	 * 
+	 * @return this;
+	 */
+	aggregatedEvent: function() {
+		return {eventType: jslet.data.RefreshEvent.AGGREGATED};		
+	}
+};
+
+jslet.data.RefreshEvent.CHANGEMETA = 'changeMeta';// fieldname, metatype(title, readonly,disabled,format)
+jslet.data.RefreshEvent.UPDATEALL = 'updateAll';
+jslet.data.RefreshEvent.UPDATERECORD = 'updateRecord';// fieldname
+jslet.data.RefreshEvent.UPDATECOLUMN = 'updateColumn';// fieldname
+jslet.data.RefreshEvent.BEFORESCROLL = 'beforescroll';
+jslet.data.RefreshEvent.SCROLL = 'scroll';// preRecno, recno
+
+jslet.data.RefreshEvent.SELECTRECORD = 'selectRecord';//
+jslet.data.RefreshEvent.SELECTALL = 'selectAll';//
+jslet.data.RefreshEvent.INSERT = 'insert';
+jslet.data.RefreshEvent.DELETE = 'delete';// recno
+jslet.data.RefreshEvent.CHANGEPAGE = 'changePage';
+jslet.data.RefreshEvent.UPDATELOOKUP = 'updateLookup';
+jslet.data.RefreshEvent.AGGREGATED = 'aggregated';
+
+jslet.data.RefreshEvent.ERROR = 'error';
+
+jslet.data.RefreshEvent._updateAllEvent = {eventType: jslet.data.RefreshEvent.UPDATEALL};
+jslet.data.RefreshEvent._changePageEvent = {eventType: jslet.data.RefreshEvent.CHANGEPAGE};
+
+<span id='jslet-data-method-record2Json'>/**
+</span> * @private
+ * 
+ * Convert dataset record to json.
+ * 
+ * @member jslet.data
+ * @param {Object[]} records Dataset records, required.
+ * @param {String[]} excludeFields Excluded field names,optional.
+ * 
+ * @return {String} Json String. 
+ */
+jslet.data.record2Json = function(records, excludeFields) {
+	function record2JsonFilter(key, value) {
+		if(key == '_jl_') {
+			return undefined;
+		}
+		if(excludeFields) {
+			var fldName;
+			for(var i = 0, len = excludeFields.length; i &lt; len; i++) {
+				fldName = excludeFields[i];
+				if(key == fldName) {
+					return undefined;
+				}
+			}
+		}
+		return value;		
+	}
+	
+	if(!window.JSON || !JSON) {
+		console.error('Your browser does not support JSON!');
+		return;
+	}
+	if(excludeFields) {
+		jslet.Checker.test('record2Json#excludeFields', excludeFields).isArray();		
+	}
+	
+	return JSON.stringify(records, record2JsonFilter);
+};
+
+jslet.data.getRecInfo = function(record) {
+	jslet.Checker.test('jslet.data.getRecInfo#record', record).required();
+	var recInfo = record._jl_;
+	if(!recInfo) {
+		recInfo = {};
+		record._jl_ = recInfo;
+	}
+	return recInfo;
+};
+
+<span id='jslet-data-DatasetRelationManager'>/**
+</span> * @private
+ */
+jslet.data.DatasetRelationManager = function() {
+	var relations= [];
+	
+<span id='jslet-data-DatasetRelationManager-method-addRelation'>	/**
+</span>	 * Add dataset relation.
+	 * 
+	 * @param {String} hostDsName host dataset name;
+	 * @param {String} hostFldName field name of host dataset;
+	 * @param {String} lookupOrDetailDsName lookup or detail dataset name;
+	 * @param {jslet.data.DatasetType} relationType, optional value: jslet.data.DatasetType.LOOKUP, jslet.data.DatasetType.DETAIL
+	 */
+	this.addRelation = function(hostDsName, hostFldName, lookupOrDetailDsName, relationType) {
+		for(var i = 0, len = relations.length; i &lt; len; i++) {
+			var relation = relations[i];
+			if(relation.hostDataset == hostDsName &amp;&amp; 
+				relation.hostField == hostFldName &amp;&amp; 
+				relation.lookupDataset == lookupOrDetailDsName) {
+				return;
+			}
+		}
+		relations.push({hostDataset: hostDsName, hostField: hostFldName, lookupOrDetailDataset: lookupOrDetailDsName, relationType: relationType});
+	};
+	
+	this.removeRelation = function(hostDsName, hostFldName, lookupOrDetailDsName) {
+		for(var i = relations.length - 1; i &gt;= 0; i--) {
+			var relation = relations[i];
+			if(relation.hostDataset == hostDsName &amp;&amp; 
+				relation.hostField == hostFldName &amp;&amp; 
+				relation.lookupOrDetailDataset == lookupOrDetailDsName) {
+				relations.splice(i,1);
+			}
+		}
+	};
+	
+	this.removeDataset = function(datasetName) {
+		for(var i = relations.length - 1; i &gt;= 0; i--) {
+			var relation = relations[i];
+			if(relation.hostDataset == datasetName || relation.lookupOrDetailDataset == datasetName) {
+				relations.splice(i,1);
+			}
+		}
+	};
+	
+	this.changeDatasetName = function(oldName, newName) {
+		if(!oldName || !newName) {
+			return;
+		}
+		for(var i = 0, len = relations.length; i &lt; len; i++) {
+			var relation = relations[i];
+			if(relation.hostDataset == oldName) {
+				relation.hostDataset = newName;
+			}
+			if(relation.lookupOrDetailDataset == oldName) {
+				relation.lookupOrDetailDataset = newName;
+			}
+		}
+	};
+	
+	this.refreshLookupHostDataset = function(lookupDsName) {
+		if(!lookupDsName) {
+			return;
+		}
+		var relation, hostDataset;
+		for(var i = 0, len = relations.length; i &lt; len; i++) {
+			relation = relations[i];
+			if(relation.lookupOrDetailDataset == lookupDsName &amp;&amp;
+				relation.relationType == jslet.data.DatasetType.LOOKUP) {
+				hostDataset = jslet.data.getDataset(relation.hostDataset);
+				if(hostDataset) {
+					hostDataset.handleLookupDatasetChanged(relation.hostField);
+				} else {
+					throw new Error('NOT found Host dataset: ' + relation.hostDataset);
+				}
+			}
+		}
+	};
+	
+	this.getHostFieldObject = function(lookupOrDetailDsName) {
+		if(!lookupOrDetailDsName) {
+			return;
+		}
+		var relation, hostDataset;
+		for(var i = 0, len = relations.length; i &lt; len; i++) {
+			relation = relations[i];
+			if(relation.lookupOrDetailDataset == lookupOrDetailDsName &amp;&amp;
+				relation.relationType == jslet.data.DatasetType.DETAIL) {
+				hostDataset = jslet.data.getDataset(relation.hostDataset);
+				if(hostDataset) {
+					return hostDataset.getField(relation.hostField);
+				} else {
+					throw new Error('NOT found Host dataset: ' + relation.hostDataset);
+				}
+			}
+		} //end for i	
+	};
+};
+jslet.data.datasetRelationManager = new jslet.data.DatasetRelationManager();
+
+jslet.EmptyPromise = function(action) {
+	var action = action;
+	
+	this.done = function(callBackFn) {
+		if(action == 'done' &amp;&amp; callBackFn) {
+			callBackFn();
+		}
+		return this;
+	};
+	
+	this.fail = function(callBackFn) {
+		if(action == 'fail' &amp;&amp; callBackFn) {
+			callBackFn();
+		}
+		return this;
+	};
+	
+	this.always = function(callBackFn) {
+		if(callBackFn) {
+			callBackFn();
+		}
+		return this;
+	};
+};
+
+jslet.data.displayOrderComparator = function(fldObj1, fldObj2) {
+	var order1 = fldObj1.displayOrder();
+	var order2 = fldObj2.displayOrder();
+	return order1 - order2;
+};
+
+<span id='jslet-data-GlobalDataHandler'>/**
+</span> * @private
+ * @class
+ * 
+ * Global data processing.
+ */
+jslet.data.GlobalDataHandler = function() {
+	var Z = this;
+	Z._datasetMetaChanged = null;
+	Z._fieldMetaChanged = null;
+	Z._fieldValueChanged = null;
+};
+
+jslet.data.GlobalDataHandler.prototype = {
+		
+<span id='jslet-data-GlobalDataHandler-method-datasetCreated'>	/**
+</span>	 * Fired when dataset created.
+	 *  Pattern: 
+	 *	function(dataset}{}
+	 *  	//dataset:{jslet.data.Dataset} Dataset Object
+	 *  
+	 * @param {Function | undefined} datasetCreated dataset created event handler.
+	 * @return {this | Function}
+	 */
+	datasetCreated: function(datasetCreated) {
+		var Z = this;
+		if(datasetCreated === undefined) {
+			return Z._datasetCreated;
+		}
+		jslet.Checker.test('globalDataHandler.datasetCreated', datasetCreated).isFunction();
+		Z._datasetCreated = datasetCreated;
+	},
+	
+<span id='jslet-data-GlobalDataHandler-method-datasetMetaChanged'>	/**
+</span>	 * Fired when dataset meta is changed.
+	 *  Pattern: 
+	 *	function(dataset, metaName}{}
+	 *  	//dataset:{jslet.data.Dataset} Dataset Object
+	 *  	//metaName: {String} dataset's meta name
+	 *  
+	 * @param {Function | undefined} datasetMetaChanged Dataset meta changed event handler.
+	 * @return {this | Function}
+	 */
+	datasetMetaChanged: function(datasetMetaChanged) {
+		var Z = this;
+		if(datasetMetaChanged === undefined) {
+			return Z._datasetMetaChanged;
+		}
+		jslet.Checker.test('globalDataHandler.datasetMetaChanged', datasetMetaChanged).isFunction();
+		Z._datasetMetaChanged = datasetMetaChanged;
+	},
+	
+<span id='jslet-data-GlobalDataHandler-method-fieldMetaChanged'>	/**
+</span>	 * Fired when field meta is changed.
+	 *  Pattern: 
+	 *	function(dataset, fieldName, metaName}{}
+	 *  	//dataset:{jslet.data.Dataset} Dataset Object
+	 *  	//fieldName: {String} field name
+	 *  	//metaName: {String} dataset's meta name
+	 *  
+	 * @param {Function | undefined} fieldMetaChanged Dataset meta changed event handler.
+	 * @return {this | Function}
+	 */
+	fieldMetaChanged: function(fieldMetaChanged) {
+		var Z = this;
+		if(fieldMetaChanged === undefined) {
+			return Z._fieldMetaChanged;
+		}
+		jslet.Checker.test('globalDataHandler.fieldMetaChanged', fieldMetaChanged).isFunction();
+		Z._fieldMetaChanged = fieldMetaChanged;
+	},
+	
+<span id='jslet-data-GlobalDataHandler-method-fieldValueChanged'>	/**
+</span>	 * Fired when field value is changed.
+	 *  Pattern: 
+	 *	function(dataset, metaName}{}
+	 *  	//dataset:{jslet.data.Dataset} Dataset Object
+	 *  	//fieldName: {String} field name
+	 *  	//fieldValue: {Object} field value
+	 *  	//valueIndex: {Integer} value index
+	 *  
+	 * @param {Function | undefined} fieldValueChanged field value changed event handler.
+	 * @return {this | Function}
+	 */
+	fieldValueChanged: function(fieldValueChanged) {
+		var Z = this;
+		if(fieldValueChanged === undefined) {
+			return Z._fieldValueChanged;
+		}
+		jslet.Checker.test('globalDataHandler.fieldValueChanged', fieldValueChanged).isFunction();
+		Z._fieldValueChanged = fieldValueChanged;
+	}
+};
+
+jslet.data.globalDataHandler = new jslet.data.GlobalDataHandler();
+
+
+jslet.data.DatasetCreatingManager = function() {
+	this._maxCreatingLevels = {};
+	
+	this._creatingDatasets = [];
+	
+	this._doDatasetCreatedDebounce = jslet.debounce(this._doDatasetCreated, 100);
+}
+
+jslet.data.DatasetCreatingManager.prototype = {
+	setMaxCreateLevel: function(dsName, maxCreatingLevel) {
+		if(maxCreatingLevel) {
+			this._maxCreatingLevels[dsName] = maxCreatingLevel;
+		}
+	},
+	
+	startCreateDataset: function(dsName, hostDsName, isLookup) {
+		var hostDsCfg;
+		if(hostDsName) {
+			hostDsCfg = this._getDsCfg(hostDsName);
+			if(!hostDsCfg) {
+				hostDsCfg = {name: hostDsName, level: 0, relative: []};
+				this._creatingDatasets.push(hostDsCfg);
+			}
+			if(!this._getDsCfg(dsName)) {
+				var relative = hostDsCfg.relative;
+				if(!relative) {
+					hostDsCfg.relative = [];
+					relative = hostDsCfg.relative;
+				}
+				relative.push({name: dsName, level: (isLookup? hostDsCfg.level + 1: 0), parent: hostDsCfg});
+			}
+		}
+	},
+	
+	endCreateDataset: function() {
+		if(jslet.global.dataset.onDatasetCreated) {
+			this._doDatasetCreatedDebounce.call(this);
+		}
+	},
+	
+	allowCreatingDataset: function(hostDsName) {
+		var hostDsCfg = this._getDsCfg(hostDsName);
+		if(!hostDsCfg) {
+			return true;
+		}
+		var dsCfg = hostDsCfg;
+		var maxLevel = 0;
+		while(true) {
+			if(!dsCfg.parent) {
+				maxLevel = this._maxCreatingLevels[dsCfg.name];
+				break;
+			}
+			dsCfg = dsCfg.parent;
+		}
+		if(maxLevel &amp;&amp; hostDsCfg.level === maxLevel) {
+			return false
+		}
+		return true;
+	},
+	
+	_checkAllCreated: function(hostDsCfg) {
+		var result = true, 
+			dsCfg, 
+			relative = hostDsCfg.relative;
+		
+		for(var i = 0, len = relative.length; i &lt; len; i++) {
+			dsCfg = relative[i];
+			if(!jslet.data.getDataset(dsCfg.name)) {
+				return false;
+			}
+			if(dsCfg.relative) {
+				result = this._checkAllCreated(dsCfg);
+				if(!result) {
+					return false;
+				}
+			}
+		}
+		return true;
+	},
+	
+	_getDsCfg: function(dsName, datasets) {
+		if(!dsName) {
+			return null;
+		}
+		var datasets, dsCfg;
+		if(datasets === undefined) {
+			datasets = this._creatingDatasets;
+		}
+		for(var i = 0, len = datasets.length; i &lt; len; i++) {
+			dsCfg = datasets[i];
+			if(dsCfg.name == dsName) {
+				return dsCfg;
+			}
+			if(dsCfg.relative) {
+				dsCfg = this._getDsCfg(dsName, dsCfg.relative);
+				if(dsCfg) {
+					return dsCfg;
+				}
+			}
+		}
+		return null;
+	},
+	
+	_doDatasetCreated: function() {
+		var datasets = this._creatingDatasets,
+			rootDsCfg, rootDsName,
+			allCreated = true;
+		for(var i = datasets.length - 1; i &gt;= 0; i--) {
+			rootDsCfg = datasets[i];
+			rootDsName = rootDsCfg.name;
+			if(this._checkAllCreated(rootDsCfg)) {
+				datasets.splice(i, 1);
+				delete this._maxCreatingLevels[rootDsName];
+			} else {
+				allCreated = false;
+				break;
+			}
+		}
+		if(allCreated) {
+			jslet.global.dataset.onDatasetCreated();
+		}
+	}
+}
+jslet.data.defaultDatasetCreatingManager = new jslet.data.DatasetCreatingManager();
+</pre>
+</body>
+</html>

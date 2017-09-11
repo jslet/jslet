@@ -1,0 +1,1250 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js"><span id='jslet-ui-TabControl'>/**
+</span> * @class 
+ * @extend jslet.ui.Control
+ * 
+ * TabControl. Example:
+ * 
+ *     @example
+ *     var jsletParam = {type: &quot;TabControl&quot;, 
+ *       activeIndex: 1, 
+ *       onCreateContextMenu: doCreateContextMenu, 
+ *       items: [
+ *         {header: &quot;one&quot;, userIFrame: true, url: &quot;http://www.google.com&quot;, iconClass: &quot;tabIcon&quot;},
+ *         {header: &quot;two&quot;, closable: true, divId: &quot;p2&quot;},
+ *         {header:&quot;three&quot;,closable:true,divId:&quot;p3&quot;},
+ *       ]};
+ *     //1. Binding:
+ *     &lt;div data-jslet='jsletParam' style=&quot;width: 300px; height: 400px;&quot; /&gt;
+ *
+ *     //2. Binding on fly
+ *     &lt;div id='ctrlId' /&gt;
+ *     //Js snippet
+ *     var el = document.getElementById('ctrlId');
+ *     jslet.ui.bindControl(el, jsletParam);
+ *	
+ *     //3. Create dynamically
+ *     jslet.ui.createControl(jsletParam, document.body);
+ */
+jslet.ui.TabControl = jslet.Class.create(jslet.ui.Control, {
+<span id='jslet-ui-TabControl-method-initialize'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	initialize: function ($super, el, params) {
+		var Z = this;
+		Z.el = el;
+		Z.allProperties = 'styleClass,activeIndex,newable,closable,items,isFixedHeight,hasContent,onAddTabItem,onActiveIndexChanged,onRemoveTabItem,onCreateContextMenu,onContentLoading,onContentLoaded,enableLoading';
+		
+		Z._activeIndex = -1;
+		
+		Z._newable = true;
+		
+		Z._closable = true;
+		
+		Z._onActiveIndexChanged = null;
+		
+		Z._onAddTabItem = null;
+		
+		Z._onRemoveTabItem = null;
+		
+		Z._onCreateContextMenu = null;
+		
+		Z._items = [];
+		
+		Z._hasContent = true;
+		
+		Z._isFixedHeight = false;
+		
+		Z._itemsWidth = [];
+		Z._containerWidth = 0;
+		Z._ready = false;
+		
+		Z._leftIndex = 0;
+		Z._rightIndex = 0;
+		Z._maxHeaderWidth = 160;
+		Z._tabControlWidth = jQuery(Z.el).width();
+		Z._tabControlHeight = jQuery(Z.el).height();
+		Z._contextItemIndex = 0;
+		
+		Z._onContentLoading = null;
+		Z._onContentLoaded = null;
+		
+		Z._enableLoading = false;
+		
+		$super(el, params);
+	},
+
+<span id='jslet-ui-TabControl-method-activeIndex'>	/**
+</span>	 * Set or get active tab item index.
+	 * 
+	 * @param {Integer | undefined} index active tabItem index.
+	 * 
+	 * @return {this | Integer}
+	 */
+	activeIndex: function(index) {
+		if(index === undefined) {
+			return this._activeIndex;
+		}
+		jslet.Checker.test('TabControl.activeIndex', index).isGTEZero();
+		if(this._ready) {
+			this._chgActiveIndex(index);
+		} else {
+			this._activeIndex = index;
+		}
+		return this;
+	},
+	
+<span id='jslet-ui-TabControl-method-activeItemId'>	/**
+</span>	 * Set or get active tab item id.
+	 * 
+	 * @param {String | undefined} itemId active tabItem id.
+	 * 
+	 * @return {this | String}
+	 */
+	activeItemId: function(itemId) {
+		var Z = this;
+		if(itemId === undefined) {
+			var itemCfg = Z._items[this._activeIndex];
+			if(itemCfg) {
+				return itemCfg.id;
+			}
+			return null;
+		}
+		jslet.Checker.test('TabControl.activeItemId', itemId).isString();
+		if(this._ready) {
+			var items = Z._items;
+			for(var i = 0, len = items.length; i &lt; len; i++) {
+				if(itemId === items[i].id) {
+					this._chgActiveIndex(i);
+					break;
+				}
+			}
+		}
+		return this;
+	},
+	
+<span id='jslet-ui-TabControl-method-activeItem'>	/**
+</span>	 * Get active tab item configuration.
+	 * 
+	 * @return {jslet.ui.TabItem}
+	 */
+	activeItem: function() {
+		var items = this._items;
+		if(items &amp;&amp; items.length &gt; 0) {
+			return this._items[this._activeIndex || 0];
+		}
+		return null;
+	},
+	
+<span id='jslet-ui-TabControl-method-newable'>	/**
+</span>	 * Identify whether user can add tab item on fly.
+	 * 
+	 * @param {Boolean | undefined} newable True(default) - user can add tab item on fly, false - otherwise.
+	 * 
+	 * @return {this | Boolean} 
+	 */
+	newable: function(newable) {
+		if(newable === undefined) {
+			return this._newable;
+		}
+		this._newable = newable? true: false;
+		return this;
+	},
+	
+<span id='jslet-ui-TabControl-method-closable'>	/**
+</span>	 * Identify if user can close tab item on fly.
+	 * 
+	 * @param {Boolean | undefined} closable True(default) - user can close tab item on fly, false - otherwise.
+	 * 
+	 * @return {this | Boolean} 
+	 */
+	closable: function(closable) {
+		if(closable === undefined) {
+			return this._closable;
+		}
+		this._closable = closable? true: false;
+		return this;
+	},
+	
+<span id='jslet-ui-TabControl-method-hasContent'>	/**
+</span>	 * Identify if the TabControl has content panel. Sometimes, you only need the TabControl which is without content panel. 
+	 * 
+	 * @param {Boolean | undefined} hasContent True(default) - TabControl has content panel, false - otherwise.
+	 * 
+	 * @return {this | Boolean} 
+	 */
+	hasContent: function(hasContent) {
+		if(hasContent === undefined) {
+			return this._hasContent;
+		}
+		this._hasContent = hasContent? true: false;
+		return this;
+	},
+	
+<span id='jslet-ui-TabControl-method-isFixedHeight'>	/**
+</span>	 * Identify whether the height of TabPanel is same. 
+	 * 
+	 * @param {Boolean | undefined} isFixedHeight True - the height of TabPanel is same, false(default) - otherwise.
+	 * 
+	 * @return {this | Boolean} 
+	 */
+	isFixedHeight: function(isFixedHeight) {
+		if(isFixedHeight === undefined) {
+			return this._isFixedHeight;
+		}
+		this._isFixedHeight = isFixedHeight? true: false;
+		return this;
+	},
+	
+<span id='jslet-ui-TabControl-method-enableLoading'>	/**
+</span>	 * Identify whether enable loading icon when open a tab panel. 
+	 * 
+	 * @param {Boolean | undefined} enableLoading True - enable loading icon, false(default) - otherwise.
+	 * 
+	 * @return {this | Boolean} 
+	 */
+	enableLoading: function(enableLoading) {
+		if(enableLoading === undefined) {
+			return this._enableLoading;
+		}
+		this._enableLoading = enableLoading? true: false;
+		return this;
+	},
+	
+<span id='jslet-ui-TabControl-method-onAddTabItem'>	/**
+</span>	 * Fired after add a new tab item.
+	 * Pattern: 
+	 *   function(){}
+	 *   
+	 * @param {Function | undefined} onAddTabItem tab item added event handler.
+	 * 
+	 * @return {this | Function} 
+	 */
+	onAddTabItem: function(onAddTabItem) {
+		if(onAddTabItem === undefined) {
+			return this._onAddTabItem;
+		}
+		jslet.Checker.test('TabControl.onAddTabItem', onAddTabItem).isFunction();
+		this._onAddTabItem = onAddTabItem;
+		return this;
+	},
+	
+<span id='jslet-ui-TabControl-method-onActiveIndexChanged'>	/**
+</span>	 * Fired when user toggle tab item.
+	 * Pattern: 
+	 *   function(oldIndex, newIndex){}
+	 *   //oldIndex: Integer
+	 *   //newIndex: Integer
+	 *   
+	 * @param {Function | undefined} onActiveIndexChanged tab item active event handler.
+	 * 
+	 * @return {this | Function} 
+	 */
+	onActiveIndexChanged: function(onActiveIndexChanged) {
+		if(onActiveIndexChanged === undefined) {
+			return this._onActiveIndexChanged;
+		}
+		jslet.Checker.test('TabControl.onActiveIndexChanged', onActiveIndexChanged).isFunction();
+		this._onActiveIndexChanged = onActiveIndexChanged;
+		return this;
+	},
+
+<span id='jslet-ui-TabControl-method-onRemoveTabItem'>	/**
+</span>	 * Fired after remove a tab item.
+	 * Pattern: 
+	 *  function(tabItemIndex, active){}
+	 *  //tabItemIndex: Integer
+	 *  //active: Boolean Identify if the removing item is active
+	 *  //return: Boolean, false - cancel removing tab item, true - remove tab item. 
+	 *   
+	 * @param {Function | undefined} onRemoveTabItem tab item removed event handler.
+	 * 
+	 * @return {this | Function}
+	 */
+	onRemoveTabItem: function(onRemoveTabItem) {
+		if(onRemoveTabItem === undefined) {
+			return this._onRemoveTabItem;
+		}
+		jslet.Checker.test('TabControl.onRemoveTabItem', onRemoveTabItem).isFunction();
+		this._onRemoveTabItem = onRemoveTabItem;
+		return this;
+	},
+
+<span id='jslet-ui-TabControl-method-onCreateContextMenu'>	/**
+</span>	 * Fired before show context menu.
+	 * Pattern: 
+	 *   function(menuItems){}
+	 *   //menuItems: Array of MenuItem, see menu item configuration in jslet.ui.menu.js.
+	 *   
+	 * @param {Function | undefined} onCreateContextMenu creating context menu event handler.
+	 * 
+	 * @return {this | Function} 
+	 */
+	onCreateContextMenu: function(onCreateContextMenu) {
+		if(onCreateContextMenu === undefined) {
+			return this._onCreateContextMenu;
+		}
+		jslet.Checker.test('TabControl.onCreateContextMenu', onCreateContextMenu).isFunction();
+		this._onCreateContextMenu = onCreateContextMenu;
+		return this;
+	},
+	 
+<span id='jslet-ui-TabControl-method-onContentLoading'>	/**
+</span>	 * Fired before loading content of tab item;
+	 * Pattern: 
+	 *   function(contentId, itemCfg){}
+	 *   //contentId: {String} the content element's id.
+	 *   //itemCfg: {Plan Object} tab item config
+	 *   
+	 * @param {Function | undefined} onContentLoading before loading tab panel content handler.
+	 * 
+	 * @return {this | Function} 
+	 */
+	onContentLoading: function(onContentLoading) {
+		if(onContentLoading === undefined) {
+			return this._onContentLoading;
+		}
+		jslet.Checker.test('TabControl.onContentLoading', onContentLoading).isFunction();
+		this._onContentLoading = onContentLoading;
+		return this;
+	},
+	 
+<span id='jslet-ui-TabControl-method-onContentLoaded'>	/**
+</span>	 * Fired after loading content of tab item;
+	 * Pattern: 
+	 *   function(contentId, itemCfg){}
+	 *   //contentId: {String} the content element's id.
+	 *   //itemCfg: {Plan Object} tab item config
+	 *   
+	 * @param {Function | undefined} onContentLoading after loading tab panel content handler.
+	 * 
+	 * @return {this | Function} 
+	 */
+	onContentLoaded: function(onContentLoaded) {
+		if(onContentLoaded === undefined) {
+			return this._onContentLoaded;
+		}
+		jslet.Checker.test('TabControl.onContentLoaded', onContentLoaded).isFunction();
+		this._onContentLoaded = onContentLoaded;
+		return this;
+	},
+	 
+<span id='jslet-ui-TabControl-method-items'>	/**
+</span>	 * Set or get tab item configuration.
+	 * 
+	 * @param {jslet.ui.TabItem[] | undefined} items tab items.
+	 * 
+	 * @return {this | jslet.ui.TabItem[]}
+	 */
+	items: function(items) {
+		if(items === undefined) {
+			return this._items;
+		}
+		jslet.Checker.test('TabControl.items', items).isArray();
+		var item;
+		for(var i = 0, len = items.length; i &lt; len; i++) {
+			item = items[i];
+			jslet.Checker.test('TabControl.items.header', item.header).isString().required();
+		}
+		this._items = items;
+		return this;
+	},
+	
+<span id='jslet-ui-TabControl-method-bind'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	bind: function () {
+		this.renderAll();
+		jslet.ui.resizeEventBus.subscribe(this);
+	},
+
+<span id='jslet-ui-TabControl-method-renderAll'>	/**
+</span>	 * @override
+	 */
+	renderAll: function () {
+		var Z = this;
+		function innerAdd(itemCfg) {
+			if (!itemCfg) {
+				return;
+			}
+			Z.addTabItem(itemCfg);
+			Z._calcItemsWidth();
+			Z.activeIndex(Z._items.length - 1);
+		}
+		
+		Z._createContextMenu();
+
+		var	template = [
+			'&lt;div class=&quot;jl-tab-header jl-unselectable&quot;&gt;&lt;div class=&quot;jl-tab-container jl-unselectable&quot;&gt;&lt;ul class=&quot;jl-tab-list&quot;&gt;',
+			Z._newable ? '&lt;li&gt;&lt;a href=&quot;javascript:;&quot; class=&quot;jl-tab-inner&quot;&gt;&lt;span class=&quot;jl-tab-new&quot;&gt;+&lt;/span&gt;&lt;/a&gt;&lt;/li&gt;' : '',
+			'&lt;/ul&gt;&lt;/div&gt;&lt;a class=&quot;jl-tab-left jl-hidden&quot;&gt;&lt;span class=&quot;jl-nav-btn fa fa-arrow-circle-left&quot;&gt;&lt;/span&gt;&lt;/a&gt;&lt;a class=&quot;jl-tab-right jl-hidden&quot;&gt;&lt;span class=&quot;jl-nav-btn fa fa-arrow-circle-right&quot;&gt;&lt;/span&gt;&lt;/a&gt;&lt;/div&gt;',
+			'&lt;div class=&quot;jl-tab-panels jl-round5 jl-hidden' + (Z._isFixedHeight ? ' jl-tab-panels-fixed': '') + ' &quot;',
+			Z._hasContent? '': ' style=&quot;border: 0;height:0&quot;',
+			'&gt;&lt;/div&gt;'];
+
+		var jqEl = jQuery(Z.el);
+		if (!jqEl.hasClass('jl-tabcontrol')) {
+			jqEl.addClass('jl-tabcontrol jl-round5');
+		}
+		jqEl.html(template.join(''));
+		if (Z._newable) {
+			var oul = jqEl.find('.jl-tab-list')[0];
+			var newTab = oul.childNodes[oul.childNodes.length - 1];
+			Z._newTabItem = newTab;
+			
+			newTab.onclick = function () {
+				if (!Z._onAddTabItem) {
+					return;
+				}
+				var	itemCfg = Z._onAddTabItem.call(Z);
+				if(jslet.isPromise(itemCfg)) {
+					itemCfg.done(function(result) {
+						innerAdd(result);
+					});
+				} else {
+					innerAdd(itemCfg);
+				}
+			};
+		}
+
+		var jqNavBtn = jqEl.find('.jl-tab-left');
+		
+		jqNavBtn.on(&quot;click&quot;,function (event) {
+			Z._setVisiTabItems(Z._leftIndex - 1);
+			event.stopImmediatePropagation();
+			event.preventDefault();
+			return false;
+		});
+		jqNavBtn.on(&quot;mousedown&quot;,function (event) {
+			event.stopImmediatePropagation();
+			event.preventDefault();
+			return false;
+		});
+		jqNavBtn = jqEl.find('.jl-tab-right');
+
+		jqNavBtn.on(&quot;click&quot;,function (event) {
+			Z._setVisiTabItems(Z._leftIndex + 1);
+			event.stopImmediatePropagation();
+			event.preventDefault();
+			return false;
+		});
+		jqNavBtn.on(&quot;mousedown&quot;,function (event) {
+			event.stopImmediatePropagation();
+			event.preventDefault();
+			return false;
+		});
+		
+		if (Z._items &amp;&amp; Z._items.length &gt; 0) {
+			var oitem, 
+				cnt = Z._items.length;
+			for (var i = 0; i &lt; cnt; i++) {
+				oitem = Z._items[i];
+				Z._renderTabItem(oitem);
+			}
+			Z._activeIndex = 0;
+		}
+		Z._calcItemsWidth();
+		Z._ready = true;
+		Z._chgActiveIndex(Z._activeIndex);
+		Z._checkTabItemCount();
+	},
+
+	addItem: function (itemCfg) {
+		this._items[this._items.length] = itemCfg;
+	},
+
+<span id='jslet-ui-TabControl-method-tabHeader'>	/**
+</span>	 * Change tab item's header.
+	 * 
+	 * @param {Integer} index - tab item index.
+	 * @param {String} header - tab item header.
+	 */
+	tabHeader: function(index, header) {
+		jslet.Checker.test('tabHeader#index', index).isGTEZero();
+		jslet.Checker.test('tabHeader#label', header).required().isString();
+		
+		var Z = this;
+		var itemCfg = Z._getTabItemCfg(index);
+		if(!itemCfg) {
+			return;
+		}
+
+		itemCfg.header = header;
+		var jqEl = jQuery(Z.el);
+		var panelContainer = jqEl.find('.jl-tab-list')[0];
+		var nodes = panelContainer.childNodes;
+		jQuery(nodes[index]).find('.jl-tab-title').html(header);
+		Z._calcItemsWidth();
+	},
+	
+<span id='jslet-ui-TabControl-method-tabDisabled'>	/**
+</span>	 * Disable tab item.
+	 * 
+	 * @param {Integer} index - tab item index.
+	 * @param {Boolean} disabled - true - disabled, false - otherwise.
+	 */
+	tabDisabled: function(index, disabled) {
+		jslet.Checker.test('tabDisabled#index', index).isGTEZero();
+		var Z = this;
+		var itemCfg = Z._getTabItemCfg(index);
+		if(!itemCfg) {
+			return;
+		}
+		if(index == Z._activeIndex) {
+			console.warn('Cannot set current tab item to disabled.');
+			return;
+		}
+		itemCfg.disabled(disabled);
+		var jqEl = jQuery(Z.el),
+			jqPanels = jqEl.find('.jl-tab-panels'),
+			panelContainer = jqPanels[0],
+			nodes = panelContainer.childNodes,
+			jqItem = jQuery(nodes[index]);
+		if(disabled) {
+			jqItem.addClass('jl-tab-disabled');
+		} else {
+			jqItem.removeClass('jl-tab-disabled');
+		}
+	},
+	
+	_checkTabItemCount: function() {
+		var Z = this,
+			jqTabPanels = jQuery(Z.el).find('.jl-tab-panels');
+		if(!Z._items || Z._items.length === 0) {
+			if(!jqTabPanels.hasClass('jl-hidden')) {
+				jqTabPanels.addClass('jl-hidden');
+			}
+		} else {
+			jqTabPanels.removeClass('jl-hidden');
+
+		} 
+	},
+	
+	/*
+	 * Change active tab item.
+	 * 
+	 * @param {Integer} index Tab item index which will be toggled to.
+	 */
+	_chgActiveIndex: function (index) {
+		var Z = this;
+		
+		function innerChgActiveIndex() {
+			var jqEl = jQuery(Z.el),
+				oli, 
+				oul = jqEl.find('.jl-tab-list')[0],
+				nodes = oul.childNodes,
+				cnt = nodes.length - (Z._newable ? 2 : 1);
+	
+			var itemContainer = jqEl.find('.jl-tab-panels')[0],
+				item,
+				items = itemContainer.childNodes;
+			for (var i = 0; i &lt;= cnt; i++) {
+				oli = jQuery(nodes[i]);
+				item = items[i];
+				if (i === index) {
+					oli.addClass('jl-tab-active');
+					item.style.display = 'block';
+					//To fix Chrome bug: scrollbar disappeared.
+					var oIframe = item.childNodes[0];
+					if(oIframe.tagName == 'IFRAME') {
+						item.style.overflow = 'hidden';
+						var oldHeight = oIframe.style.height;
+						oIframe.style.height = &quot;0&quot;;
+						/* jshint ignore:start */
+						oIframe.scrollWidth;
+						/* jshint ignore:end */
+						oIframe.style.height = oldHeight || &quot;100%&quot;;
+					}
+				} else {
+					oli.removeClass('jl-tab-active');
+					item.style.display = 'none';
+				}
+			}
+			Z._activeIndex = index;
+			if(index &lt; Z._leftIndex || index &gt;= Z._rightIndex) {
+				Z._setVisiTabItems(null, Z._activeIndex);
+			}
+		}
+	
+		var itemCfg = Z._getTabItemCfg(index);
+		if(!itemCfg || itemCfg.disabled) {
+			return;
+		}
+		if (index != Z._activeIndex &amp;&amp; Z._onActiveIndexChanged) {
+			var result = Z._onActiveIndexChanged.call(Z, Z._activeIndex, index);
+			if(jslet.isPromise(result)) {
+				result.done(function(canChanged) {
+					if(canChanged === undefined || canChanged) {
+						innerChgActiveIndex();
+					}
+				});
+			} else {
+				if(result === undefined || result) {
+					innerChgActiveIndex();
+				}
+			}
+		} else {
+			innerChgActiveIndex();
+		}
+	},
+	
+	_getTabItemCfg: function(index) {
+		var Z = this;
+		if(Z._items.length &lt;= index) {
+			return null;
+		}
+		return Z._items[index];
+	},
+	
+	_calcItemsWidth: function() {
+		var Z = this,
+			jqEl =jQuery(Z.el),
+			nodes = jqEl.find('.jl-tab-list').children();
+		Z._itemsWidth = [];
+		Z._totalItemsWidth = 0;
+		nodes.each(function(index){
+			var w = jQuery(this).outerWidth() + 5;
+			Z._itemsWidth[index] = w;
+			Z._totalItemsWidth += w;
+		});
+
+		Z._containerWidth = jqEl.find('.jl-tab-container').innerWidth();
+		Z._setNavBtnVisible();
+	},
+	
+	_setVisiTabItems: function(leftIndex, rightIndex) {
+		var Z = this, w, i, len;
+		if(!leftIndex &amp;&amp; leftIndex !== 0) {
+			if(!rightIndex) {
+				return;
+			}
+			if(Z._newable) {
+				rightIndex++;
+			}
+			w = Z._itemsWidth[rightIndex];
+			Z._leftIndex = rightIndex;
+			for(i = rightIndex - 1; i &gt;= 0; i--) {
+				w += Z._itemsWidth[i];
+				if(w &gt; Z._containerWidth) {
+					Z._leftIndex = i + 1;
+					break;
+				}
+				Z._leftIndex = i;
+			}
+			leftIndex = Z._leftIndex;
+		} else {
+			Z._leftIndex = leftIndex;
+		}
+		w = 0;
+		Z._rightIndex = leftIndex;
+		for(i = leftIndex, len = Z._itemsWidth.length; i &lt; len; i++) {
+			w += Z._itemsWidth[i];
+			if(w &gt; Z._containerWidth) {
+				Z._rightIndex = i - 1;
+				break;
+			}
+			Z._rightIndex = i;
+		}
+		var leftPos = 0;
+		for(i = 0; i &lt; Z._leftIndex; i++) {
+			leftPos += Z._itemsWidth[i];
+		}
+		leftPos += 5;
+		var jqEl = jQuery(Z.el);
+		jqEl.find('.jl-tab-container').scrollLeft(jsletlocale.isRtl ? 50000 - leftPos: leftPos);
+		Z._setNavBtnVisible();
+	},
+	
+	_setNavBtnVisible: function() {
+		var Z = this,
+			jqEl = jQuery(Z.el),
+			jqBtnLeft = jqEl.find('.jl-tab-left'),
+			isHidden = jqBtnLeft.hasClass('jl-hidden');
+		if(Z._leftIndex &gt; 0 &amp;&amp; Z._totalItemsWidth &gt; Z._containerWidth) {
+			if(isHidden) {
+				jqBtnLeft.removeClass('jl-hidden');
+			}
+		} else {
+			if(!isHidden) {
+				jqBtnLeft.addClass('jl-hidden');
+			}
+		}
+		var jqBtnRight = jqEl.find('.jl-tab-right');
+		var totalCnt = Z._itemsWidth.length;
+		isHidden = jqBtnRight.hasClass('jl-hidden');
+		if(Z._rightIndex &lt; totalCnt - 1 &amp;&amp; Z._totalItemsWidth &gt; Z._containerWidth) {
+			if(isHidden) {
+				jqBtnRight.removeClass('jl-hidden');
+			}
+		} else {
+			if(!isHidden) {
+				jqBtnRight.addClass('jl-hidden');
+			}
+		}
+	},
+	
+	_createHeader: function (parent, itemCfg) {
+		var Z = this,
+			canClose = Z._closable &amp;&amp; itemCfg.closable,
+			tmpl = [];
+		
+		if(Z._enableLoading) {
+			tmpl.push('&lt;div class=&quot;jl-tab-loading jl-hidden&quot;&gt;&lt;i class=&quot;fa fa-spinner fa-pulse fa-fw&quot;&gt;&lt;/i&gt;&lt;/div&gt;');
+		}
+		tmpl.push('&lt;a href=&quot;javascript:;&quot; class=&quot;jl-tab-inner' + (canClose? ' jl-tab-close-loc': '') + 
+		        '&quot; onclick=&quot;javascript:this.blur();&quot; title=&quot;' + itemCfg.header + '&quot;&gt;');
+
+		tmpl.push('&lt;span class=&quot;jl-tab-icon ' + (itemCfg.iconClass || '') + '&quot;&gt;&lt;/span&gt;');
+
+		tmpl.push('&lt;span class=&quot;jl-tab-title&quot;&gt;');
+		tmpl.push(itemCfg.header);
+		tmpl.push('&lt;/span&gt;');
+		tmpl.push('&lt;span class=&quot;fa fa-times close jl-tab-close' + (!canClose || itemCfg.disabled? ' jl-hidden': '') + '&quot;&gt;&lt;/span&gt;&lt;span style=&quot;clear:both&quot;&gt;&lt;/span&gt;');
+		tmpl.push('&lt;/a&gt;');
+		if(!itemCfg.id &amp;&amp; itemCfg.id !== 0) {
+			itemCfg.id = jslet.nextId();
+		}
+		var oli = document.createElement('li');
+		oli.id = itemCfg.id + '_h';
+		if(itemCfg.disabled) {
+			jQuery(oli).addClass('jl-tab-disabled');
+		}
+		oli.innerHTML = tmpl.join('');
+
+		if (Z._newable) {
+			var lastNode = parent.childNodes[parent.childNodes.length - 1];
+			parent.insertBefore(oli, lastNode);
+		} else {
+			parent.appendChild(oli);
+		}
+		oli.jslet = Z;
+		jQuery(oli).on('click', Z._changeTabItem);
+
+		if (canClose) {
+			jQuery(oli).find('.jl-tab-close').click(Z._doCloseBtnClick);
+		}
+		if(Z.contextMenu &amp;&amp; !itemCfg.disabled) {
+			oli.oncontextmenu = function (event) {
+				var k = 0;
+				var items = jQuery(Z.el).find('.jl-tab-list li').each(function() {
+					if(this === event.currentTarget) {
+						Z._contextItemIndex = k;
+						return false;
+					}
+					k++;
+				});
+				Z.contextMenu.showContextMenu(event, Z);
+			};
+		}
+	},
+
+	_changeTabItem: function (event) {
+		var nodes = this.parentNode.childNodes,
+			index = -1;
+		for (var i = 0; i &lt; nodes.length; i++) {
+			if (nodes[i] == this) {
+				index = i;
+				break;
+			}
+		}
+		this.jslet._chgActiveIndex(index);
+	},
+
+	_doCloseBtnClick: function (event) {
+		var oli = this.parentNode.parentNode,
+			nodes = oli.parentNode.childNodes,
+			index = -1;
+		for (var i = 0; i &lt; nodes.length; i++) {
+			if (nodes[i] == oli) {
+				index = i;
+				break;
+			}
+		}
+		oli.jslet.removeTabItem(index);
+		event.preventDefault();
+		return false;
+	},
+
+	_createBody: function (parent, itemCfg) {
+		var Z = this,
+			jqDiv = jQuery(document.createElement('div'));
+		if (!jqDiv.hasClass('jl-tab-panel')) {
+			jqDiv.addClass('jl-tab-panel');
+		}
+		parent.appendChild(jqDiv[0]);
+		
+		if (itemCfg.content || itemCfg.contentId) {
+			var ocontent = itemCfg.content;
+			if(itemCfg.contentId) {
+				ocontent = jQuery('#'+itemCfg.contentId)[0];
+			}
+			if (ocontent) {
+				jqDiv.html('');
+				jqDiv.append(ocontent);
+				jqDiv.children().show();
+				return;
+			}
+		}
+
+		var url = itemCfg.url;
+		if (url) {
+			url = jslet.urlUtil.addParam(url, {jlTabItemId: itemCfg.id});
+			if(itemCfg.debounce) {
+				url = jslet.urlUtil.addParam(url, {debounce: true});
+			}
+			itemCfg.url = url;
+			if (itemCfg.useIFrame || itemCfg.useIFrame === undefined) {
+				var h = itemCfg.height;
+				if(h &amp;&amp; !jslet.isString(h)) {
+					h += 'px';
+				}
+				h = h ? h: '100%';
+				
+				var id = itemCfg.id || jslet.nextId(); 
+				var s = '&lt;iframe id=&quot;' + id + '&quot; scrolling=&quot;yes&quot; frameborder=&quot;0&quot; allowtransparency=&quot;true&quot; src=&quot;' + 
+					url + 
+				'&quot; style=&quot;background-color:transparent;width: 100%;' + (Z._isFixedHeight? '': 'height:' + h) + '&quot;' +
+				(Z._isFixedHeight? 'class=&quot;jl-tab-frame-fixed&quot;': '') + '&gt;&lt;/iframe&gt;';
+				jqDiv.html(s);
+				itemCfg.contentId = id;
+				if(itemCfg.debounce) {
+					if(Z._enableLoading) {
+						var jqEl = jQuery(Z.el),
+							jqHead = jqEl.find('.jl-tab-header');
+						jqHead.find('#' + id + '_h .jl-tab-loading').removeClass('jl-hidden');
+					}
+					if(Z._onContentLoading) {
+						Z._onContentLoading.call(Z, id, itemCfg);
+					}
+				}
+			}
+		}
+	},
+
+<span id='jslet-ui-TabControl-method-addTabItem'>	/**
+</span>	 * Add tab item dynamically.
+	 * 
+	 * @param {Object} newItemCfg Tab item configuration
+	 * @param {Boolean} noDuplicate Identify if the same &quot;tabItem.id&quot; can be added or not, default is true. 
+	 */
+	addTabItem: function (newItemCfg, noDuplicate) {
+		var Z = this,
+			tabItems = Z._items,
+			newId = newItemCfg.id;
+		if(!newId) {
+			newId = jslet.nextId();
+			newItemCfg.id = newId;
+		}
+		var itemCfg;
+		if((noDuplicate === undefined || noDuplicate) &amp;&amp; newId) {
+			for(var i = 0, len = tabItems.length; i &lt; len; i++) {
+				itemCfg = tabItems[i];
+				if(newId === itemCfg.id) {
+					if(itemCfg.url !== newItemCfg.url) {
+						itemCfg.url = newItemCfg.url;
+						Z.reloadTabItem(itemCfg);
+					}
+					Z.activeIndex(i);
+					return;
+				}
+			}
+		}
+		tabItems.push(newItemCfg);
+		Z._renderTabItem(newItemCfg);
+		Z._calcItemsWidth();
+		Z._chgActiveIndex(tabItems.length - 1);
+		Z._checkTabItemCount();
+	},
+
+<span id='jslet-ui-TabControl-method-setContentLoadedState'>	/**
+</span>	 * set the specified tab item to loaded state. It will fire the &quot;onContentLoaded&quot; event.
+	 * 
+	 * @param {String} tabItemId - tab item id.
+	 */
+	setContentLoadedState: function(tabItemId) {
+		var Z = this,
+			jqEl = jQuery(Z.el);
+		if(Z._enableLoading) {
+			jqEl.find('#' + tabItemId + '_h .jl-tab-loading').addClass('jl-hidden');
+		}
+		if(!Z._onContentLoaded) {
+			return;
+		}
+		var	tabItems = Z._items,
+			contentId = null,
+			itemCfg;
+		for(var i = 0, len = tabItems.length; i &lt; len; i++) {
+			itemCfg = tabItems[i];
+			if(tabItemId === itemCfg.id) {
+				contentId = itemCfg.contentId;
+				break;
+			}
+		}
+		if(!contentId) {
+			return;
+		}
+		Z._onContentLoaded.call(Z, contentId, itemCfg);
+	},
+	
+<span id='jslet-ui-TabControl-method-setContentChangedState'>	/**
+</span>	 * Set tab item to changed state or not.
+	 * 
+	 * @param {String} tabItemId - tab item id.
+	 * @param {Boolean} changed - changed state.
+	 */
+	setContentChangedState: function(tabItemId, changed) {
+		var Z = this,
+			tabItems = Z._items,
+			itemCfg,
+			idx = -1;
+		for(var i = 0, len = tabItems.length; i &lt; len; i++) {
+			itemCfg = tabItems[i];
+			if(tabItemId === itemCfg.id) {
+				idx = i;
+				break;
+			}
+		}
+		if(idx &lt; 0) {
+			return;
+		}
+		itemCfg.changed = changed;
+		var header = itemCfg.header,
+			hasChangedFlag = (header.charAt(0) === '*');
+		if(changed) {
+			if(!hasChangedFlag) {
+				header = '*' + header;
+				Z.tabHeader(idx, header);
+			}
+		} else {
+			if(hasChangedFlag) {
+				header = header.substring(1);
+				Z.tabHeader(idx, header);
+			}
+		}
+	},
+	
+<span id='jslet-ui-TabControl-method-hasChanged'>	/**
+</span>	 * Identify which exists changed tab item or not.
+	 */
+	hasChanged: function(tabIndex) {
+		jslet.Checker.test('TabControl.hasChanged#tabIndex', tabIndex).isGTEZero();
+		var Z = this,
+			tabItems = Z._items,
+			itemCfg,
+			idx = -1,
+			noTabIndex = (tabIndex === undefined || tabIndex === null);
+		for(var i = 0, len = tabItems.length; i &lt; len; i++) {
+			itemCfg = tabItems[i];
+			if(itemCfg.changed) {
+				if(noTabIndex || tabIndex === i) {
+					return true;
+				}
+			}
+		}
+		return false;
+	},
+	
+	_renderTabItem: function(itemCfg) {
+		var Z = this,
+			jqEl = jQuery(Z.el),
+			oul = jqEl.find('.jl-tab-list')[0],
+			panelContainer = jqEl.find('.jl-tab-panels')[0];
+		if(!itemCfg.id) {
+			itemCfg.id = jslet.nextId();
+		}
+		Z._createHeader(oul, itemCfg);
+		Z._createBody(panelContainer, itemCfg);
+	},
+	
+<span id='jslet-ui-TabControl-method-removeTabItem'>	/**
+</span>	 * Remove tab item with tabItemIndex
+	 * 
+	 * @param {Integer} tabItemIndex Tab item index
+	 */
+	removeTabItem: function (tabItemIndex) {
+		var Z = this;
+		if (tabItemIndex &gt;= Z._items.length || tabItemIndex &lt; 0) {
+			return;
+		}
+		var itemCfg = Z._items[tabItemIndex];
+		if(itemCfg.changed) {
+            jslet.ui.confirm(jsletlocale.TabControl.contentChanged, jsletlocale.MessageBox.confirm, function(button){
+				if(button === 'ok') {
+					Z._innerRemoveTabItem(tabItemIndex);
+				}
+            });
+		} else {
+			Z._innerRemoveTabItem(tabItemIndex);
+		}
+	},
+
+	_innerRemoveTabItem: function (tabItemIndex) {
+		var Z = this,
+			jqEl = jQuery(Z.el),
+			oul = jqEl.find('.jl-tab-list')[0],
+			nodes = oul.childNodes,
+			oli = jQuery(nodes[tabItemIndex]),
+			active = oli.hasClass('jl-tab-active');
+		
+		function innerRemove() {
+			oli.find('.jl-tab-close').hide();
+			oli.animate({width:'toggle'},200, function() {
+				var elItem = oli[0]; 
+				elItem.oncontextmenu = null;
+				oul.removeChild(elItem);
+				Z._items.splice(tabItemIndex, 1);
+				var panelContainer = jqEl.find('.jl-tab-panels')[0];
+				nodes = panelContainer.childNodes;
+				var tabPanel = nodes[tabItemIndex];
+				panelContainer.removeChild(tabPanel);
+				Z._calcItemsWidth();
+				Z._checkTabItemCount();
+				if (active) {
+					var cnt = nodes.length - (Z._newable ? 2 : 1);
+					tabItemIndex = Z._getNextValidIndex(tabItemIndex, tabItemIndex &gt;= cnt);
+					if (tabItemIndex &gt;= 0) {
+						Z._chgActiveIndex(tabItemIndex);
+					} else {
+						Z._activeIndex = -1;
+					}
+				} else {
+					if(Z._activeIndex &gt; tabItemIndex) {
+						Z._activeIndex--;
+					}
+				}
+			});
+		}
+		if (Z._onRemoveTabItem) {
+			var result = Z._onRemoveTabItem.call(Z, Z._items[tabItemIndex], active);
+			if(jslet.isPromise(result)) {
+				result.done(function(canRemoved) {
+					if (canRemoved === undefined || canRemoved) {
+						innerRemove();
+					}
+				});
+			} else {
+				if (result === undefined || result) {
+					innerRemove();
+				}
+			}
+		}
+	},
+
+	_getNextValidIndex: function(start, isLeft) {
+		var Z = this, i, len;
+		if(isLeft) {
+			for(i = start - 1; i &gt;= 0; i--) {
+				if(!Z._items[i].disabled) {
+					return i;
+				}
+			}
+		} else {
+			for(i = start, len = Z._items.length; i &lt; len; i++) {
+				if(!Z._items[i].disabled) {
+					return i;
+				}
+			}
+		}
+		return -1;
+	},
+	
+<span id='jslet-ui-TabControl-method-reload'>	/**
+</span>	 * Reload the active tab panel.
+	 */
+	reload: function() {
+		var Z = this,
+			currIdx = Z._contextItemIndex,
+			itemCfg = Z._items[currIdx];
+		Z.reloadTabItem(itemCfg);
+	},
+	
+	reloadTabItem: function(itemCfg) {
+		var Z = this;
+		if(!itemCfg) {
+			return;
+		}
+		var contentId = itemCfg.contentId;
+		if(contentId) {
+			if(itemCfg.debounce) {
+				if(Z._enableLoading) {
+					var jqEl = jQuery(Z.el),
+						jqHead = jqEl.find('.jl-tab-header');
+					jqHead.find('#' + contentId + '_h .jl-tab-loading').removeClass('jl-hidden');
+				}
+				if(Z._onContentLoading) {
+					Z._onContentLoading.call(Z, contentId, itemCfg);
+				}
+			}
+			jQuery('#' + contentId).attr('src', itemCfg.url);
+		}
+	},
+	
+<span id='jslet-ui-TabControl-method-close'>	/**
+</span>	 * Close the current active tab item  if this tab item is closable.
+	 */
+	close: function (tabItemIndex) {
+		var Z = this;
+		if(tabItemIndex === undefined) {
+			tabItemIndex = Z._activeIndex;
+		}
+		var itemCfg = Z._items[tabItemIndex];
+		if (itemCfg &amp;&amp; tabItemIndex &gt;= 0 &amp;&amp; itemCfg.closable &amp;&amp; !itemCfg.disabled) {
+			Z.removeTabItem(tabItemIndex);
+		}
+	},
+
+<span id='jslet-ui-TabControl-method-closeOther'>	/**
+</span>	 * Close all closable tab item except current active tab item.
+	 */
+	closeOther: function () {
+		var Z = this, oitem;
+		for (var i = Z._items.length - 1; i &gt;= 0; i--) {
+			oitem = Z._items[i];
+			if (oitem.closable &amp;&amp; !oitem.disabled) {
+				if (Z._contextItemIndex == i) {
+					continue;
+				}
+				Z.removeTabItem(i);
+			}
+		}
+	},
+	
+<span id='jslet-ui-TabControl-method-closeAll'>	/**
+</span>	 * Close all closable tab item.
+	 */
+	closeAll: function() {
+		var Z = this, oitem;
+		for (var i = Z._items.length - 1; i &gt;= 0; i--) {
+			oitem = Z._items[i];
+			if (oitem.closable &amp;&amp; !oitem.disabled) {
+				Z.removeTabItem(i);
+			}
+		}
+	},
+	
+<span id='jslet-ui-TabControl-method-checkSizeChanged'>	/**
+</span>	 * Run when container size changed, it's revoked by jslet.ui.resizeEventBus.
+	 * 
+	 */
+	checkSizeChanged: function(){
+		var Z = this,
+			jqEl = jQuery(Z.el),
+			currWidth = jqEl.width(),
+			currHeight = jqEl.height();
+		if(currWidth === Z._tabControlWidth &amp;&amp; currHeight === Z._tabControlHeight) {
+			return;
+		}
+		if ( Z._tabControlWidth != currWidth){
+			Z._tabControlWidth = currWidth;
+			Z._calcItemsWidth();
+			Z._setVisiTabItems(Z._leftIndex);
+		}
+		Z._tabControlHeight = currHeight;
+		jslet.ui.resizeEventBus.resize(Z.el);		
+	},
+	
+	_createContextMenu: function () {
+		var Z = this;
+		Z.contextMenu = null;
+		if (!jslet.ui.Menu || !Z._closable) {
+			return;
+		}
+		var menuCfg = { type: 'Menu', onItemClick: jQuery.proxy(Z._menuItemClick, Z), items: [
+   			{ id: 'reload', name: jsletlocale.TabControl.reload},
+			{ id: 'close', name: jsletlocale.TabControl.close},
+			{ id: 'closeOther', name: jsletlocale.TabControl.closeOther},
+			{ id: 'closeAll', name: jsletlocale.TabControl.closeAll}]
+			};
+		if (Z._onCreateContextMenu) {
+			Z._onCreateContextMenu.call(Z, menuCfg.items);
+		}
+
+		if (menuCfg.items.length === 0) {
+			return;
+		}
+		Z.contextMenu = jslet.ui.createControl(menuCfg);
+	},
+
+	_menuItemClick: function (menuCfg, checked) {
+		var menuId = menuCfg.id;
+		if(menuId === 'reload') {
+			this.reload();
+		} else if (menuId === 'close') {
+			this.close(this._contextItemIndex);
+		} else if (menuId === 'closeOther') {
+			this.closeOther();
+		} else if (menuId === 'closeAll') {
+			this.closeAll();
+		}
+	},
+
+<span id='jslet-ui-TabControl-method-destroy'>	/**
+</span>	 * @override
+	 */
+	destroy: function($super){
+		var Z = this;
+		if(Z._newTabItem) {
+			Z._newTabItem.onclick = null;
+			Z._newTabItem = null;
+		}
+		var jqEl = jQuery(Z.el), 
+			head = jqEl.find('.jl-tab-header')[0];
+		
+		jqEl.find('.jl-tab-left').off();
+		jqEl.find('.jl-tab-right').off();
+		head.oncontextmenu = null;
+		jqEl.find('.jl-tab-close').off();
+		var items = jqEl.find('.jl-tab-list').find('li');
+		items.off();
+		items.each(function(){
+			this.jslet = null;
+		});
+		jslet.ui.resizeEventBus.unsubscribe(this);
+
+		$super();
+	}
+});
+
+jslet.ui.register('TabControl', jslet.ui.TabControl);
+jslet.ui.TabControl.htmlTemplate = '&lt;div&gt;&lt;/div&gt;';
+
+<span id='jslet-ui-TabItem'>/**
+</span> * @class
+ * 
+* Tab Item
+*/
+jslet.ui.TabItem = function () {
+	var Z = this;
+	Z.id = null; //{String} Element Id
+	Z.index = -1; //{Integer} TabItem index
+	Z.header = null; //{String} Head of tab item
+	Z.closable = false; //{Boolean} Can be closed or not
+	Z.disabled = false; //{Boolean} 
+	Z.useIFrame = false; //{Boolean}
+	Z.height = '100%';
+	Z.url = null; //{String} 
+	Z.contentId = null; //{String} 
+	Z.content = null; //{String} 
+};
+
+</pre>
+</body>
+</html>

@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="../../css/demo.css" />
+    
+    <title>Jslet - SplitPanel</title>
+    <script type="text/javascript" data-main="../../config.js" src="../../lib/requirejs/require.min.js"></script>
+    <script type="text/javascript">
+	    require(['control/layout/splitpanel']);
+    </script>
+</head>
+<body>
+    <div class="demo-header">
+    <h4 id="top">Jslet - SplitPanel</h4>
+	</div>
+	<hr />
+    <h4>水平分隔</h4>
+    <div data-jslet='type:"SplitPanel",direction:"hori",floatIndex: 1'
+        style="width: 800px; height: 100px; margin-left: 20px">
+     	<div style="overflow:hidden; width:100px;min-width:50px;display:none">Left Pane</div>
+     	<div style="overflow:hidden; background-color:#ff9">
+			浮动面板
+			<p>
+				设置左边的面板的css属性: "display:none"，则左边的面板会折叠起来.
+			</p>
+		</div>
+     	<div style="overflow:hidden; width:100px">Right Pane</div>
+    </div>
+    <h4>垂直分隔</h4>
+    <div data-jslet='type:"SplitPanel",direction:"vert",floatIndex: 1'
+        style="width: 600px; height: 400px; margin-left: 20px">
+     	<div style="overflow:hidden; height:40px;min-height:30px">Top Pane1</div>
+     	<div style="overflow:hidden">
+			<div data-jslet='type:"DBTable",dataset:"employee",hasSelectCol:true,hasSeqCol:true,readOnly:true,fixedRows:1' style="width: 100%;height: 100%">
+			</div>
+		</div>
+     	<div style="overflow:hidden; height:50px;">Bottom Pane2</div>
+     	<div style="overflow:hidden; height:50px;">Bottom Pane1</div>
+    </div>
+	<hr />
+	<h4>源码</h4>
+	<h5>HTML</h5>
+    <pre class="prettyprint linenums"><code>
+	//水平分隔(浮动面板设置为第2个，左边面板隐藏)
+    &lt;div data-jslet='type:"SplitPanel",direction:"hori",floatIndex: 1'
+        style="width: 800px; height: 100px; margin-left: 20px">
+     	&lt;div style="overflow:hidden; width:100px;min-width:50px;display:none">Left Pane&lt;/div>
+     	&lt;div style="overflow:hidden; background-color:#ff9">
+			浮动面板
+			&lt;p>
+				设置左边的面板的css属性: "display:none"，则左边的面板会折叠起来
+			&lt;/p>
+		&lt;/div>
+     	&lt;div style="overflow:hidden; width:100px">Right Pane&lt;/div>
+    &lt;/div>
+    
+    //垂直分隔(浮动面板设置为第2个)
+    &lt;div data-jslet='type:"SplitPanel",direction:"vert",floatIndex: 1'
+        style="width: 600px; height: 400px; margin-left: 20px">
+     	&lt;div style="overflow:hidden; height:100px;min-height:30px">Top Pane1&lt;/div>
+     	&lt;div style="overflow:hidden">
+			&lt;div data-jslet='type:"DBTable",dataset:"employee",hasSelectCol:true,hasSeqCol:true,readOnly:true,fixedRows:1' style="width: 100%;height: 100%">
+			&lt;/div>
+		&lt;/div>
+     	&lt;div style="overflow:hidden; height:50px;">Bottom Pane2&lt;/div>
+     	&lt;div style="overflow:hidden; height:50px;">Bottom Pane1&lt;/div>
+    &lt;/div>
+    
+	</code></pre>
+	<h5>JavaScript</h5>
+    <pre class="prettyprint linenums"><code>
+	//将数据集定义信息仓库加到datasetFactory中，创建Dataset时会仓库里去定义信息
+	jslet.data.datasetFactory.addMetaStore(window.datasetMetaStore);
+	//通过工厂方法，可以自动创建主数据集及相关的数据集
+    jslet.data.datasetFactory.createDataset('employee').done(function() {
+    	var dsEmployee = jslet.data.getDataset('employee');
+    	dsEmployee.query();
+    	jslet.ui.install();
+    });
+	</code></pre>
+
+    <script type="text/javascript">
+		window.LOADER_BASE_URL = "../../lib/prettify";
+    </script>
+    <script type="text/javascript" src="../../lib/prettify/run_prettify.js"></script>
+		
+</body>
+</html>

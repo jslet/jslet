@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="../../css/demo.css" />
+    
+    <title>Jslet - Desktop</title>
+    <script type="text/javascript" data-main="../../config.js" src="../../lib/requirejs/require.min.js"></script>
+    <script type="text/javascript">
+	    require(['control/layout/desktop']);
+    </script>
+</head>
+<body>
+	<div class="">
+    <div class="demo-header">
+    <h4 id="top">Jslet - Desktop</h4>
+	</div>
+	<hr />
+	<div class="demo-desc">
+	<p>Desktop用于产品的主界面，包含了菜单和TabControl组件，开发人员只需提供菜单即可，Desktop负责展示菜单以及打开菜单。演示程序的主界面就是使用了Desktop控件。</p>
+	<p>此外Desktop还有以下实用的功能：</p>
+	<ol>
+	<li>可以设置菜单的类型：顶部菜单条和左侧弹出式菜单；</li>
+	<li>自动打开功能，通过配置菜单项的autoOpen: true即可；</li>
+	<li>在某个子页面中手动打开另外的页面：<code>jslet.ui.desktopUtil.openMenuById('gettingStarted');</code> 
+	<a id="btnOpenMenu" href="javascript:void(0)" onclick='start()'"> 试一试 </a></li>
+	<li>防止页面闪烁功能，目前H5页面都是在前端通过JavaScript构建出来的，无法避免页面在构建过程中的跳动；在Desktop控件中，通过配置菜单项的debounce:true，则可实现当页面全部构建出来了才显示出来；</li>
+	<li>页面打开时的等待条提示，在打开页面过程中会出现等待条，页面打开后消失，需要配置菜单项的debounce:true；需要注意的是，如果设置debounce为true，则子页面的代码最后必须要有这行代码：
+		<code>jslet.ui.desktopUtil.setContentLoadedState();</code>，具体可参看glance/glance.js代码。
+	</li>
+	<li>页面的数据有变化时的提示，有变化时会在页签上显示“*”号，提示用户需要保存；要实现此功能需在子页面中有这行代码：
+		<code>jslet.ui.desktopUtil.registerEditableDataset('employee');</code>，具体可参看glance/glance.js代码。
+	</li>
+	</ol>
+	<p><button id="btnSideMenu" class="btn btn-default btn-sm">左侧菜单</button><button id="btnTopMenu" class="btn btn-default btn-sm">顶部菜单</button></p>
+	</div>
+	<div id="desktop" style="height: 400px"></div>
+	<hr />
+	<h4>源码</h4>
+    <pre class="prettyprint linenums"><code>
+	//菜单项配置
+	var menuCfg = [{
+			name: '开始',
+			iconClass : 'fa fa-flag',
+			items: [{
+				//设置此页面自动打开
+				name: '说明', url: '../../readme.html', autoOpen: true
+			}, {
+				//设置debounce，打开此页面时，会出现滚动条以及防止页面跳动
+				id: 'gettingStarted', name: '惊鸿一瞥', url: '../../glance/glance.html', debounce: true 
+			}]
+		}, {
+			name: 'DB-创建',
+			iconClass : 'fa fa-cogs',
+			items: [{
+				name: '创建数据集', url: '../../dataset/a-creating.html'
+			}, {
+				name: '基于模型库创建', url: '../../dataset/a-datasetfactory.html'
+			}, {
+				name: '-'
+			}, {
+				name: '创建字段', url: '../../dataset/b-fields.html'
+			}, {
+				name: '公式字段', url: '../../dataset/b-formula.html'
+			}, {
+				name: '主子表', url: '../../dataset/b-masterdetail.html'
+			}, {
+				name: '查找字段', url: '../../dataset/b-lookupfield.html'
+			}, {
+				name: '动作字段', url: '../../dataset/b-action.html'
+			}, {
+				name: '编辑动作字段', url: '../../dataset/b-editaction.html'
+			}]
+		}];
+	
+	function doLoadMenu() {
+		return menuCfg;
+	}
+	//Desktop控件的配置	
+	var desktopCfg = {type: 'Desktop', onLoadMenu: doLoadMenu, menuType: 'side', header: 'Jslet演示内容'};
+	
+	jslet.ui.bindControl($('#desktop')[0], desktopCfg);
+	
+	//绑定按钮事件
+	$('#btnSideMenu').click(function() {
+		//菜单改为侧边栏菜单
+		jslet('#desktop').menuType('side').renderAll();
+	});
+	
+	$('#btnTopMenu').click(function() {
+		//菜单改为顶部菜单条
+		jslet('#desktop').menuType('top').renderAll();
+	});
+	
+	$('#btnOpenMenu').click(function() {
+		//打开另外的菜单
+		jslet.ui.desktopUtil.openMenuById('gettingStarted');
+	});	
+	</code></pre>
+
+    <script type="text/javascript">
+		window.LOADER_BASE_URL = "../../lib/prettify";
+    </script>
+    <script type="text/javascript" src="../../lib/prettify/run_prettify.js"></script>
+		
+</body>
+</html>

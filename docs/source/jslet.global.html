@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js">if (window.jslet === undefined || jslet === undefined){
+<span id='global-static-method-jslet'>	/**
+</span>	 * 
+	 * Get the jslet control object which is binded to a specified HTML element.
+	 * 
+     *     @example
+     *     var jsletControl = jslet('#tableId');
+	 * @static
+	 * @param {String} elementId Html element id.
+	 * 
+	 * @return {jslet.ui.Control} jslet binded control object.
+	 */
+    window.jslet = function(elementId) {
+    	if(typeof elementId == 'string' &amp;&amp; elementId[0] != '#') {
+    		elementId = '#' + elementId;
+    	}
+        var ele = jQuery(elementId)[0];
+        return (ele &amp;&amp; ele.jslet) ? ele.jslet : null;
+    };
+}
+
+if (!jslet.rootUri) {
+    var ohead = window.document.getElementsByTagName('head')[0], 
+        uri = ohead.lastChild.src;
+    if(uri) {
+	    uri = uri.substring(0, uri.lastIndexOf('/') + 1);
+	    jslet.rootUri = uri;
+    }
+}
+<span id='jslet-global'>/**
+</span> * @class
+ * @static
+ */
+jslet.global = {
+<span id='jslet-global-property-version'>	/**
+</span>	 * @type {String}
+	 *  
+	 * Jslet current version.
+	 */
+	version: '4.0.0',
+	
+<span id='jslet-global-property-changeStateField'>	/**
+</span>	 * @type {String}
+	 * 
+	 * The field name which stores record changed state. &lt;br /&gt;
+	 * Used in the method: {@link jslet.data.Dataset#submit}.
+	 */ 
+	changeStateField: 'rs',
+	
+<span id='jslet-global-property-selectStateField'>	/**
+</span>	 * @type {String}
+	 * 
+	 * The field name which stores record selected state.
+	 * Used in method: {@link jslet.data.Dataset#selected}.
+	 */
+	selectStateField: '_sel_',
+	
+<span id='jslet-global-property-auditLogField'>	/**
+</span>	 * @type {String}
+	 * 
+	 * The field name which stores record edit audit log.
+	 */
+	auditLogField: 'al',
+	
+<span id='jslet-global-property-valueSeparator'>	/**
+</span>	 * @type {String}
+	 * 
+	 * The separator for multiple item in a field.
+	 */
+	valueSeparator: ',',
+	
+<span id='jslet-global-property-defaultRecordClass'>	/**
+</span>	 * @type {String}
+	 * 
+	 * The server class name Mapped to a dataset. &lt;br /&gt;
+	 * In some server system, it can convert dataset record into server entity class specified by this property.
+	 */
+	defaultRecordClass: null,
+	
+<span id='jslet-global-property-defaultFocusKeyCode'>	/**
+</span>	 * @type {Integer}
+	 * 
+	 * Default focus changed key code.
+	 * Normally, press 'Tab' key to move focus, in some cases, user need to press 'Enter' key to move focus.
+	 */
+	defaultFocusKeyCode: 9,
+	
+<span id='jslet-global-property-defaultCharWidth'>	/**
+</span>	 * @type {Integer}
+	 * 
+	 * Default char display width.
+	 */
+	defaultCharWidth: 12,
+	
+	debugMode: true
+};
+
+<span id='jslet-global-event-serverErrorHandler'>/**
+</span> * @event {Function}
+ * 
+ * Global server error handler.
+ * This method can used to process some common error, like session timeout error.
+ * 
+ * @param {String} errCode Error code
+ * @param {String} errMsg  Error message
+ * 
+ * @return {Boolean} Identify if handler catch this error, if catched, the rest handler will not process it.
+ */
+jslet.global.serverErrorHandler = function(errCode, errMsg) {
+	return false;
+};
+
+<span id='jslet-global-event-beforeSubmit'>/**
+</span> * @event {Function}
+ * 
+ * Global event handler for jQuery.ajax, you can set settings here.&lt;br /&gt;
+ * Attention: &lt;br /&gt;
+ * The following attributes can not be set: &lt;br /&gt;
+ *   type, contentType, mimeType, dataType, data, context.
+ * 
+ * @param {Object} settings jQuery.ajax settings.
+ * 
+ * @return {Object} jQuery.ajax settings, See [http://api.jquery.com/jQuery.ajax/](#!http://api.jquery.com/jQuery.ajax/).
+ */
+jslet.global.beforeSubmit = function(settings) {
+	return settings;
+};
+
+<span id='jslet-global-event-afterInstall'>/**
+</span> * @event {Function}
+ * 
+ * The event after jslet's binded Html element.
+ *
+ * @param {HtmlElement} container The HTML element which jslet binds to.
+ */
+jslet.global.afterInstall = function(container) {};
+
+<span id='jslet-global-importDialog'>/**
+</span> * Global events for import dialog.
+ * 
+ * @class
+ * @static
+ */
+jslet.global.importDialog = {
+<span id='jslet-global-importDialog-event-onQuerySchema'>	/**
+</span>	 * @event {Function}
+	 * 
+	 * Global query schema event, see {@link jslet.ui.ImportDialog#onQuerySchema}.
+	 */
+	onQuerySchema: null,
+	
+<span id='jslet-global-importDialog-event-onSubmitSchema'>	/**
+</span>	 * @event {Function}
+	 * 
+	 * Global submit schema event, see {@link jslet.ui.ImportDialog#onQuerySchema}.
+	 */
+	onSubmitSchema: null
+};
+
+<span id='jslet-global-exportDialog'>/**
+</span> * Global events for export dialog.
+ * 
+ * @class
+ * @static
+ */
+jslet.global.exportDialog = {
+<span id='jslet-global-exportDialog-event-onQuerySchema'>	/**
+</span>	 * @event {Function}
+	 * 
+	 * Global query schema event, see {@link jslet.ui.ImportDialog#onQuerySchema}.
+	 */
+	onQuerySchema: null,
+	
+<span id='jslet-global-exportDialog-event-onSubmitSchema'>	/**
+</span>	 * @event {Function}
+	 * 
+	 * Global submit schema event, see {@link jslet.ui.ImportDialog#onQuerySchema}.
+	 */
+	onSubmitSchema: null
+};
+
+<span id='jslet-global-dataset'>/**
+</span> * Global events for dataset object.
+ * 
+ * @class
+ * @static
+ */
+jslet.global.dataset = {
+<span id='jslet-global-dataset-event-onDatasetCreating'>	/**
+</span>	 * @event {Function}
+	 * 
+	 * @param {String} dsName Dataset name;
+	 * @param {String} creatingOption Dataset Creating option, see {@link jslet.data#createDynamicDataset}.
+	 */
+	onDatasetCreating: function(dsName, creatingOption) { },
+	
+<span id='jslet-global-dataset-event-onDatasetCreated'>	/**
+</span>	 * @event {Function}
+	 * 
+	 * @param {String} dsName Dataset name.
+	 */
+	onDatasetCreated: function(dsName) {}
+};
+</pre>
+</body>
+</html>

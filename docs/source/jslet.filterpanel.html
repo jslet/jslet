@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js">if(!jslet.ui.table) {
+	jslet.ui.table = {};
+}
+
+/*
+ * Filter panel for DBTable
+ */
+jslet.ui.table.DBTableFilterPanel = function(tblCtrl) {
+	var Z = this;
+	Z._width = 300;
+	Z._height = 150;
+	Z.fieldName = null;
+	Z._filterDatasetObj = new jslet.data.FilterDataset(tblCtrl.dataset());
+	Z._filterDataset = Z._filterDatasetObj.filterDataset();
+	Z._filterDataset.getField('lParenthesis').visible(false);
+	Z._filterDataset.getField('rParenthesis').visible(false);
+	Z._filterDataset.getField('logicalOpr').visible(false);
+	Z._filterDataset.getField('valueExprInput').visible(false);
+	Z._dbtable = tblCtrl;
+	Z._jqFilterBtn = null;
+	Z._currFieldName = null;
+	Z._currFilterExpr = null;
+};
+
+jslet.ui.table.DBTableFilterPanel.prototype = {
+	
+	jqFilterBtn: function(jqFilterBtn) {
+		this._jqFilterBtn = jqFilterBtn;
+	},
+		
+	changeField: function(fldName) {
+		var dsFilter = this._filterDataset,
+			fldObj = dsFilter.getField('field'),
+			lkDs = fldObj.lookup().dataset();
+		dsFilter.cancel();
+		lkDs.filter('[name] == &quot;' + fldName +'&quot; || like([name],&quot;'+ fldName + '.%' + '&quot;)');
+		lkDs.filtered(true);
+		fldObj.visible(lkDs.recordCount() &gt; 1);
+		if(!dsFilter.find('[field] == &quot;' + fldName + '&quot; || like([field], &quot;' + fldName + '.%' + '&quot;)')) {
+			dsFilter.appendRecord();
+			dsFilter.setFieldValue('field', fldName);
+		}
+		this._currFieldName = fldName;
+	},
+	
+	show: function (left, top, ajustX, ajustY) {
+		var Z = this;
+		if (!Z._panel) {
+			Z._panel = Z._create();
+		}
+		Z._panel.style.left = left + 'px';
+		Z._panel.style.top = top + 'px';
+		jQuery(Z._panel).show('fast');
+		window.setTimeout(function(){
+			Z._filterDataset.focusEditControl('value');
+		},5);
+	},
+
+	hide: function () {
+		this._filterDataset.cancel();
+		jQuery(this._panel).hide('fast');
+	},
+	
+	cancelFilter: function() {
+		this._filterDataset.cancel();
+	},
+	
+	_create: function () {
+		var Z = this;
+		if (!Z._panel) {
+			Z._panel = document.createElement('div');
+			Z._dbtable.el.appendChild(Z._panel);
+		}
+		jQuery(Z._panel).addClass('panel panel-default jl-filter-panel');
+		Z._panel.innerHTML = '&lt;div class=&quot;&quot;&gt;&lt;div data-jslet=&quot;type: \'DBEditPanel\', dataset: \'' + Z._filterDataset.name() + 
+		'\', columnCount: 1,hasLabel:false &quot; style=&quot;width:100%;height:100%&quot; &gt;&lt;/div&gt;&lt;/div&gt;' +
+		'&lt;div class=&quot;jl-filter-panel-toolbar&quot;&gt;&lt;button class=&quot;btn btn-default btn-sm jl-filter-panel-ok&quot; tabIndex=&quot;90990&quot;&gt;' + jsletlocale.FilterPanel.ok +
+		'&lt;/button&gt;&lt;button class=&quot;btn btn-default btn-sm jl-filter-panel-cancel&quot; tabIndex=&quot;90991&quot;&gt;' + jsletlocale.FilterPanel.cancel + 
+		'&lt;/button&gt;&lt;button class=&quot;btn btn-default btn-sm jl-filter-panel-clear&quot; tabIndex=&quot;90992&quot;&gt;' + jsletlocale.FilterPanel.clear + 
+		'&lt;/button&gt;&lt;button class=&quot;btn btn-default btn-sm jl-filter-panel-clearall&quot; tabIndex=&quot;90993&quot;&gt;' + jsletlocale.FilterPanel.clearAll + 
+		'&lt;/button&gt;&lt;/div&gt;';
+		jslet.ui.install(Z._panel);
+		var jqPanel = jQuery(Z._panel);
+		jqPanel.find('.jl-filter-panel-ok').on('click', function(){
+			var dsFilter = Z._filterDataset;
+			dsFilter.confirm();
+			if(jslet.isEmpty(dsFilter.getFieldValue('value'))) {
+				dsFilter.deleteRecord();
+			}
+			var filter = Z._filterDatasetObj.getFilterExpr();
+			Z._dbtable.dataset().filter(filter).filtered(true);
+			Z._currFilterExpr = filter;
+			
+			Z.hide();
+			Z._setFilterBtnStyle();
+		});
+		jqPanel.find('.jl-filter-panel-cancel').on('click', function(){
+			Z._filterDataset.cancel();
+			Z.hide();
+		});
+		jqPanel.find('.jl-filter-panel-clear').on('click', function(){
+			Z._filterDataset.deleteRecord();
+			var filter = Z._filterDatasetObj.getFilterExpr();
+			Z._dbtable.dataset().filter(filter).filtered(true);
+			Z.hide();
+			Z._currFilterExpr = filter;
+			Z._setFilterBtnStyle();
+		});
+		jqPanel.find('.jl-filter-panel-clearall').on('click', function(){
+			Z._filterDataset.records(null);
+			Z._dbtable.dataset().filter(null).filtered(false);
+			Z.hide();
+			Z._clearFilterBtnStyle();
+		});
+		//prevent to fire the dbtable's keydown event.
+		jqPanel.on('keydown', function(event) {
+       		event.stopImmediatePropagation();
+		});
+		return Z._panel;
+	},
+
+	_clearFilterBtnStyle: function() {
+		var jqPanel = jQuery(this._panel);
+		jQuery(this._dbtable.el).find('.jl-tbl-filter-hasfilter').attr('title', '').removeClass('jl-tbl-filter-hasfilter');
+		jqPanel.find('.jl-filter-panel-clearall').attr('title', '');
+		this._currFilterExpr = null;
+	},
+	
+	checkFilterBtnStyle: function() {
+		var Z = this;
+		if(!Z._currFilterExpr) {
+			return;
+		}
+		var dsHost = Z._dbtable.dataset(),
+			dsFilterExpr = dsHost.filter();
+		if(dsHost.filtered() &amp;&amp; dsFilterExpr == Z._currFilterExpr) {
+			return;
+		}
+		Z._clearFilterBtnStyle();
+		var dsFilter = Z._filterDataset;
+		if(!dsFilterExpr || !dsHost.filtered()) {
+			dsFilter.records(null);
+		}
+		var filterText = Z._filterDatasetObj.getFilterExprText();
+		jQuery(Z._dbtable.el).find('button.jl-tbl-filter').each(function(){
+			var fldName = this.getAttribute('jsletfilterfield');
+			var jqFilterBtn = jQuery(this);
+			if(dsFilter.find('[field] == &quot;' + fldName + '&quot; || like([field], &quot;' + fldName + '.%' + '&quot;)')) {
+				jqFilterBtn.addClass('jl-tbl-filter-hasfilter');
+			} else {
+				jqFilterBtn.removeClass('jl-tbl-filter-hasfilter');
+			}
+			jqFilterBtn.attr('title', filterText || '');
+		});
+		jQuery(Z._panel).find('.jl-filter-panel-clearall').attr('title', filterText || '');
+	},
+	
+	_setFilterBtnStyle: function() {
+		var Z = this;
+		var filterText = Z._filterDatasetObj.getFilterExprText();
+		
+		var dsFilter = Z._filterDataset;
+		if(dsFilter.find('[field] == &quot;' + Z._currFieldName + '&quot; || like([field], &quot;' + Z._currFieldName + '.%' + '&quot;)')) {
+			Z._jqFilterBtn.addClass('jl-tbl-filter-hasfilter');
+		} else {
+			Z._jqFilterBtn.removeClass('jl-tbl-filter-hasfilter');
+		}
+		Z._jqFilterBtn.attr('title', filterText || '');
+		jQuery(Z._dbtable.el).find('.jl-tbl-filter-hasfilter').attr('title', filterText || '');
+		jQuery(Z._panel).find('.jl-filter-panel-clearall').attr('title', filterText || '');
+	},
+	
+	destroy: function(){
+		var Z = this;
+		jslet.ui.uninstall(Z._panel);
+		Z._panel.innerHTML = '';
+		Z._panel = null;
+		Z._dbtable = null;
+		Z._jqFilterBtn = null;
+	}
+};
+</pre>
+</body>
+</html>

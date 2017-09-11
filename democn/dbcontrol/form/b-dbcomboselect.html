@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="../../css/demo.css" />
+    
+    <title>Jslet - DBComboSelect</title>
+    <script type="text/javascript" data-main="../../config.js" src="../../lib/requirejs/require.min.js"></script>
+    <script type="text/javascript">
+	    require(['dbcontrol/form/b-dbcomboselect']);
+    </script>
+</head>
+<body>
+    <div class="demo-header">
+    <h4 id="top">Jslet - DBComboSelect</h4>
+	</div>
+	<hr />
+	<div class="demo-desc">
+	<p>DBComboSelect可用于录入层级结构（树型）的数据和非层次数据，支持多选或单选，弹出框上支持查找功能，支持大数据量。</p>
+	</div>
+
+	<div data-jslet="type: 'DBTable', dataset: 'employee'" style="margin-bottom: 10px"></div>
+	
+	<div class="container-fluid">
+	<div class="form-horizontal">
+	
+	<div class="form-group form-group-sm" style="vertical-align: middle">
+	<div class="col-sm-1">
+		<label>层级结构，可录入可选择</label>
+	</div>
+	<div class="col-sm-3">
+		<div id="selDept" data-jslet="type: 'DBComboSelect', dataset: 'employee', field: 'department'"></div>
+		<div>
+			<select class="form-control"
+				onchange="jslet('#cboAuto').matchMode(this.value);jslet('#cboAuto').renderAll();">
+				<option selected>start</option>
+				<option>end</option>
+				<option>any</option>
+			</select>
+		</div>
+	</div>
+	<div class="col-sm-1">
+		<label>非层级结构，可录入可选择</label>
+	</div>
+	<div class="col-sm-3">
+		<div id="selPosition" data-jslet="type: 'DBComboSelect', dataset: 'employee', field: 'position'"></div>
+		<div>
+		<button id="btnSetMultiPos" class="btn btn-default btn-sm">设置多选</button>
+		</div>
+	</div>
+	<div class="col-sm-2">
+		<label>只能弹出，不能录入</label>
+	</div>
+	<div class="col-sm-2">
+		<div data-jslet="type: 'DBComboSelect', dataset: 'employee', field: 'position', textReadOnly: true"></div>
+	</div>
+	</div>
+
+	<div class="form-group form-group-sm" style="vertical-align: middle">
+	<div class="col-sm-5">
+		<label>设置部门可以选择现有的，也可以录入新的部门(录入和选择时，观察"部门"和“部门名称”两字段的值)</label>
+	</div>
+	<div class="col-sm-2">
+		<div data-jslet="type: 'DBComboSelect', dataset: 'employee', field: 'department', textField: 'deptName'"></div>
+	</div>
+	</div>
+
+	</div>
+	</div>
+	
+	
+	<hr />
+	<h4>源码</h4>
+	<h5>HTML</h5>
+    <pre class="prettyprint linenums"><code>
+    //层级结构，可录入可选择
+    &lt;div id="selDept" data-jslet="type: 'DBComboSelect', dataset: 'employee', field: 'department'">&lt;/div>
+    
+    //非层级结构，可录入可选择
+    &lt;div id="selPosition" data-jslet="type: 'DBComboSelect', dataset: 'employee', field: 'position'">&lt;/div>
+    
+    //只能弹出，不能录入
+    &lt;div data-jslet="type: 'DBComboSelect', dataset: 'employee', field: 'position', textReadOnly: true">&lt;/div>
+    
+    //设置部门可以选择现有的，也可以录入新的部门
+    &lt;div data-jslet="type: 'DBComboSelect', dataset: 'employee', field: 'department', textField: 'deptName'">&lt;/div>
+    
+	</code></pre>
+    
+	<h5>JavaScript</h5>
+    <pre class="prettyprint linenums"><code>
+	jslet.data.datasetFactory.addMetaStore(window.datasetMetaStore);
+	//通过工厂方法，可以自动创建主数据集及相关的数据集
+    jslet.data.datasetFactory.createDataset('employee').done(function() {
+    	var dsEmployee = jslet.data.getDataset('employee');
+    	
+        dsEmployee.createField({name: "deptName", dataType: 'S', length: 10, label: "部门名称", displayOrder: 3});
+        //设置当“department”字段改变时，同时取“部门表”的“name"的值赋给“deptName”字段
+        dsEmployee.getField('department').lookup().returnFieldMap({deptName: 'name'});
+    	dsEmployee.query();
+    	jslet.ui.install();
+    });
+    
+    //设置“部门”多选或者单选
+    $('#btnSetMultiDept').click(function() {
+    	var dsEmployee = jslet.data.getDataset('employee');
+    	var fldObj = dsEmployee.getField('department');
+    	var oldValue = fldObj.valueStyle();
+    	var msg = '';
+    	if(oldValue === jslet.data.FieldValueStyle.NORMAL) {
+    		fldObj.valueStyle(jslet.data.FieldValueStyle.MULTIPLE);
+    		msg = '已设为多选！';
+    	} else {
+    		fldObj.valueStyle(jslet.data.FieldValueStyle.NORMAL);
+    		msg = '已设为单选！';
+    	}
+    	jslet('#selDept').closePopup().renderAll();
+    	jslet.ui.info(msg);
+    });
+    
+    //设置“部门”只能选择末级或者反之
+    $('#btnOnlyLeaf').click(function() {
+    	var dsEmployee = jslet.data.getDataset('employee');
+    	var fldObj = dsEmployee.getField('department');
+    	var flag = fldObj.lookup().onlyLeafLevel();
+    	fldObj.lookup().onlyLeafLevel(!flag);
+    	jslet('#selDept').closePopup();
+    	jslet.ui.info(!flag? '已设置仅仅末级可选！': '已设置所有可选')
+    });
+    
+    //设置“职位”多选或者单选
+    $('#btnSetMultiPos').click(function() {
+    	var dsEmployee = jslet.data.getDataset('employee');
+    	var fldObj = dsEmployee.getField('position');
+    	var oldValue = fldObj.valueStyle();
+    	if(oldValue === jslet.data.FieldValueStyle.NORMAL) {
+    		fldObj.valueStyle(jslet.data.FieldValueStyle.MULTIPLE);
+    	} else {
+    		fldObj.valueStyle(jslet.data.FieldValueStyle.NORMAL);
+    	}
+    	jslet('#selPosition').closePopup();
+    });
+	</code></pre>
+
+    <script type="text/javascript">
+       window.LOADER_BASE_URL = "../../lib/prettify";
+    </script>
+    <script type="text/javascript" src="../../lib/prettify/run_prettify.js"></script>
+		
+</body>
+</html>

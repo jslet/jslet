@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="../../css/demo.css" />
+    
+    <title>Jslet - 带复选框树控件</title>
+    <script type="text/javascript" data-main="../../config.js" src="../../lib/requirejs/require.min.js"></script>
+    <script type="text/javascript">
+	    require(['dbcontrol/tree/checkboxtree']);
+    </script>
+</head>
+<body >
+    <div class="demo-header">
+    <h4 id="top">Jslet - 带复选框树控件</h4>
+	</div>
+	<hr />
+	<div class="container-fluid">
+	<div class="form-horizontal">
+	<div class="col-sm-3">
+	<p>节点独立选择</p>
+	<div id="trAgency" data-jslet="type: 'DBTreeView', dataset: 'agency',expandLevel: 0, hasCheckBox: true" style="height: 200px"></div>
+	</div>
+
+	<div class="col-sm-3">
+	<p>上下级联动选择</p>
+	<div data-jslet="type: 'DBTreeView', dataset: 'agency1',expandLevel: 0, hasCheckBox: true, correlateCheck: true" style="height: 200px"></div>
+	</div>
+
+	<div class="col-sm-3">
+	<p>设置只有末级可选择</p>
+	<div data-jslet="type: 'DBTreeView', dataset: 'agency2',expandLevel: 0, hasCheckBox: true" style="height: 200px"></div>
+	</div>
+
+	</div>
+	</div>
+	
+	<div class="demo-desc">
+	<p>演示内容：</p>
+	<ol>
+	<li>支持右键选择；</li>
+	<li>节点独立选择；</li>
+	<li>上下级联动选择；</li>
+	<li>设置节点是否可被选择；</li>
+	</ol>
+	</div>
+	<hr />
+	<h4>源码</h4>
+	<h5>HTML</h5>
+    <pre class="prettyprint linenums"><code>
+    //节点独立选择
+    &lt;div data-jslet="type: 'DBTreeView', dataset: 'agency',expandLevel: 0, hasCheckBox: true" style="height: 200px">&lt;/div>
+
+    //上下级联动选择
+    &lt;div data-jslet="type: 'DBTreeView', dataset: 'agency1',expandLevel: 0, hasCheckBox: true, correlateCheck: true" style="height: 200px">&lt;/div>
+
+    //设置只有末级可选择
+    &lt;div data-jslet="type: 'DBTreeView', dataset: 'agency2',expandLevel: 0, hasCheckBox: true" style="height: 200px">&lt;/div>
+    
+	</code></pre>
+	<h4>JavaScript</h4>
+    <pre class="prettyprint linenums"><code>
+	var dsAgency = jslet.data.getDataset('agency');
+	
+	//创建第二个数据集
+	var dsAgency1 = dsAgency.clone('agency1');
+	dsAgency1.records(dsAgency.records());
+	
+	//创建第三个数据集
+	var dsAgency2 = dsAgency.clone('agency2');
+	dsAgency2.records(dsAgency.records());
+	
+	//在此设置哪些记录能够被选择
+	dsAgency2.onCheckSelectable(function(){
+		return !this.hasChildren(); 
+	});
+
+	jslet.ui.install();
+	</code></pre>
+
+    <script type="text/javascript">
+       window.LOADER_BASE_URL = "../../lib/prettify";
+    </script>
+    <script type="text/javascript" src="../../lib/prettify/run_prettify.js"></script>
+		
+</body>
+</html>

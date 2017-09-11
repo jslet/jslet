@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js"><span id='jslet-ui-ProgressPopup'>/**
+</span> * @class
+ * @extend jslet.ui.Control
+ * 
+ * ProgressBar. Example:
+ * 
+ *     @example
+ *     var progressObj = jslet.ui.ProgressPopup(document.body, 'saving...');
+ *     progressObj.value(40);
+ *     progressObj.show();
+ *
+ * @param {HtmlElement} container The container where the progress popup control show in.
+ * @param {String} caption The progress caption.
+ * @param {Boolean} cancellable True - the progress popup can be cancelled, false - otherwise.
+ * @param {Function} onCancelled The cancelled event, fired when user clicking the close button.
+ * 
+ */
+jslet.ui.ProgressPopup = function(container, caption, cancellable, onCancelled) {
+	jslet.Checker.test('ProgressPopus#container', container).isHTMLElement();
+	jslet.Checker.test('ProgressPopus#onCancelled', onCancelled).isFunction();
+	
+	this._dialog = null;
+	this._value = 0;
+	this._cancellable = false;
+	if(cancellable !== undefined) {
+		this._cancellable = !!cancellable;
+	}
+	this._onCancelled = onCancelled;
+	
+	this.initialize(container || document.body, caption || '');
+};
+
+jslet.ui.ProgressPopup.prototype = {
+		
+	initialize: function(container, caption) {
+		var opt = { type: 'window', caption: caption, isCenter: true, resizable: true, minimizable: false, closable: this._cancellable, maximizable: false, 
+				width: 500, height: 80, animation: 'fade', onClosed: this._onCancelled};
+		var owin = jslet.ui.createControl(opt, container);
+		var html = '&lt;div name=&quot;progressBar&quot; data-jslet=&quot;type: \'ProgressBar\'&quot; style=&quot;width: 100%&quot;/&gt;';
+		owin.setContent(html);
+		this._dialog = owin;
+		jslet.ui.install(owin.el);
+	},
+	
+<span id='jslet-ui-ProgressPopup-method-show'>	/**
+</span>	 * Show progress popup control.
+	 * 
+	 * @return {this}
+	 */
+	show: function() {
+		this._dialog.showModal();
+		return this;
+	},
+	
+<span id='jslet-ui-ProgressPopup-property-value'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get progress bar value.
+	 * 
+	 * @param {Integer | undefined} value Progress bar value.
+	 * 
+	 * @return {this | Integer}
+	 */
+	value: function(value) {
+		if(value === undefined) {
+			return this._value;
+		}
+		value = parseInt(value);
+		if(!value) {
+			value = 0;
+		}
+		if(value &lt; 0) {
+			value = 0;
+		}
+		if(value &gt; 100) {
+			value = 100;
+		}
+		this._value = value;
+		var progressBar = jQuery(this._dialog.el).find('[name=progressBar]')[0].jslet;
+		progressBar.value(value);
+	},
+	
+<span id='jslet-ui-ProgressPopup-method-destroy'>	/**
+</span>	 * Close and destroy the progress popup control.
+	 */
+	destroy: function(){
+		if(this._dialog) {
+			this._dialog.close();
+			this._dialog = null;
+		}
+	}
+};
+</pre>
+</body>
+</html>

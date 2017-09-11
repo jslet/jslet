@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Jslet - 数据集设计器</title>
+    <script type="text/javascript" data-main="../config.js" src="../lib/requirejs/require.min.js"></script>
+    <script type="text/javascript">
+	    require(['designer/datasetdesigner']);
+    </script>
+</head>
+<body onunload="jslet.ui.uninstall()">
+	<div class="container">
+    <div class="page-header">
+    <h2 id="top">Jslet - 数据集设计器</h2>
+	</div>
+<!--[if lt IE 8]>
+<p class="chromeframe">Jslet framework only supports IE 10+. <a href="http://browsehappy.com/">Upgrade your browser today</a> or <a href="http://www.google.com/chromeframe/?redirect=true">install Google Chrome Frame</a> to better experience this site.</p>
+<![endif]-->
+	<div class="content">数据集设计器可以.</div>
+	<div data-jslet='type:"DatasetDesigner", onLoadDatasetMeta: datasetMetaStore.getAllMetas' style="width: 100%; height: 500px">
+	</div>
+	<hr />
+    <h3>Demo Content:</h3>
+	<div class="content">
+	</div>
+
+	<!-- Source Code
+	<script type="text/javascript" src="../source/demosource.js?height=630"></script>
+	 -->
+	</div>
+</body>
+</html>

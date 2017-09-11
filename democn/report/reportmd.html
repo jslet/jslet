@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="../css/demo.css" />
+    
+    <title>Jslet - 主子表打印</title>
+    <script type="text/javascript" data-main="../config.js" src="../lib/requirejs/require.min.js"></script>
+    <script type="text/javascript">
+	    require(['report/reportmd']);
+    </script>
+</head>
+<body>
+    <div class="demo-header">
+    <h3 id="top">Jslet - 主子表打印</h3>
+	</div>
+	<hr />
+	<div class="content">
+	报表打印需要先安装<a href="https://github.com/jslet/jslet/raw/master/report/JsletReport.exe" target="_blank">Jslet的报表打印助手</a>，此助手为绿色软件，解压即可使用。
+	</div>
+
+	<div style="border:1px solid gray;padding: 10px;border-radius: 5px">
+		<div style="padding-left: 5px;margin-bottom: 10px">
+	    <div class="btn-group">
+	    <button class="btn btn-default btn-sm" id="btnPreview"> 预览报表 </button>
+	    <button class="btn btn-default btn-sm" id="btnPrint"> 打印报表 </button>
+	    </div>
+	    <div class="btn-group">
+	    <button class="btn btn-default btn-sm" id="btnDesign"> 新增报表模板 </button>
+	    <button class="btn btn-default btn-sm" id="btnDesignEdit"> 修改报表模板 </button>
+	    </div>
+	
+	    <div class="form-horizontal" style="margin-top: 10px">
+			<div class="col-sm-12">
+	<h4>销售主表</h4>
+	<div id="tblMaster" data-jslet="type: 'DBTable', dataset: 'salesMaster'" style="height: 150px"></div>
+	<h4>销售明细表</h4>
+	<div id="tblDetail" data-jslet="type: 'DBTable', dataset: 'salesDetail'" style="height: 150px"></div>
+			</div>
+	    </div>
+	</div>
+	<div>
+	<hr />
+	<script type="text/text" id="reportTemplate">
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<TfrxReport Version="5.3.16" DotMatrixReport="False" EngineOptions.MaxMemSize="100" IniFile="D:\github\jsletreport\source\Win32\Debug\\report.ini" PreviewOptions.Buttons="4095" PreviewOptions.Zoom="1" PrintOptions.Printer="预设" PrintOptions.PrintOnSheet="0" ReportOptions.CreateDate="42927.2852649421" ReportOptions.Description.Text="" ReportOptions.LastChange="42927.5581015162" ScriptLanguage="PascalScript" ScriptText.Text="begin&#13;&#10;&#13;&#10;end." StoreInDFM="False">
+  <Datasets>
+    <item DataSet="ReportModule." DataSetName="销售明细"/>
+    <item DataSet="ReportModule." DataSetName="销售单"/>
+  </Datasets>
+  <TfrxDataPage Name="Data" Height="1000" Left="0" Top="0" Width="1000"/>
+  <TfrxReportPage Name="Page1" PaperWidth="210" PaperHeight="297" PaperSize="9" LeftMargin="10" RightMargin="10" TopMargin="10" BottomMargin="10" ColumnWidth="0" ColumnPositions.Text="" HGuides.Text="" VGuides.Text="">
+    <TfrxReportTitle Name="ReportTitle1" FillType="ftBrush" FillGap.Top="0" FillGap.Left="0" FillGap.Bottom="0" FillGap.Right="0" Height="22.67718" Left="0" Top="18.89765" Width="718.1107"/>
+    <TfrxPageHeader Name="PageHeader1" FillType="ftBrush" FillGap.Top="0" FillGap.Left="0" FillGap.Bottom="0" FillGap.Right="0" Height="49.13389" Left="0" Top="64.25201" Width="718.1107">
+      <TfrxMemoView Name="Memo15" Left="476.22078" Top="26.45671" Width="94.48825" Height="18.89765" Font.Charset="1" Font.Color="-16777208" Font.Height="-16" Font.Name="宋体" Font.Style="0" ParentFont="False" Text="打印日期："/>
+      <TfrxMemoView Name="Memo16" Left="563.14997" Top="26.45671" Width="94.48825" Height="18.89765" Font.Charset="1" Font.Color="-16777208" Font.Height="-16" Font.Name="宋体" Font.Style="0" ParentFont="False" Text="[Date]"/>
+      <TfrxMemoView Name="Memo9" Left="283.46475" Top="0" Width="90.70872" Height="26.45671" Font.Charset="1" Font.Color="-16777208" Font.Height="-27" Font.Name="宋体" Font.Style="0" ParentFont="False" Text="销售单"/>
+    </TfrxPageHeader>
+    <TfrxMasterData Name="MasterData1" FillType="ftBrush" FillGap.Top="0" FillGap.Left="0" FillGap.Bottom="0" FillGap.Right="0" Height="30.23624" Left="0" Top="173.85838" Width="718.1107" ColumnWidth="0" ColumnGap="0" DataSet="ReportModule." DataSetName="销售单" RowCount="0">
+      <TfrxMemoView Name="Memo1" Left="60.47248" Top="3.77953" Width="102.04731" Height="18.89765" DataField="销售单号" DataSet="ReportModule." DataSetName="销售单" Font.Charset="1" Font.Color="-16777208" Font.Height="-16" Font.Name="宋体" Font.Style="0" ParentFont="False" Text="[销售单.&#34;销售单号&#34;]"/>
+      <TfrxMemoView Name="Memo2" Left="257.00804" Top="3.77953" Width="79.37013" Height="18.89765" DataField="销售日期" DataSet="ReportModule." DataSetName="销售单" Font.Charset="1" Font.Color="-16777208" Font.Height="-16" Font.Name="宋体" Font.Style="0" ParentFont="False" Text="[销售单.&#34;销售日期&#34;]"/>
+      <TfrxMemoView Name="Memo3" Left="396.85065" Top="3.77953" Width="90.70872" Height="18.89765" DataField="客户" DataSet="ReportModule." DataSetName="销售单" Font.Charset="1" Font.Color="-16777208" Font.Height="-16" Font.Name="宋体" Font.Style="0" ParentFont="False" Text="[销售单.&#34;客户&#34;]"/>
+      <TfrxMemoView Name="Memo10" Left="570.70903" Top="3.77953" Width="79.37013" Height="18.89765" DataField="付款方式" DataSet="ReportModule." DataSetName="销售单" Font.Charset="1" Font.Color="-16777208" Font.Height="-16" Font.Name="宋体" Font.Style="0" ParentFont="False" Text="[销售单.&#34;付款方式&#34;]"/>
+      <TfrxMemoView Name="Memo11" Left="11.33859" Top="3.77953" Width="52.91342" Height="18.89765" Font.Charset="1" Font.Color="-16777208" Font.Height="-16" Font.Name="宋体" Font.Style="0" ParentFont="False" Text="单号："/>
+      <TfrxMemoView Name="Memo12" Left="170.07885" Top="3.77953" Width="94.48825" Height="22.67718" Font.Charset="1" Font.Color="-16777208" Font.Height="-16" Font.Name="宋体" Font.Style="0" ParentFont="False" Text="销售日期："/>
+      <TfrxMemoView Name="Memo13" Left="347.71676" Top="3.77953" Width="49.13389" Height="18.89765" Font.Charset="1" Font.Color="-16777208" Font.Height="-16" Font.Name="宋体" Font.Style="0" ParentFont="False" Text="客户："/>
+      <TfrxMemoView Name="Memo14" Left="498.89796" Top="3.77953" Width="94.48825" Height="18.89765" Font.Charset="1" Font.Color="-16777208" Font.Height="-16" Font.Name="宋体" Font.Style="0" ParentFont="False" Text="付款方式："/>
+      <TfrxLineView Name="Line1" Left="3.77953" Top="26.45671" Width="706.77211" Height="0" Color="0" Diagonal="True"/>
+    </TfrxMasterData>
+    <TfrxReportSummary Name="ReportSummary1" FillType="ftBrush" FillGap.Top="0" FillGap.Left="0" FillGap.Bottom="0" FillGap.Right="0" Height="22.67718" Left="0" Top="313.70099" Width="718.1107"/>
+    <TfrxDetailData Name="DetailData1" FillType="ftBrush" FillGap.Top="0" FillGap.Left="0" FillGap.Bottom="0" FillGap.Right="0" Height="26.45671" Left="0" Top="226.7718" Width="718.1107" ColumnWidth="0" ColumnGap="0" DataSet="ReportModule." DataSetName="销售明细" RowCount="0">
+      <TfrxMemoView Name="Memo4" Left="52.91342" Top="3.77953" Width="79.37013" Height="18.89765" DataField="序号" DataSet="ReportModule." DataSetName="销售明细" Font.Charset="1" Font.Color="-16777208" Font.Height="-16" Font.Name="宋体" Font.Style="0" ParentFont="False" Text="[销售明细.&#34;序号&#34;]"/>
+      <TfrxMemoView Name="Memo5" Left="143.62214" Top="3.77953" Width="79.37013" Height="18.89765" DataField="货物名称" DataSet="ReportModule." DataSetName="销售明细" Font.Charset="1" Font.Color="-16777208" Font.Height="-16" Font.Name="宋体" Font.Style="0" ParentFont="False" Text="[销售明细.&#34;货物名称&#34;]"/>
+      <TfrxMemoView Name="Memo6" Left="245.66945" Top="3.77953" Width="79.37013" Height="18.89765" DataField="数量" DataSet="ReportModule." DataSetName="销售明细" Font.Charset="1" Font.Color="-16777208" Font.Height="-16" Font.Name="宋体" Font.Style="0" ParentFont="False" Text="[销售明细.&#34;数量&#34;]"/>
+      <TfrxMemoView Name="Memo7" Left="343.93723" Top="3.77953" Width="79.37013" Height="18.89765" DataField="价格" DataSet="ReportModule." DataSetName="销售明细" Font.Charset="1" Font.Color="-16777208" Font.Height="-16" Font.Name="宋体" Font.Style="0" ParentFont="False" Text="[销售明细.&#34;价格&#34;]"/>
+      <TfrxMemoView Name="Memo8" Left="453.5436" Top="3.77953" Width="79.37013" Height="18.89765" DataField="金额" DataSet="ReportModule." DataSetName="销售明细" Font.Charset="1" Font.Color="-16777208" Font.Height="-16" Font.Name="宋体" Font.Style="0" ParentFont="False" Text="[销售明细.&#34;金额&#34;]"/>
+    </TfrxDetailData>
+  </TfrxReportPage>
+</TfrxReport>	</script>
+	
+	<div style="line-height: 2rem" class="demo-desc">
+	<p>以上界面的拥有如下功能：</p>
+	<ol>
+	<li>增加一个空白模板；</li>
+	<li>修改现有的模板；</li>
+	<li>预览报表和打印报表</li>
+	</ol>
+	</div>
+	<h3>Source</h3>
+
+	<h4>Javascript</h4>
+    <pre class="prettyprint linenums"><code>
+	var getMeta = datasetMetaStore.getDatasetMeta;
+	//创建销售明细数据集
+    var dsPaymentTerm = new jslet.data.Dataset(getMeta('paymentTerm'));
+    var dsCustomer = new jslet.data.Dataset(getMeta('customer'));
+    var dsDetail = new jslet.data.Dataset(getMeta('salesDetail'));
+    var dsMaster = new jslet.data.Dataset(getMeta('salesMaster'));
+    
+    //Add data into detail dataset
+    var detail1 = [{ "seqno": 1, "product": "P1", "qty": 2000, "price": 11.5 },
+				{ "seqno": 2, "product": "P2", "qty": 1000, "price": 21.5 },
+				{ "seqno": 3, "product": "P3", "qty": 3000, "price": 31.5 },
+				{ "seqno": 4, "product": "P4", "qty": 5000, "price": 41.5 },
+				{ "seqno": 5, "product": "P5", "qty": 8000, "price": 51.5}];
+
+    var detail2 = [{ "seqno": 1, "product": "M1", "qty": 1, "price": 10001 },
+    				{ "seqno": 2, "product": "M2", "qty": 2, "price": 30000}];
+
+    //Add data into master dataset
+    var dataList = [{ "saleid": "200901001", "saledate": new Date(2001, 1, 1), "customer": "02", "paymentterm": "02", "details": detail1 },
+			{ "saleid": "200901002", "saledate": new Date(2001, 1, 1), "customer": "01", "paymentterm": "01", "details": detail2 },
+			{ "saleid": "200901003", "saledate": new Date(2001, 1, 1), "customer": "02", "paymentterm": "02"}];
+    dsMaster.records(dataList);
+	
+	/********************************** 结束定义数据集 ************************************************/
+
+	var template = $('#reportTemplate').text();
+	
+	//设计新的报表模板
+	$('#btnDesign').click(function() {
+		jslet.defaultReport.design('salesMaster', 'salesReport', '销售明细报表');
+	});
+	//修改现有的报表模板
+	$('#btnDesignEdit').click(function() {
+		jslet.defaultReport.design('salesMaster', 'salesReport', '销售明细报表', template);
+	});
+	//预览报表
+	$('#btnPreview').click(function() {
+		jslet.defaultReport.preview('salesMaster', 'salesReport', '销售明细报表', template);
+	});
+	//打印报表
+	$('#btnPrint').click(function() {
+		jslet.defaultReport.print('salesMaster', 'salesReport', '销售明细报表', template);
+	});
+	
+	//创建控件
+	jslet.ui.install();
+	</code></pre>
+
+    <script type="text/javascript">
+       window.LOADER_BASE_URL = "../lib/prettify";
+    </script>
+    <script type="text/javascript" src="../lib/prettify/run_prettify.js"></script>
+			
+</body>
+</html>

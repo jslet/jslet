@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js"><span id='jslet-ui-TipPanel'>/**
+</span>* @class 
+* 
+* TipPanel. Example:
+* 
+*     @example
+*     var tipPnl = new jslet.ui.TipPanel();
+*     tipPnl.show('Hello world', 10, 10);
+*/
+jslet.ui.TipPanel = function () {
+	this._hideTimerId = null;
+	this._showTimerId = null;
+	this._oldElement = null;
+	var p = document.createElement('div');
+	jQuery(p).addClass('jl-tip-panel');
+	document.body.appendChild(p);
+	this._tipPanel = p;
+
+<span id='jslet-ui-TipPanel-method-show'>	/**
+</span>	 * Show tips at specified position. Example:
+	 * 
+	 *     @example
+	 *     tipPnl.show('foo...', event);
+	 *     tipPnl.show('foo...', 100, 200);
+	 * 
+	 * @param {String} tips Tips text.
+	 * @param {Integer | MouseEvent} leftOrEvent Position left or mouse event, if it is mouse event, the &quot;top&quot; argument is undefined.
+	 * @param {Integer | undefined} top Position top.
+	 */
+	this.show = function (tips, leftOrEvent, top) {
+		var Z = this;
+		var len = arguments.length;
+		var isSameCtrl = false, left = leftOrEvent;
+		if (len == 2) { //this.show(tips)
+			var evt = left;
+			evt = jQuery.event.fix( evt );
+
+			top = evt.pageY + 16; left = evt.pageX + 2;
+			var ele = evt.currentTarget;
+			isSameCtrl = (ele === Z._oldElement);
+			Z._oldElement = ele;
+		} else {
+			left = parseInt(left);
+			top = parseInt(top);
+		}
+
+		if (Z._hideTimerId) {
+			window.clearTimeout(Z._hideTimerId);
+			if (isSameCtrl) {
+				return;
+			}
+		}
+
+		this._showTimerId = window.setTimeout(function () {
+			var p = Z._tipPanel;
+			p.innerHTML = tips;
+			p.style.left = left + 'px';
+			p.style.top = top + 'px';
+			Z._tipPanel.style.display = 'block';
+			Z._showTimerId = null;
+		}, 300);
+	};
+
+<span id='jslet-ui-TipPanel-method-hide'>	/**
+</span>	 * Hide tip panel.
+	 */
+	this.hide = function () {
+		var Z = this;
+		if (Z._showTimerId) {
+			window.clearTimeout(Z._showTimerId);
+			return;
+		}
+		Z._hideTimerId = window.setTimeout(function () {
+			Z._tipPanel.style.display = 'none';
+			Z._hideTimerId = null;
+			Z._oldElement = null;
+		}, 300);
+	};
+};
+</pre>
+</body>
+</html>

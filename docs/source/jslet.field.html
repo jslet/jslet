@@ -1,0 +1,3431 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js"><span id='jslet-data-Field'>/**
+</span> * @class
+ * 
+ * Datase field class.
+ * 
+ * @param {String} dsObj Field name.
+ * @param {jslet.data.DataType} dataType Data type of field.
+ */
+jslet.data.Field = function (dsObj, fldCfg, parentFldObj) {
+	var Z = this;
+	Z._dataset = null;
+	Z._datasetName = null;
+	Z._displayOrder = null;
+	Z._tabIndex = null;
+	Z._shortName = null;
+	
+	Z._proxyHostFieldName = null;
+	
+	Z._proxyFldObjs = null;
+	Z._proxyFieldChanged = null;
+	Z._currProxyFieldName = null;
+	
+	Z._length = 0;
+	Z._scale = 0;
+	Z._unique = false;
+	
+	Z._defaultExpr = null;
+	Z._defaultValue = null;
+	Z._label = null;
+	Z._displayLabel = null;
+	Z._tip = null;
+	Z._displayWidth = 0;
+	Z._editMask = null;
+	Z._displayFormat = null;
+	Z._dateFormat = null;
+	Z._formula = null;
+	Z._readOnly = false;
+	Z._visible = true;
+	Z._disabled = false;
+	Z._unitConverted = false;
+
+	Z._lookup = null;
+	
+	Z._displayControl = null;
+	Z._editControl = null;
+	Z._detailDataset = null;
+	Z._urlExpr = null;
+	Z._innerUrlExpr = null;
+	Z._urlTarget = null;
+	Z._valueStyle = jslet.data.FieldValueStyle.NORMAL; //0 - Normal, 1 - Between style value, 2 - Multiple value
+	Z._valueCountLimit = 0;
+	Z._valueCountRange = null;
+	Z._required = false;
+	Z._nullText = jsletlocale.Dataset.nullText;
+	Z._dataRange= null;
+	Z._regularExpr = null;
+	Z._antiXss = true;
+	
+	Z._customValueAccessor = null;
+	Z._customValueConverter = null;
+	Z._customValidator = null;
+	Z._validChars = null; //Array of characters
+	Z._dateChar = null;
+	Z._dateRegular = null;
+	Z._parent = null; //parent field object
+	Z._children = null; //child field object
+	Z._trueValue = true;
+	Z._falseValue = false;
+	Z._trueText = null;
+	Z._falseText = null;
+	Z._mergeSame = false;
+	Z._mergeSameBy = null;
+	Z._fixedValue = null;
+	Z._valueFollow = false;
+	Z._trimBlank = true;
+	Z._focused = false;
+	Z._aggregated = false;
+	Z._aggregatedBy = null;
+
+	Z._extendHostName = null;
+	Z._crossSource = null;
+	
+	Z._dataset = dsObj;
+	Z._create(fldCfg, parentFldObj);
+};
+
+jslet.data.Field.className = 'jslet.data.Field';
+
+jslet.data.Field.prototype = {
+	className: jslet.data.Field.className,
+	
+	_create: function (fldCfg, parentFldObj) {
+		jslet.Checker.test('Field#fieldConfig', fldCfg).required().isObject();
+		var fldName = jslet.trim(fldCfg.name);
+		if (!fldName) {
+			throw new Error(jslet.formatMessage(jsletlocale.Dataset.fieldNameRequired));
+		}
+		
+		var dtype = fldCfg.type || fldCfg.dataType;
+		if (dtype === null || dtype === undefined) {
+			dtype = jslet.data.DataType.STRING;
+		} else {
+			dtype = dtype.toUpperCase();
+			if (dtype !== jslet.data.DataType.STRING &amp;&amp; 
+					dtype !== jslet.data.DataType.NUMBER &amp;&amp; 
+					dtype !== jslet.data.DataType.DATE &amp;&amp; 
+					dtype !== jslet.data.DataType.BOOLEAN &amp;&amp; 
+					dtype !== jslet.data.DataType.CROSS &amp;&amp; 
+					dtype !== jslet.data.DataType.PROXY &amp;&amp; 
+					dtype !== jslet.data.DataType.ACTION &amp;&amp; 
+					dtype !== jslet.data.DataType.EDITACTION &amp;&amp; 
+					dtype !== jslet.data.DataType.DATASET) {
+				dtype = jslet.data.DataType.STRING;
+			}
+		}
+		
+		var Z = this;
+		Z._fieldName = fldName;
+		Z._dataType = dtype;
+		function setPropValue(propName) {
+			var propValue = fldCfg[propName];
+			if (propValue !== undefined) {
+				Z[propName](propValue);
+			}
+		}
+		
+		Z.parent(parentFldObj);
+		if(parentFldObj) {
+			var children = parentFldObj.children();
+			if(!children) {
+				children = [];
+				parentFldObj.children(children);
+			}
+			children.push(Z);
+		}
+		
+		setPropValue('tabIndex');
+		setPropValue('displayOrder');
+		setPropValue('label');
+		setPropValue('displayLabel');
+		setPropValue('shortName');
+		setPropValue('tip');
+
+		if(dtype === jslet.data.DataType.PROXY) {
+			jslet.Checker.test('Field.proxyHostFieldName', fldCfg.proxyHostFieldName).required().isString();
+			jslet.Checker.test('Field.proxyFieldChanged', fldCfg.proxyFieldChanged).required().isFunction();
+			setPropValue('proxyHostFieldName');
+			setPropValue('proxyFieldChanged');
+			return;
+		}
+		if (dtype === jslet.data.DataType.DATASET){
+			var detailDs = fldCfg.detailDataset || fldCfg.subDataset;
+			if (detailDs) {
+				Z.detailDataset(detailDs);
+			} else {
+				throw new Error(jslet.formatMessage(jsletlocale.Dataset.invalidDatasetField, [fldName]));
+			}
+			Z.visible(false);
+			return;
+		}
+		
+		setPropValue('visible');
+		
+		if(dtype === jslet.data.DataType.EDITACTION) {
+			Z._displayWidth = 3;
+			Z._readOnly = true;
+			return;
+		}
+		setPropValue('displayWidth');
+		setPropValue('fixedValue');
+		if (dtype === jslet.data.DataType.ACTION){
+			if (!fldCfg.fixedValue) {
+				throw new Error(jslet.formatMessage(jsletlocale.Dataset.invalidActionField, [fldName]));
+			}
+			Z._readOnly = true;
+			return;
+		}
+		
+		setPropValue('formula');
+		setPropValue('unique');
+		setPropValue('required');
+		setPropValue('readOnly');
+		setPropValue('disabled');
+		setPropValue('length');
+		setPropValue('scale');
+		setPropValue('alignment');
+		setPropValue('defaultExpr');
+		setPropValue('defaultValue');
+		setPropValue('editMask');
+		setPropValue('displayFormat');
+		setPropValue('nullText');
+		setPropValue('unitConverted');
+		setPropValue('editControl');
+		setPropValue('urlExpr');
+		setPropValue('urlTarget');
+		setPropValue('valueStyle');
+		
+		setPropValue('valueCountLimit');
+		setPropValue('valueCountRange');
+		setPropValue('dataRange');
+		setPropValue('customValidator');
+		setPropValue('customValueConverter');
+		setPropValue('customValueAccessor');
+		
+		setPropValue('trueValue');
+		setPropValue('falseValue');
+		setPropValue('mergeSame');
+		setPropValue('mergeSameBy');
+		if(fldCfg.aggraded) {
+			setPropValue('aggraded');
+		} else {
+			setPropValue('aggregated');
+		}
+		if(fldCfg.aggradedBy) {
+			setPropValue('aggradedBy');
+		} else {
+			setPropValue('aggregatedBy');
+		}
+
+		setPropValue('valueFollow');
+		setPropValue('trimBlank');
+		
+		setPropValue('focused');
+		setPropValue('antiXss');
+		setPropValue('validChars');
+		
+		setPropValue('trueValue');
+		setPropValue('falseValue');
+		setPropValue('trueText');
+		setPropValue('falseText');
+
+		var regularExpr = fldCfg.regularExpr;
+		var regularMessage = fldCfg.regularMessage;
+		if(regularExpr) {
+			Z.regularExpr(regularExpr, regularMessage);
+		}
+		
+		var lkfCfg = fldCfg.lookup;
+		if(lkfCfg === undefined) {
+			var lkDataset = fldCfg.lookupSource || fldCfg.lookupDataset,
+				lkParam = fldCfg.lookupParam,
+				realDataset = fldCfg.realSource || fldCfg.realDataset;
+			if(lkDataset) {
+				if(lkParam) {
+					if (jslet.isString(lkParam)) {
+						lkfCfg = jslet.JSON.parse(lkParam);
+					} else {
+						lkfCfg = lkParam;
+					}
+				} else {
+					lkfCfg = {};
+				}
+				lkfCfg.dataset = lkDataset;
+				if(realDataset) {
+					lkfCfg.realDataset = realDataset;
+				}
+			}
+		}
+		if (lkfCfg !== undefined &amp;&amp; lkfCfg) {
+			Z.lookup(lkfCfg);
+		}
+		if (fldCfg.children){
+			var	childFldObj, childFldCfg;
+			for(var i = 0, cnt = fldCfg.children.length; i &lt; cnt; i++){
+				childFldCfg = fldCfg.children[i];
+				childFldObj = new jslet.data.Field(Z._dataset, childFldCfg, Z);
+				if(childFldCfg.displayOrder === undefined) {
+					childFldObj.displayOrder(i);
+				}
+			}
+			Z.alignment('center');
+		}	
+	},
+
+	
+<span id='jslet-data-Field-property-dataset'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get dataset. Don't set dataset property manually.
+	 * 
+	 *     @example
+	 *     fldObj.dataset('test'); //Set property, return this.
+	 *     var propValue = dsObj.dataset(); //Get property value.
+	 * 
+	 * @param {jslet.data.Dataset | undefined} dataset Dataset object.
+	 * 
+	 * @return {this | jslet.data.Dataset}
+	 */
+	dataset: function (dataset) {
+		var Z = this;
+		if (dataset === undefined) {
+			if(Z._parent &amp;&amp; !Z._dataset) {
+				Z.dataset(Z._parent.dataset());
+			}
+			return Z._dataset;
+		}
+		
+		if(jslet.isString(dataset)) {
+			dataset = jslet.data.getDataset(dataset); 
+		} else {
+			jslet.Checker.test('Field.dataset', dataset).isClass(jslet.data.Dataset.className);
+		}
+		if(dataset) {
+			Z._datasetName = dataset.name();
+		}
+		Z._removeRelation();
+		Z._dataset = dataset;
+		Z._clearFieldCache();
+		Z._addRelation();
+		var children = Z._children;
+		if(children) {
+			var childFldObj;
+			for(var i = 0, len = children.length; i &lt; len; i++) {
+				childFldObj = children[i];
+				childFldObj.dataset(Z._dataset);
+			}
+		}
+		return this;
+	},
+	
+<span id='jslet-data-Field-property-name'>	/**
+</span>	 * @property
+	 * 
+	 * Get field name.
+	 * 
+	 * @return {String}
+	 */
+	name: function () {
+		if(arguments.length &gt;0) {
+			console.error(&quot;Can't change field name!&quot;);
+		}
+		return this._fieldName;
+	},
+
+<span id='jslet-data-Field-property-shortName'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get field short name. &lt;br /&gt;
+	 * Field short name is used to reduce field name length. It can reduce data size obviously. &lt;br /&gt;
+	 * For example, suppose field name is 'department', short name is 'a', it will reduce 9 characters for one record, if querying 10000 records, it will reduce 90000 characters.
+	 * This will improve the whole performance. Example:  
+	 * 
+	 *     @example
+	 *     fldObj.shortName('test'); //Set property, return this.
+	 *     var propValue = dsObj.shortName(); //Get property value.
+	 * 
+	 * @param {String | undefined} shortName Field short name.
+	 * 
+	 * @return {this | String}
+	 */
+	shortName: function(shortName) {
+		var Z = this;
+		if (shortName === undefined) {
+			return Z._shortName;
+		}
+		jslet.Checker.test('Field.shortName', shortName).isString();
+		Z._shortName = shortName;
+		return this;
+	},
+	
+<span id='jslet-data-Field-property-label'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get field label, field label can be used to display, configure, export, import data. Example:  
+	 * 
+	 *     @example
+	 *     fldObj.label('test'); //Set property, return this.
+	 *     var propValue = dsObj.label(); //Get property value.
+	 * 
+	 * @param {String | undefined} label Field label.
+	 * @return {this | String}
+	 */
+	label: function (label) {
+		var Z = this;
+		if (label === undefined) {
+			if(Z._dataType === jslet.data.DataType.EDITACTION) {
+				return '  ';
+			}
+			return Z._label || Z._fieldName;
+		}
+		jslet.Checker.test('Field.label', label).isString();
+		Z._label = label;
+		Z._fireMetaChangedEvent('label');
+		Z._fireGlobalMetaChangedEvent('label');
+		return this;
+	},
+
+<span id='jslet-data-Field-property-displayLabel'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get field display label, display label is only used to display data.
+	 * In some scenarios, display label can be different from field label.
+	 * 
+	 *     @example
+	 *     fldObj.displayLabel('test'); //Set property, return this.
+	 *     var propValue = dsObj.displayLabel(); //Get property value.
+	 * 
+	 * @param {String | undefined} displayLabel Field display label.
+	 * @return {this | String}
+	 */
+	displayLabel: function (displayLabel) {
+		var Z = this;
+		if (displayLabel === undefined) {
+			if(Z._dataType === jslet.data.DataType.EDITACTION) {
+				return '  ';
+			}
+			return Z._displayLabel || Z.label();
+		}
+		jslet.Checker.test('Field.displayLabel', displayLabel).isString();
+		Z._displayLabel = displayLabel;
+		Z._fireMetaChangedEvent('label');
+		Z._fireGlobalMetaChangedEvent('label');
+		return this;
+	},
+
+	fullLabel: function(separator) {
+		if(!this.parent()) {
+			return this.label();
+		}
+		if(separator === undefined) {
+			separator = '_';
+		}
+		var labels = [this.label()];
+		var pFldObj = this.parent();
+		while(pFldObj) {
+			labels.push(pFldObj.label());
+			pFldObj = pFldObj.parent();
+		}
+		return labels.reverse().join(separator);
+	},
+	
+<span id='jslet-data-Field-property-tip'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get field tip.
+	 * 
+	 *     @example
+	 *     fldObj.tip('test'); //Set property, return this.
+	 *     var propValue = dsObj.tip(); //Get property value.
+	 * 
+	 * @param {String | undefined} tip Field tip.
+	 * @return {this | String}
+	 */
+	tip: function(tip) {
+		var Z = this;
+		if (tip === undefined) {
+			return Z._tip;
+		}
+		jslet.Checker.test('Field.tip', tip).isString();
+		Z._tip = tip;
+		Z._fireMetaChangedEvent('tip');
+		Z._fireGlobalMetaChangedEvent('tip');
+		return this;
+	},
+	
+<span id='jslet-data-Field-method-getType'>	/**
+</span>	 * Get field data type.
+	 * 
+	 * @return {jslet.data.DataType} 
+	 */
+	getType: function () {
+		if(this._dataType == jslet.data.DataType.PROXY) {
+			var result = this._getProxyPropValue('dataType') || jslet.data.DataType.STRING;
+			if(result === jslet.data.DataType.DATASET) {
+				return this._dataType;
+			} else {
+				return result;
+			}
+		}
+		return this._dataType;
+	},
+
+<span id='jslet-data-Field-property-dataType'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get field data type.
+	 * 
+	 *     @example
+	 *     fldObj.dataType('test'); //Set property, return this.
+	 *     var propValue = dsObj.dataType(); //Get property value.
+	 * 
+	 * @param {String | undefined} dataType Field's data type.
+	 * 
+	 * @return {this | String}
+	 */
+	dataType: function(dataType) {
+		if(dataType === undefined) {
+			return this._dataType;
+		}
+		jslet.Checker.test('Field#dataType', dataType).isString().required();
+		var dtype = dataType;
+		if (dtype === null) {
+			dtype = jslet.data.DataType.STRING;
+		} else {
+			dtype = dtype.toUpperCase();
+			if (dtype != jslet.data.DataType.STRING &amp;&amp; 
+					dtype != jslet.data.DataType.NUMBER &amp;&amp; 
+					dtype != jslet.data.DataType.DATE &amp;&amp; 
+					dtype != jslet.data.DataType.BOOLEAN &amp;&amp; 
+					dtype != jslet.data.DataType.CROSS &amp;&amp; 
+					dtype != jslet.data.DataType.PROXY &amp;&amp; 
+					dtype != jslet.data.DataType.ACTION &amp;&amp; 
+					dtype != jslet.data.DataType.EDITACTION &amp;&amp; 
+					dtype != jslet.data.DataType.DATASET)
+			dtype = jslet.data.DataType.STRING;
+		}
+		this._dataType = dtype;
+		return this;
+	},
+	
+	proxyHostFieldName: function(proxyHostFieldName) {
+		var Z = this;
+		if(proxyHostFieldName === undefined) {
+			return Z._proxyHostFieldName;
+		}
+		Z._proxyHostFieldName = proxyHostFieldName;
+	},
+	
+	proxyFieldChanged: function(proxyFieldChanged) {
+		var Z = this;
+		if (proxyFieldChanged === undefined) {
+			return Z._proxyFieldChanged;
+		}
+		jslet.Checker.test('Field.proxyFieldChanged', proxyFieldChanged).required().isFunction();
+		Z._proxyFieldChanged = proxyFieldChanged;
+		return this;
+	},
+	
+	changeProxyFieldName: function(dataRecord, isSilence) {
+		var Z = this,
+			fldObj, proxyHostFldName, proxyFldName;
+		
+		proxyFldName = dataRecord[Z._proxyHostFieldName];
+		if(!proxyFldName || Z._currProxyFieldName == proxyFldName) {
+			return;
+		}
+		if(!Z._proxyFldObjs) {
+			Z._proxyFldObjs = {};
+		}
+		var oldProxyFldObj = Z._proxyFldObjs[Z._currProxyFieldName],
+			newProxyFldObj = Z._proxyFldObjs[proxyFldName];
+		
+		if(!newProxyFldObj) {
+			newProxyFldObj = new jslet.data.Field(Z._dataset, {name: proxyFldName, dataType: 'S'});
+			Z._proxyFieldChanged.call(Z._dataset, dataRecord, proxyFldName, newProxyFldObj);
+			Z._proxyFldObjs[proxyFldName] = newProxyFldObj;
+		}
+		Z._currProxyFieldName = proxyFldName;
+		if(!isSilence) {
+			Z._fireMetaChangedEvent('editControl');
+		}
+	},
+	
+	_getProxyPropValue: function(propName) {
+		if(!this._proxyFldObjs) {
+			return null;
+		}
+		var proxyFldObj = this._proxyFldObjs[this._currProxyFieldName];
+		if(proxyFldObj) {
+			return proxyFldObj[propName]();
+		}
+		return null;
+	},
+	
+	_setProxyPropValue: function(propName, propValue) {
+		if(!this._proxyFldObjs) {
+			return;
+		}
+		var proxyFldObj = this._proxyFldObjs[this._currProxyFieldName];
+		if(proxyFldObj) {
+			proxyFldObj[propName](propValue);
+		}
+	},
+	
+<span id='jslet-data-Field-property-parent'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get parent field object.
+	 * 
+	 *     @example
+	 *     fldObj.parent(fldParent); //Set property, return this.
+	 *     var propValue = dsObj.parent(); //Get property value.
+	 * 
+	 * @param {jslet.data.Field | undefined} parent Parent field object.
+	 * 
+	 * @return {this | jslet.data.Field}
+	 */
+	parent: function (parent) {
+		var Z = this;
+		if (parent === undefined) {
+			return Z._parent;
+		}
+		jslet.Checker.test('Field.parent', parent).isClass(this.className);
+		Z._parent = parent;
+		return this;
+	},
+
+<span id='jslet-data-Field-property-children'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get child fields of this field.
+	 * 
+	 *     @example
+	 *     fldObj.children([fldObj1, fldObj2]); //Set property, return this.
+	 *     var propValue = dsObj.children(); //Get property value.
+	 * 
+	 * @param {jslet.data.Field[] | undefined} children Child field object.
+	 * 
+	 * @return {this | jslet.data.Field[]}
+	 */
+	children: function (children) {
+		var Z = this;
+		if (children === undefined) {
+			return Z._children;
+		}
+		jslet.Checker.test('Field.children', children).isArray();
+		for(var i = 0, len = children.length; i &lt; len; i++) {
+			jslet.Checker.test('Field.children#childField', children[i]).isClass(this.className);
+		}
+		Z._children = children;
+		return this;
+	},
+	
+<span id='jslet-data-Field-property-displayOrder'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get field display order. &lt;br /&gt;
+	 * Dataset uses this property to set field order.
+	 * 
+	 *     @example
+	 *     fldObj.displayOrder(1); //Set property, return this.
+	 *     var propValue = dsObj.displayOrder(); //Get property value.
+	 * 
+	 * @param {Integer | undefined} displayOrder Field display order.
+	 * 
+	 * @return {this | Integer}
+	 */
+	displayOrder: function (displayOrder) {
+		var Z = this;
+		if (displayOrder === undefined) {
+			return Z._displayOrder;
+		}
+		jslet.Checker.test('Field.displayOrder', displayOrder).isNumber();
+		Z._displayOrder = parseInt(displayOrder);
+		Z._fireGlobalMetaChangedEvent('displayOrder');
+		return this;
+	},
+
+<span id='jslet-data-Field-property-tabIndex'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get the edit control tab index of this field.
+	 * 
+	 *     @example
+	 *     fldObj.tabIndex(1); //Set property, return this.
+	 *     var propValue = dsObj.tabIndex(); //Get property value.
+	 * 
+	 * @param {Integer | undefined} tabIndex Tab index of edit control linked this field.
+	 * 
+	 * @return {this | Integer}
+	 */
+	tabIndex: function(tabIndex) {
+		var Z = this;
+		if (tabIndex === undefined) {
+			//If not set tabIndex property, use displayOrder instead.
+//			if(Z._tabIndex === null || Z._tabIndex === undefined) {
+//				return Z._displayOrder + 1;
+//			}
+			return Z._tabIndex;
+		}
+		jslet.Checker.test('Field.tabIndex', tabIndex).isNumber();
+		tabIndex = tabIndex? parseInt(tabIndex): null;
+		Z._tabIndex = tabIndex !== NaN? tabIndex: null;
+		Z._fireMetaChangedEvent('tabIndex');
+		Z._fireGlobalMetaChangedEvent('tabIndex');
+		return this;
+	},
+	
+<span id='jslet-data-Field-property-length'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get field stored length.&lt;br /&gt;
+	 * 
+	 *     @example
+	 *     fldObj.length(10); //Set property, return this.
+	 *     var propValue = dsObj.length(); //Get property value.
+	 * 
+	 * @param {Integer | undefined} len Field stored length.
+	 * 
+	 * @return {this | Integer}
+	 */
+	length: function (len) {
+		var Z = this;
+		if (len === undefined) {
+			if(Z._dataType == jslet.data.DataType.PROXY) {
+				return Z._getProxyPropValue('length') || 10;
+			}
+			return Z._length || 10;
+		}
+		jslet.Checker.test('Field.length', len).isGTEZero();
+		if(Z._dataType == jslet.data.DataType.PROXY) {
+			Z._setProxyPropValue('length', parseInt(len));
+		} else {
+			Z._length = parseInt(len);
+		}
+		Z._fireGlobalMetaChangedEvent('length');
+		return this;
+	},
+	
+<span id='jslet-data-Field-method-getEditLength'>	/**
+</span>	 * Get edit length. Edit length is used in editor to input data.
+	 * 
+	 * @return {Integer}
+	 */
+	getEditLength: function () {
+		var Z = this,
+			lkObj = Z.lookup(),
+			len = Z.length();
+		if (lkObj) {
+			var codeFld = lkObj.codeField(),
+				nameFld = lkObj.nameField(),
+				lkds = lkObj.dataset();
+			if (lkds &amp;&amp; codeFld) {
+				var lkf = lkds.getField(codeFld);
+				if (lkf) {
+					len = lkf.getEditLength();
+				}
+				if(nameFld) {
+					lkf = lkds.getField(nameFld);
+					if(lkf) {
+						len = Math.max(len, lkf.getEditLength());
+					}
+				}
+				return len;
+			}
+		}
+		if(Z.getType() === jslet.data.DataType.NUMBER &amp;&amp; Z.scale() &gt; 0) {
+			return len + 1; // 1 for decimal point
+		}
+		return len &gt; 0 ? len : 10;
+	},
+
+<span id='jslet-data-Field-property-scale'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get field decimal length.
+	 * 
+	 *     @example
+	 *     fldObj.scale(10); //Set property, return this.
+	 *     var propValue = dsObj.scale(); //Get property value.
+	 * 
+	 * @param {Integer | undefined} scale Field decimal length.
+	 * 
+	 * @return {this | Integer}
+	 */
+	scale: function (scale) {
+		var Z = this;
+		if (scale === undefined) {
+			if(Z._dataType == jslet.data.DataType.PROXY) {
+				return Z._getProxyPropValue('scale') || 0;
+			}
+			return Z._scale;
+		}
+		jslet.Checker.test('Field.scale', scale).isGTEZero();
+		if(Z._dataType == jslet.data.DataType.PROXY) {
+			Z._setProxyPropValue('scale', parseInt(scale));
+		} else {
+			Z._scale = parseInt(scale);
+		}
+		Z._fireGlobalMetaChangedEvent('scale');
+		return this;
+	},
+
+<span id='jslet-data-Field-property-alignment'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get field alignment. The optional values: left, center, right.
+	 * 
+	 *     @example
+	 *     fldObj.alignment('left'); //Set property, return this.
+	 *     var propValue = dsObj.alignment(); //Get property value.
+	 * 
+	 * @param {String | undefined} alignment Field alignment.
+	 * 
+	 * @return {this | String}
+	 */
+	alignment: function (alignment) {
+		var Z = this;
+		if (alignment === undefined){
+			var align = Z._alignment;
+			if(Z._dataType == jslet.data.DataType.PROXY) {
+				align = Z._getProxyPropValue('alignment');
+			}
+			if(align) {
+				return align;
+			}
+			
+			if(Z.lookup()) {
+				return 'left';
+			}
+			if(Z.getType() == jslet.data.DataType.NUMBER) {
+				return 'right';
+			}
+			
+			if(Z.getType() == jslet.data.DataType.BOOLEAN) {
+				return 'center';
+			}
+			return 'left';
+		}
+		
+		jslet.Checker.test('Field.alignment', alignment).isString();
+		if(Z._dataType == jslet.data.DataType.PROXY) {
+			Z._setProxyPropValue('alignment', jslet.trim(alignment));
+		} else {
+			Z._alignment = jslet.trim(alignment);
+		}
+		Z._fireColumnUpdatedEvent();
+		Z._fireGlobalMetaChangedEvent('alignment');
+		return this;
+	},
+
+<span id='jslet-data-Field-property-nullText'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get the display text if the field value is null.
+	 * 
+	 *     @example
+	 *     fldObj.nullText('&lt;Empty&gt;'); //Set property, return this.
+	 *     var propValue = dsObj.nullText(); //Get property value.
+	 * 
+	 * @param {String | undefined} nullText Field null text.
+	 * 
+	 * @return {this | String}
+	 */
+	nullText: function (nullText) {
+		var Z = this;
+		if (nullText === undefined) {
+			return Z._nullText;
+		}
+		jslet.Checker.test('Field.nullText', nullText).isString();
+		nullText = jslet.trim(nullText);
+		Z._nullText = nullText;
+		Z._clearFieldCache();
+		Z._fireColumnUpdatedEvent();
+		Z._fireGlobalMetaChangedEvent('nullText');
+		return this;
+	},
+
+<span id='jslet-data-Field-property-displayWidth'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get field display width.
+	 * Display width is usually used in DBTable column.
+	 * 
+	 *     @example
+	 *     fldObj.displayWidth(10); //Set property, return this.
+	 *     var propValue = dsObj.displayWidth(); //Get property value.
+	 * 
+	 * @param {Integer | undefined} displayWidth Field display width.
+	 * 
+	 * @return {this | Integer}
+	 */
+	displayWidth: function (displayWidth) {
+		var Z = this;
+		if (displayWidth === undefined) {
+			if (Z._displayWidth &lt;= 0) {
+				return Z.length() || 12;
+			} else {
+				return Z._displayWidth;
+			}
+		}
+		jslet.Checker.test('Field.displayWidth', displayWidth).isGTEZero();
+		Z._displayWidth = parseInt(displayWidth);
+		Z._fireGlobalMetaChangedEvent('displayWidth');
+		return this;
+	},
+	
+<span id='jslet-data-Field-property-defaultExpr'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get field default expression.
+	 * This expression will be calculated when inserting a record.
+	 * 
+	 *     @example
+	 *     fldObj.defaultExpr('20'); //Default value: 20.
+	 *     fldObj.defaultExpr('&quot;OK&quot;'); //Default value: 'OK'.
+	 *     var propValue = dsObj.defaultExpr(); //Get property value.
+	 * 
+	 * @param {String | undefined} defaultExpr Field default expression.
+	 * 
+	 * @return {this | String}
+	 */
+	defaultExpr: function (defaultExpr) {
+		var Z = this;
+		if (defaultExpr === undefined) {
+			return Z._defaultExpr;
+		}
+		jslet.Checker.test('Field.defaultExpr', defaultExpr).isString();
+		Z._defaultExpr = defaultExpr;
+		Z._fireGlobalMetaChangedEvent('defaultExpr');
+		return this;
+	},
+
+<span id='jslet-data-Field-property-displayFormat'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get field display format:&lt;br /&gt;
+	 * Number field placeholder: # - one number, 0 - one number(if not exists, 0 instread), like: #,##0.00, $#,##0.00;&lt;br /&gt;
+	 * Date field placeholder: y - year, M - month, d - date, h - hour, m - minute, s - second, like: yyyy/MM/dd hh:mm:ss;&lt;br /&gt;
+	 * String field: # - one character, ecapse: \# like ###-###-###, \###&lt;br /&gt;
+	 * 
+	 *     @example
+	 *     numFldObj.setValue(134589.8);
+	 *     numFldObj.displayFormat('$#,##0.00');
+	 *     numFldObj.getTextValue(); //return '$1,345,89.80'
+	 *     
+	 *     numFldObj.displayFormat('$#,##0.##');
+	 *     numFldObj.getTextValue(); //return '$1,345,89.8'
+	 *     
+	 *     dateFldObj.setValue(new Date(2015, 9, 1));
+	 *     dateFldObj.displayFormat('yyyy-MM-dd');
+	 *     dateFldObj.getTextValue(); //return '2015-10-01'
+	 *     
+	 *     strFldObj.setValue('08579');
+	 *     strFldObj.displayFormat('NO##-###');
+	 *     strFldObj.getTextValue(); //return 'NO08-579'
+
+	 *     var propValue = dsObj.displayFormat(); //Get property value.
+	 * 
+	 * @param {String | undefined} format Field display format.
+	 * 
+	 * @return {this | String}
+	 */
+	displayFormat: function (format) {
+		var Z = this;
+		if (format === undefined) {
+			var displayFmt = Z._displayFormat;
+			if(Z._dataType == jslet.data.DataType.PROXY) {
+				displayFmt = Z._getProxyPropValue('displayFormat');
+			}
+			if (displayFmt) {
+				return displayFmt;
+			} else {
+				if (Z.getType() == jslet.data.DataType.DATE) {
+					return jsletlocale.Date.format;
+				} else {
+					return displayFmt;
+				}
+			}
+		}
+		
+		jslet.Checker.test('Field.displayFormat', format).isString();
+		if(Z._dataType == jslet.data.DataType.PROXY) {
+			Z._setProxyPropValue('displayFormat', jslet.trim(format));
+		} else {
+			Z._displayFormat = jslet.trim(format);
+		}
+		Z._dateFormat = null;
+		Z._dateChar = null;
+		Z._dateRegular = null;
+		Z._clearFieldCache();		
+		Z._fireColumnUpdatedEvent();
+		Z._fireGlobalMetaChangedEvent('displayFormat');
+		return this;
+	},
+
+<span id='jslet-data-Field-property-defaultValue'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get field default value. &lt;br /&gt;
+	 * The data type of default value must be same as Field data type. Example:
+	 * 
+	 *     @example
+	 *     fldObj.defauleValue(100); //Number field 
+	 *     fldObj.defaultValue(new Date()); //Date field
+	 *     fldObj.defaultValue('test'); //String field
+	 * 
+	 * @param {Object | undefined} dftValue Field default value.
+	 * 
+	 * @return {this | Object}
+	 */
+	defaultValue: function (dftValue) {
+		var Z = this;
+		if (dftValue === undefined) {
+			return Z._defaultValue;
+		}
+		jslet.Checker.test('Field.defaultValue', Z.dftValue).isDataType(Z._dateType);
+		Z._defaultValue = dftValue;
+		Z._fireGlobalMetaChangedEvent('defaultValue');
+		return this;
+	},
+
+<span id='jslet-data-Field-property-unique'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get field is unique or not.
+	 * 
+	 *     @example
+	 *     fldObj.unique(true); //Set property, return this.
+	 *     var propValue = dsObj.unique(); //Get property value.
+	 * 
+	 * @param {Boolean | undefined} unique Field is unique or not.
+	 * 
+	 * @return {this | Boolean}
+	 */
+	unique: function (unique) {
+		var Z = this;
+		if (unique === undefined) {
+			return Z._unique;
+		}
+		Z._unique = unique ? true: false;
+		Z._fireGlobalMetaChangedEvent('unique');
+		return this;
+	},
+	
+<span id='jslet-data-Field-property-required'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get field is required or not.
+	 * 
+	 *     @example
+	 *     fldObj.required(true); //Set property, return this.
+	 *     var propValue = dsObj.required(); //Get property value.
+	 * 
+	 * @param {Boolean | undefined} required Field is required or not.
+	 * 
+	 * @return {this | Boolean}
+	 */
+	required: function (required) {
+		var Z = this;
+		if (required === undefined) {
+			return Z._required;
+		}
+		Z._required = required ? true: false;
+		Z._fireMetaChangedEvent('required');
+		Z._fireGlobalMetaChangedEvent('required');
+		return this;
+	},
+	
+<span id='jslet-data-Field-property-editMask'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get field edit mask.
+	 * 
+	 *     @example
+	 *     fldObj.editMask('CC-00-00'); //Set property, return this.
+	 *     
+	 *     fldObj.editMask({mask: 'CC-00-00', keepChar:false}); //Set property, return this.
+	 *     var propValue = dsObj.editMask(); //Get property value.
+	 * 
+	 * @param {String | Object | undefined} mask Field edit mask.
+	 * 
+	 * @return {this | Object}
+	 */
+	editMask: function (mask) {
+		var Z = this;
+		if (mask === undefined) {
+			if(Z._dataType == jslet.data.DataType.PROXY) {
+				return Z._getProxyPropValue('editMask');
+			}
+			return Z._editMask;
+		}
+		if(mask) {
+			if (jslet.isString(mask)) {
+				mask = {mask: mask,keepChar:false};
+			}
+		} else {
+			mask = null;
+		}
+		if(Z._dataType == jslet.data.DataType.PROXY) {
+			Z._setProxyPropValue('editMask', mask);
+		} else {
+			Z._editMask = mask;
+		}
+		Z._clearFieldCache();		
+		Z._fireMetaChangedEvent('editMask');
+		Z._fireGlobalMetaChangedEvent('required');
+		return this;
+	},
+	
+	dateFormat: function(){
+		var Z = this;
+		if (Z._dateFormat) {
+			return Z._dateFormat;
+		}
+		if (this.getType() != jslet.data.DataType.DATE) {
+			return null;
+		}
+		var displayFmt = this.displayFormat().toUpperCase();
+		Z._dateFormat = '';
+		var c;
+		for(var i = 0, len = displayFmt.length; i &lt; len; i++){
+			c = displayFmt.charAt(i);
+			if ('YMD'.indexOf(c) &lt; 0) {
+				continue;
+			}
+			if (Z._dateFormat.indexOf(c) &lt; 0) {
+				Z._dateFormat += c;
+			}
+		}
+		return Z._dateFormat;
+	},
+	
+	dateSeparator: function(){
+		var Z = this;
+		if (Z._dateChar) {
+			return Z._dateChar;
+		}
+		if (this.getType() != jslet.data.DataType.DATE) {
+			return null;
+		}
+		var displayFmt = this.displayFormat().toUpperCase();
+		for(var i = 0, c, len = displayFmt.length; i &lt; len; i++){
+			c = displayFmt.charAt(i);
+			if ('YMD'.indexOf(c) &lt; 0){
+				Z._dateChar = c;
+				return c;
+			}
+		}
+	},
+	
+	dateRegular: function(){
+		var Z = this;
+		if (Z._dateRegular) {
+			return Z._dateRegular;
+		}
+		var dateFmt = this.dateFormat(),
+			dateSeparator = this.dateSeparator(),
+			result = ['^'];
+		for(var i = 0, c; i &lt; dateFmt.length; i++){
+			if (i &gt; 0){
+				result.push('\\');
+				result.push(dateSeparator);
+			}
+			c = dateFmt.charAt(i);
+			if (c == 'Y') {
+				result.push('(\\d{4}|\\d{2})');
+			} else if (c == 'M'){
+				result.push('(0?[1-9]|1[012])');
+			} else {
+				result.push('(0?[1-9]|[12][0-9]|3[01])');
+			}
+		}
+		result.push('(\\s+\\d{2}:\\d{2}:\\d{2}(\\.\\d{3}){0,1}){0,1}');
+		result.push('$');
+		Z._dateRegular = {expr: new RegExp(result.join(''), 'gim'), message: jslet.formatMessage(jsletlocale.Dataset.invalidDate, [Z._displayFormat])};
+		
+		return Z._dateRegular;
+	},
+	
+<span id='jslet-data-Field-property-formula'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get field formula.&lt;br /&gt;
+	 * Jslet formula is base on javascript expression, to get field value to use '[' + fieldName + ']'. 
+	 * 
+	 *     @example
+	 *     fldObj.formula('[price]*[num]'); //Set property, return this.
+	 *     fldObj.formula('[fld1] &gt; 0 &amp;&amp; [fld2] &gt; 0'? [fld3]: [fld4]'); 
+	 *     var propValue = dsObj.formula(); //Get property value.
+	 * 
+	 * @param {String | undefined} formula Field formula.
+	 * 
+	 * @return {this | String}
+	 */
+	formula: function (formula) {
+		var Z = this;
+		if (formula === undefined) {
+			return Z._formula;
+		}
+		
+		jslet.Checker.test('Field.formula', formula).isString();
+		Z._formula = jslet.trim(formula);
+		Z._readOnly = true;
+		Z._clearFieldCache();
+		var dataset = Z.dataset(); 
+		if (dataset) {
+			dataset.removeInnerFormulaField(Z._fieldName);
+			dataset.addInnerFormulaField(Z._fieldName, Z._formula);		
+			Z._fireColumnUpdatedEvent();
+		}
+		Z._fireGlobalMetaChangedEvent('formula');
+		return this;
+	},
+
+<span id='jslet-data-Field-property-visible'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get field is visible or not.
+	 * 
+	 *     @example
+	 *     fldObj.visible(true); //Set property, return this.
+	 *     var propValue = dsObj.visible(); //Get property value.
+	 * 
+	 * @param {Boolean | undefined} visible Field is visible or not.
+	 * 
+	 * @return {this | Boolean}
+	 */
+	visible: function (visible) {
+		var Z = this;
+		if (visible === undefined){
+			if (Z._visible){
+				var p = this.parent();
+				while(p){
+					if (!p.visible()) { //if parent is invisible
+						return false;
+					}
+					p = p.parent();
+				}
+			}
+			return Z._visible;
+		}
+		Z._visible = visible ? true: false;
+		Z._fireMetaChangedEvent('visible');
+		Z._fireGlobalMetaChangedEvent('visible');
+		return this;
+	},
+
+<span id='jslet-data-Field-property-disabled'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get field is disabled or not.
+	 * 
+	 *     @example
+	 *     fldObj.disabled(true); //Set property, return this.
+	 *     var propValue = dsObj.disabled(); //Get property value.
+	 * 
+	 * @param {Boolean | undefined} disabled Field is disabled or not.
+	 * 
+	 * @return {this | Boolean}
+	 */
+	disabled: function (disabled) {
+		var Z = this;
+		if (disabled === undefined) {
+			if(Z._formula || Z._dataType === jslet.data.DataType.DATASET || Z._children) {
+				return false;
+			}
+			return Z._disabled;
+		}
+		Z._disabled = disabled ? true: false;
+		Z._fireMetaChangedEvent('disabled');
+		Z._fireGlobalMetaChangedEvent('disabled');
+		return this;
+	},
+
+<span id='jslet-data-Field-property-readOnly'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get field is read only or not.
+	 * 
+	 *     @example
+	 *     fldObj.readOnly(true); //Set property, return this.
+	 *     var propValue = dsObj.readOnly(); //Get property value.
+	 * 
+	 * @param {Boolean | undefined} readOnly Field is readOnly or not.
+	 * 
+	 * @return {this | Boolean}
+	 */
+	readOnly: function (readOnly) {
+		var Z = this;
+		if (readOnly === undefined){
+			if (Z._dataType == jslet.data.DataType.DATASET) {
+				return true;
+			}
+			var children = Z.children();
+			if (children &amp;&amp; children.length === 0) {
+				return true;
+			}
+
+			return Z._readOnly || Z._dataset.readOnly();
+		}
+		
+		Z._readOnly = readOnly? true: false;
+		Z._fireMetaChangedEvent('readOnly');
+		Z._fireGlobalMetaChangedEvent('readOnly');
+		return this;
+	},
+	
+	fieldReadOnly: function() {
+		var Z = this;
+		if (Z._dataType == jslet.data.DataType.DATASET) {
+			return true;
+		}
+		var children = Z.children();
+		if (children &amp;&amp; children.length === 0) {
+			return true;
+		}
+
+		return Z._readOnly;
+	},
+	
+	fieldDisabled: function() {
+		var Z = this;
+		return this._disabled;
+	},
+	
+	_fireGlobalMetaChangedEvent: function(metaName) {
+		var dsObj = this.dataset();
+		if (dsObj &amp;&amp; dsObj.designMode() &amp;&amp; dsObj.isFireGlobalEvent()) {
+			var handler = jslet.data.globalDataHandler.fieldMetaChanged();
+			if(handler) {
+				handler.call(this, dsObj, this._fieldName, metaName);
+			}
+		}
+	},
+	
+	_fireMetaChangedEvent: function(metaName) {
+		var ds = this.dataset();
+		if (ds) {
+			var evt = jslet.data.RefreshEvent.changeMetaEvent(metaName, this._fieldName);
+			ds.refreshControl(evt);
+		}
+	},
+	
+	_fireColumnUpdatedEvent: function() {
+		var ds = this.dataset();
+		if (ds) {
+			var evt = jslet.data.RefreshEvent.updateColumnEvent(this._fieldName);
+			ds.refreshControl(evt);
+		}
+	},
+	
+<span id='jslet-data-Field-property-unitConverted'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get if field participates unit converting.
+	 * 
+	 *     @example
+	 *     fldObj.unitConverted(true); //Set property, return this.
+	 *     var propValue = dsObj.unitConverted(); //Get property value.
+	 * 
+	 * @param {Boolean | undefined} unitConverted.
+	 * 
+	 * @return {this | Boolean}
+	 */
+	unitConverted: function (unitConverted) {
+		var Z = this;
+		if (unitConverted === undefined) {
+			return Z._dataType == jslet.data.DataType.NUMBER? Z._unitConverted:false;
+		}
+		Z._unitConverted = unitConverted ? true : false;
+		var ds = this.dataset();
+		Z._clearFieldCache();		
+		if (Z._dataType == jslet.data.DataType.NUMBER &amp;&amp; ds &amp;&amp; ds.unitConvertFactor() != 1) {
+			Z._fireColumnUpdatedEvent();
+		}
+		Z._fireGlobalMetaChangedEvent('unitConverted');
+		return this;
+	},
+
+<span id='jslet-data-Field-property-valueStyle'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get value style of this field. Optional value is come from {@link jslet.data.FieldValueStyle}. &lt;br /&gt;
+	 * 
+	 *     @example
+	 *     fldObj.valueStyle(jslet.data.FieldValueStyle.MULTIPLE); //Set property, return this.
+	 *     var propValue = dsObj.valueStyle(); //Get property value.
+	 * 
+	 * @param {Integer | undefined} valueStyle.
+	 * 
+	 * @return {this | Integer}
+	 */
+	valueStyle: function (valueStyle) {
+		var Z = this;
+		if (valueStyle === undefined) {
+			if(Z._dataType == jslet.data.DataType.DATASET ||  
+					Z._children &amp;&amp; Z._children.length &gt; 0) 
+				return jslet.data.FieldValueStyle.NORMAL;
+			if(Z._dataType == jslet.data.DataType.PROXY) {
+				return Z._getProxyPropValue('valueStyle');
+			}
+
+			return Z._valueStyle;
+		}
+
+		if(valueStyle) {
+			valueStyle = parseInt(valueStyle);
+		} else {
+			valueStyle = 0;
+		}
+		jslet.Checker.test('Field.valueStyle', valueStyle).isNumber().inArray([0,1,2]);
+		if(Z._dataType == jslet.data.DataType.PROXY) {
+			Z._setProxyPropValue('valueStyle', valueStyle);
+		} else {
+			Z._valueStyle = valueStyle;
+		}
+		Z._clearFieldCache();
+		Z._fireColumnUpdatedEvent();
+		Z._fireMetaChangedEvent('valueStyle');
+		Z._fireGlobalMetaChangedEvent('valueStyle');
+		return this;
+	},
+
+<span id='jslet-data-Field-property-valueCountLimit'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get allowed item count when {@link jslet.data.Field#valueStyle} is multiple.
+	 * 
+	 *     @example
+	 *     fldObj.valueCountLimit(5); //Set property, return this.
+	 *     var propValue = dsObj.valueCountLimit(); //Get property value.
+	 * 
+	 * @param {Integer | undefined} count Maximum items for multiple values.
+	 * 
+	 * @return {this | Integer}
+	 */
+	valueCountLimit: function (count) {
+		var Z = this;
+		if (count === undefined) {
+			if(Z._dataType == jslet.data.DataType.PROXY) {
+				return Z._getProxyPropValue('valueCountLimit');
+			}
+			return Z._valueCountLimit;
+		}
+		if(count) {
+			jslet.Checker.test('Field.valueCountLimit', count).isNumber();
+		} else {
+			count = 0;
+		}
+		if(Z._dataType == jslet.data.DataType.PROXY) {
+			Z._setProxyPropValue('valueCountLimit', parseInt(count));
+		} else {
+			Z._valueCountLimit = parseInt(count);
+		}
+		Z._fireGlobalMetaChangedEvent('valueCountLimit');
+		return this;
+	},
+
+<span id='jslet-data-Field-property-valueCountRange'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get allowed item count when {@link jslet.data.Field#valueStyle} is multiple or between.
+	 * 
+	 *     @example
+	 *     fldObj.valueCountRange({min: 1, max: 5}); //Set property, return this.
+	 *     var propValue = fldObj.valueCountRange(); //Get property value.
+	 * 
+	 * @param {Object | undefined} valueCountRange The value count range.
+	 * 
+	 * @return {this | Object}
+	 */
+	valueCountRange: function (valueCountRange) {
+		var Z = this;
+		if (valueCountRange === undefined) {
+			if(Z._dataType == jslet.data.DataType.PROXY) {
+				return Z._getProxyPropValue('valueCountRange');
+			}
+			return Z._valueCountRange;
+		}
+		if(valueCountRange) {
+			jslet.Checker.test('Field.valueCountRange', valueCountRange).isObject();
+			jslet.Checker.test('Field.valueCountRange', valueCountRange.min).isGTEZero();
+			jslet.Checker.test('Field.valueCountRange', valueCountRange.max).isGTEZero();
+		}
+		if(Z._dataType == jslet.data.DataType.PROXY) {
+			Z._setProxyPropValue('valueCountRange', valueCountRange);
+		} else {
+			Z._valueCountRange = valueCountRange;
+		}
+		Z._fireGlobalMetaChangedEvent('valueCountRange');
+		return this;
+	},
+
+<span id='jslet-data-Field-property-displayControl'>	/**
+</span>	 * @private
+	 * @property
+	 * 
+	 * Set or get field display control. It is similar as DBControl configuration.
+	 * Here you need not set 'dataset' and 'field' property. Example:
+	 * 
+	 *     @example
+	 *     //Normal DBControl configuration
+	 *     //var normalCtrlCfg = {type: &quot;DBSpinEdit&quot;, dataset: &quot;employee&quot;, field: &quot;age&quot;, minValue:10, maxValue: 100, step: 5};
+	 * 
+	 *     var displayCtrlCfg = {type: &quot;DBSpinEdit&quot;, minValue: 10, maxValue: 100, step: 5};
+	 *     fldObj.displayControl(displayCtrlCfg);
+	 * 
+	 * @param {Object | String | undefined} dispCtrl If String, it will convert to DBControl Config.
+	 * 
+	 * @return {this | Object}
+	 */
+	displayControl: function (dispCtrl) {
+		var Z = this;
+		if (dispCtrl === undefined){
+			var result = Z._displayControl;
+			if(Z._dataType == jslet.data.DataType.PROXY) {
+				result = Z._getProxyPropValue('displayControl');
+			}
+			if (Z.getType() == jslet.data.DataType.BOOLEAN &amp;&amp; !result) {
+				return {
+					type: 'dbcheckbox'
+				};
+			}
+			return result;
+		}
+		dispCtrl = jslet.isString(dispCtrl) ? { type: dispCtrl } : dispCtrl;
+		if(Z._dataType == jslet.data.DataType.PROXY) {
+			Z._setProxyPropValue('displayControl', dispCtrl);
+		} else {
+			Z._displayControl = dispCtrl;
+		}
+		Z._fireGlobalMetaChangedEvent('displayControl');
+		return this;
+	},
+
+<span id='jslet-data-Field-property-editControl'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get field edit control. It is similar as DBControl configuration except not set 'dataset' and 'field' property. Example:
+	 * 
+	 *     @example
+	 *     //Normal DBControl configuration
+	 *     //var normalCtrlCfg = {type: &quot;DBSpinEdit&quot;, dataset: &quot;employee&quot;, field: &quot;age&quot;, minValue: 10, maxValue: 100, step: 5};
+	 *     
+	 *     var editCtrlCfg = {type: &quot;DBSpinEdit&quot;, minValue: 10, maxValue: 100, step: 5};
+	 *     fldObj.displayControl(editCtrlCfg);
+	 * 
+	 * @param {Object | String | undefined} editCtrl If String, it will convert to DBControl Config.
+	 * 
+	 * @return {this | Object}
+	 */
+	editControl: function (editCtrl) {
+		var Z = this;
+		if (editCtrl=== undefined){
+			var result = Z._editControl;
+			if(Z._dataType == jslet.data.DataType.PROXY) {
+				result = Z._getProxyPropValue('editControl');
+			}
+			if (result) {
+				return result;
+			}
+
+			var fldType = Z.getType();
+			if (fldType == jslet.data.DataType.BOOLEAN) {
+				return {type: 'dbcheckbox'};
+			}
+			if (fldType == jslet.data.DataType.DATE) {
+				return {type: 'dbdatepicker'};
+			}
+			
+			return Z.lookup()? {type: 'dbselect'}:{type: 'dbtext'};
+		}
+		if(jslet.isString(editCtrl)) {
+			editCtrl = jslet.trim(editCtrl);
+			if(editCtrl) {
+				if(editCtrl.indexOf(':') &gt; 0) {
+					editCtrl = jslet.JSON.parse(editCtrl);
+				} else {
+					editCtrl =  {type: editCtrl};
+				}
+			} else {
+				editCtrl = null;
+			}
+		}
+		var oldValue = Z._getProxyPropValue('editControl');
+		if(oldValue &amp;&amp; editCtrl &amp;&amp; oldValue.type == editCtrl.type) {
+			return this;
+		}
+		if(Z._dataType == jslet.data.DataType.PROXY) {
+			Z._setProxyPropValue('editControl', editCtrl);
+		} else {
+			Z._editControl = editCtrl;
+		}
+		Z._fireMetaChangedEvent('editControl');
+		Z._fireGlobalMetaChangedEvent('editControl');
+		return this;
+	},
+
+	_addRelation: function() {
+		var Z = this, 
+			lkObj = Z.lookup(),
+			lkDsName,
+			hostDsName = Z._datasetName;
+		if(!hostDsName || (Z.getType() != jslet.data.DataType.DATASET &amp;&amp; !lkObj)) {
+			return;
+		}
+		
+		var hostField = Z._fieldName,
+			relationType;
+		if(Z.getType() == jslet.data.DataType.DATASET) {
+			if(Z._detailDataset) {
+				lkDsName = Z._getDatasetName(Z._detailDataset);
+				relationType = jslet.data.DatasetType.DETAIL;
+				jslet.data.datasetRelationManager.addRelation(hostDsName, hostField, lkDsName, relationType);
+				var detailDsObj = jslet.data.getDataset(Z._detailDataset);
+				if(detailDsObj) {
+					detailDsObj.masterDataset(hostDsName);
+					detailDsObj.masterField(hostField);
+				}
+			}
+		} else {
+			lkDsName = Z._getDatasetName(lkObj._dataset);
+			relationType = jslet.data.DatasetType.LOOKUP;
+			jslet.data.datasetRelationManager.addRelation(hostDsName, hostField, lkDsName, relationType);
+		}
+	},
+	
+	_removeRelation: function() {
+		var Z = this,
+			lkObj = Z.lookup(),
+			hostDsName = Z._datasetName;
+		if(!hostDsName || (!Z._detailDataset &amp;&amp; !lkObj)) {
+			return;
+		}
+		var hostField = Z._fieldName,
+			relationType, lkDsName;
+
+		if(Z._detailDataset) {
+			lkDsName = Z._getDatasetName(Z._detailDataset);
+			var detailDsObj = jslet.data.getDataset(Z._detailDataset);
+			if(detailDsObj) {
+				detailDsObj.masterDataset(null);
+				detailDsObj.masterField(null);
+			}
+		} else {
+			lkDsName = Z._getDatasetName(lkObj._dataset);
+		}
+		jslet.data.datasetRelationManager.removeRelation(hostDsName, hostField, lkDsName);
+	},
+		
+<span id='jslet-data-Field-property-lookup'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get lookup field object. &lt;br /&gt;
+	 * In jslet, there are two relations of dataset: LOOKUP and DETAIL.&lt;br /&gt;
+	 * &quot;Lookup&quot; relation means where one field value is come from. Example:
+	 * 
+	 *     @example
+	 *     var dsDepartment = jslet.data.getDataset('department');
+	 *     fldObj.lookup({dataset: dsDepartment}); 
+	 *     //or
+	 *     fldObj.lookup({dataset: 'department'});
+	 * 
+	 * @param {jslet.data.FieldLookup | Object | undefined} lookupObject Lookup field object or lookup configuration.
+	 * 
+	 * @return {this | jslet.data.FieldLookup}
+	 */
+	lookup: function (lookupObj) {
+		var Z = this;
+		if (lookupObj === undefined){
+			if(Z._dataType == jslet.data.DataType.PROXY) {
+				return Z._getProxyPropValue('lookup');
+			}
+			return Z._lookup;
+		}
+		if(lookupObj &amp;&amp; lookupObj.className != jslet.data.FieldLookup.className) {
+			lookupObj = new jslet.data.FieldLookup(Z, lookupObj);
+		}
+		Z._removeRelation();
+		
+		if(Z._dataType == jslet.data.DataType.PROXY) {
+			Z._setProxyPropValue('lookup', lookupObj);
+		} else {
+			Z._lookup = lookupObj;
+		}
+		if(lookupObj) {
+			Z._addRelation();
+		}
+		Z._clearFieldCache();		
+		Z._fireColumnUpdatedEvent();
+		Z._fireLookupChangedEvent();
+		return this;
+	},
+	
+<span id='jslet-data-Field-method-_fireLookupChangedEvent'>	/**
+</span>	 * @private
+	 * 
+	 * Fire lookup setting changed event.
+	 */
+	_fireLookupChangedEvent: function() {
+		var Z = this;
+		if(!Z._dataset) {
+			return;
+		}
+		var fldName = this.name();
+		var lookupEvt = jslet.data.RefreshEvent.lookupEvent(fldName, true);
+		this._dataset.refreshControl(lookupEvt);
+	},
+
+	_getDatasetName: function(dsObjOrName) {
+		return jslet.isString(dsObjOrName)? dsObjOrName: dsObjOrName.name();
+	},
+
+<span id='jslet-data-Field-method-subDataset'>	/**
+</span>	 * @deprecated
+	 * Use detailDataset instead.
+	 */
+	subDataset: function (subDataset) {
+		return this.detailDataset(subDataset);
+	},
+	
+<span id='jslet-data-Field-property-detailDataset'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get sub dataset. &lt;br /&gt;
+	 * In jslet, there are two relations of dataset: LOOKUP and DETAIL.&lt;br /&gt;
+	 * &quot;Detail&quot; relation is used to define &quot;Master/Detail&quot; between two dataset.
+	 * 
+	 *     @example
+	 *     var dsDetail = new jslet.data.Dataset({name: 'detail', fields: [...]); //create detail dataset
+	 *     dsMaster.getField('detail1').detailDataset(dsDetail); //set detail dataset
+	 *     
+	 *     dsMaster.getField('detail1').detailDataset(); //get detail dataset
+	 *  
+	 * @param {jslet.data.Dataset | undefined} detailDataset Detail dataset.
+	 * 
+	 * @return {this | jslet.data.Dataset}
+	 */
+	detailDataset: function (detailDataset) {
+		var Z = this;
+		if (detailDataset === undefined) {
+			if(Z._detailDataset &amp;&amp; jslet.isString(Z._detailDataset)) {
+				Z.detailDataset(Z._detailDataset);
+				if(jslet.isString(Z._detailDataset)) {
+					throw new Error(jslet.formatMessage(jsletlocale.Dataset.datasetNotFound, [Z._detailDataset]));
+				}
+			}
+			return Z._detailDataset;
+		}
+		
+		Z._removeRelation();
+		if(!detailDataset) {
+			Z._detailDataset = null;
+			return this;
+		}
+		if (jslet.isString(detailDataset)) {
+			var dtlDsObj = jslet.data.getDataset(detailDataset);
+			if(!dtlDsObj) {
+				Z._detailDataset = detailDataset;
+				if(Z._dataset.createdByFactory) {
+				    jslet.data.datasetFactory.createDataset(detailDataset);
+				} else {
+					if(jslet.global.dataset.onDatasetCreating) {
+						var hostDsName = Z._datasetName;
+						
+						var creatingOpt = {datasetType: jslet.data.DatasetType.DETAIL}; 
+						jslet.data.createDynamicDataset(detailDataset, creatingOpt, hostDsName);
+					}
+				}
+				Z._addRelation();
+				return this;
+			}
+			detailDataset = dtlDsObj;
+		} else {
+			jslet.Checker.test('Field.detailDataset', detailDataset).isClass(jslet.data.Dataset.className);
+		}
+		Z._detailDataset = detailDataset;
+		Z._addRelation();
+		return this;
+	},
+
+	urlExpr: function (urlExpr) {
+		var Z = this;
+		if (urlExpr === undefined) {
+			return Z._urlExpr;
+		}
+
+		jslet.Checker.test('Field.urlExpr', urlExpr).isString();
+		Z._urlExpr = jslet.trim(urlExpr);
+		Z._innerUrlExpr = null;
+		Z._clearFieldCache();		
+		Z._fireColumnUpdatedEvent();
+		Z._fireGlobalMetaChangedEvent('urlExpr');
+		return this;
+	},
+
+	urlTarget: function (target) {
+		var Z = this;
+		if (target === undefined){
+			return !Z._urlTarget ? jslet.data.Field.URLTARGETBLANK : Z._urlTarget;
+		}
+
+		jslet.Checker.test('Field.urlTarget', target).isString();
+		Z._urlTarget = jslet.trim(target);
+		Z._clearFieldCache();
+		Z._fireColumnUpdatedEvent();
+		Z._fireGlobalMetaChangedEvent('urlTarget');
+		return this;
+	},
+
+	calcUrl: function () {
+		var Z = this;
+		if (!this.dataset() || !Z._urlExpr) {
+			return null;
+		}
+		if (!Z._innerUrlExpr) {
+			Z._innerUrlExpr = new jslet.data.Expression(this.dataset(), Z._urlExpr);
+		}
+		return Z._innerUrlExpr.eval();
+	},
+
+<span id='jslet-data-Field-property-antiXss'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get if field need be anti-xss.
+	 * If true, field value will be encoded.
+	 * 
+	 * @param {Boolean | undefined} isXss.
+	 * @return {this | Boolean}
+	 */
+	antiXss: function(isXss){
+		var Z = this;
+		if (isXss === undefined) {
+			return Z._antiXss;
+		}
+		Z._antiXss = isXss ? true: false;
+		Z._fireGlobalMetaChangedEvent('antiXss');
+		return this;
+	},
+
+<span id='jslet-data-Field-property-dataRange'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get field rang.
+	 * Range is an object as: {min: x, max: y}. Example:
+	 * 
+	 *     @example
+	 *     //For String field
+	 *     var range = {min: 'a', max: 'z'};
+	 *     //For Date field
+	 *     var range = {min: new Date(2000,1,1), max: new Date(2010,12,31)};
+	 *     //For Number field
+	 *     var range = {min: 0, max: 100};
+	 *     fldObj.dataRange(range);
+	 * 
+	 * @param {Object | undefined} range Field range;
+	 * @return {this | Object}
+	 */
+	dataRange: function (range) {
+		var Z = this;
+		if (range === undefined) {
+			if(Z._dataType == jslet.data.DataType.PROXY) {
+				return Z._getProxyPropValue('dataRange');
+			}
+			return Z._dataRange;
+		}
+		if(range &amp;&amp; jslet.isString(range)) {
+			range = jslet.JSON.parse(range);
+		}
+		if(range) {
+			jslet.Checker.test('Field.dataRange', range).isObject();
+			if(range.min) {
+				jslet.Checker.test('Field.dataRange.min', range.min).isDataType(Z._dateType);
+			}
+			if(range.max) {
+				jslet.Checker.test('Field.dataRange.max', range.max).isDataType(Z._dateType);
+			}
+		}
+		if(Z._dataType == jslet.data.DataType.PROXY) {
+			Z._setProxyPropValue('dataRange', range);
+		} else {
+			Z._dataRange = range;
+		}
+		Z._fireGlobalMetaChangedEvent('dataRange');
+		return this;
+	},
+
+<span id='jslet-data-Field-property-regularExpr'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get regular expression.
+	 * You can specify your own validator with regular expression. If regular expression not specified, 
+	 * The default regular expression for Date and Number field will be used. Example:
+	 * 
+	 *     @example
+	 *     var exprObj = {expr: /(\(\d{3,4}\)|\d{3,4}-|\s)?\d{8}/ig, message: 'Invalid phone number!'};
+	 *     fldObj.regularExpr(exprObj);//like: 0755-12345678
+	 *     fldObj.regularExpr(/(\(\d{3,4}\)|\d{3,4}-|\s)?\d{8}/ig, 'Invalid phone number!');//like: 0755-12345678
+	 * 
+	 * @param {String} expr Regular expression;
+	 * @param {String} message Message for invalid.
+	 * @return {Object} An object like: {expr: expr, message: message}
+	 */
+	regularExpr: function (expr, message) {
+		var Z = this;
+		var argLen = arguments.length;
+		if (argLen === 0){
+			if(Z._dataType == jslet.data.DataType.PROXY) {
+				return Z._getProxyPropValue('regularExpr');
+			}
+			return Z._regularExpr;
+		}
+		if(argLen &gt; 1) {
+			expr = { expr: expr, message: message };
+		}
+		if(Z._dataType == jslet.data.DataType.PROXY) {
+			Z._setProxyPropValue('regularExpr', expr);
+		} else {
+			Z._regularExpr = expr;
+		}
+		Z._fireGlobalMetaChangedEvent('regularExpr');
+		return this;
+	},
+	
+<span id='jslet-data-Field-property-customValueAccessor'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get customized field value accessor, the example:
+	 * 
+	 *     @example
+	 *     var accessor = {
+	 * 	     getValue: function(dataRecord, fldName) {
+	 *         var dynamicProps = dataRecord['dynamicProps'];
+	 *         if(dynamicProps) {
+	 *           return dynamicProps[fldName];
+	 *         } else {
+	 *           return null;
+	 *         }
+	 *         //The default method is: return dataRecord[fldname];
+	 *      },
+	 * 	     setValue: function(dataRecord, fldName, fldValue) {
+	 *         //Field value is stores in property 'dynamicProps'
+	 *         var dynamicProps = dataRecord['dynamicProps'];
+	 *         if(!dynamicProps) {
+	 *           dynamicProps = {};
+	 *           dataRecord['dynamicProps'] = dynamicProps;
+	 *         }
+	 *         dynamicProps[fldName] = fldValue;
+	 *         //The default method is: dataRecord[fldname] = fldValue;
+	 *       }
+	 *     };
+	 *     fldDyncField1.customValueAccessor(accessor); 
+	 *     fldDyncField2.customValueAccessor(accessor);
+	 *     
+	 * @param {Object | undefined} accessor Field raw value accessor.
+	 * @param {Function} accessor.getValue The method to get value from the original record.
+	 * @param {Object} accessor.getValue.dataRecord Field The original record.
+	 * @param {Object} accessor.getValue.fieldName Field name.
+	 * @param {Object} accessor.getValue.return Field value.
+	 * @param {Object} accessor.setValue The method to get value from the original record.
+	 * @param {Object} accessor.setValue.dataRecord Field The original record.
+	 * @param {Object} accessor.setValue.fieldName Field name.
+	 * 
+	 * @return {this | Object}
+	 */
+	customValueAccessor: function(accessor) {
+		var Z = this;
+		if (accessor === undefined) {
+			return Z._customValueAccessor;
+		}
+		Z._customValueAccessor = accessor;
+		Z._clearFieldCache();
+		Z._fireColumnUpdatedEvent();
+		Z._fireGlobalMetaChangedEvent('customValueAccessor');
+		return this;
+	},
+	
+<span id='jslet-data-Field-property-customValueConverter'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get customized field value converter. The converter is used to convert field value &lt;--&gt; field text. 
+	 * 
+	 * @param {jslet.data.FieldValueConverter | undefined} converter converter object, sub class of {@link jslet.data.FieldValueConverter}.
+	 * 
+	 * @return {this | jslet.data.FieldValueConverter} 
+	 */
+	customValueConverter: function (converter) {
+		var Z = this;
+		if (converter === undefined) {
+			return Z._customValueConverter;
+		}
+		Z._customValueConverter = converter;
+		Z._clearFieldCache();
+		Z._fireColumnUpdatedEvent();
+		Z._fireGlobalMetaChangedEvent('customValueConverter');
+		return this;
+	},
+
+<span id='jslet-data-Field-property-customValidator'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get customized validator. Example:
+	 * 
+	 *     @example
+	 *     //Client validating
+	 *     var clientValidateFn = function(fldObj, fldValue) {
+	 *       if(fldValue &lt;= 0) {
+	 *       	return 'Must be great than 0';
+	 *       } else 
+	 *       	return null;
+	 *     };
+	 *     fldObj1.customValidator(clientValidateFn);
+	 *     
+	 *     var serverValidateFn = function(fldObj, fldValue, serverValidateFn) {
+	 *       //Send request to server to validate.
+	 *       return serverValidateFn('/xx/check.do', {fieldValue: fldValue});
+	 *     };
+	 *     fldObj2.customValidator(serverValidateFn);
+	 * 
+	 * @param {Function} validator Validator function.
+	 * @param {jslet.data.Field} validator.fieldObject Field object.
+	 * @param {Object} validator.fieldValue Field value.
+	 * @param {Function} validator.serverValidateFn (optional) Validator function which will send request to server.
+	 * @param {String} validator.serverValidateFn.requestUrl The request URL for server validator.
+	 * @param {Object} validator.serverValidateFn.requestData The request data for server validator.
+	 * @param {String} validator.serverValidateFn.return Error message, if validate failed, return error message, otherwise return null.
+	 * @param {String} validator.return Error message, if validate failed, return error message, otherwise return null.
+	 */
+	customValidator: function (validator) {
+		var Z = this;
+		if (validator === undefined) {
+			if(Z._dataType == jslet.data.DataType.PROXY) {
+				return Z._getProxyPropValue('customValidator');
+			}
+			return Z._customValidator;
+		}
+		if(validator) {
+			jslet.Checker.test('Field.customValidator', validator).isFunction();
+		}
+		if(Z._dataType == jslet.data.DataType.PROXY) {
+			Z._setProxyPropValue('customValidator', validator);
+		} else {
+			Z._customValidator = validator;
+		}
+		Z._fireGlobalMetaChangedEvent('customValidator');
+		return this;
+	},
+	
+<span id='jslet-data-Field-property-validChars'>	/**
+</span>	 * @property
+	 * 
+	 * Valid characters for this field.
+	 * 
+	 *     @example
+	 *     fldObj.validChars('abc'); //Set property, return this.
+	 *     var propValue = dsObj.validChars(); //Get property value.
+	 * 
+	 * @param {String | undefined} validChars Valid characters.
+	 * 
+	 * @return {this | String}
+	 */
+	validChars: function(validChars){
+		var Z = this;
+		if (validChars === undefined){
+			var result = Z._validChars;
+			if(Z._dataType == jslet.data.DataType.PROXY) {
+				result = Z._getProxyPropValue('validChars');
+			}
+			if (result) {
+				return result;
+			}
+			if (Z.getType() == jslet.data.DataType.NUMBER){
+				return Z._scale ? '+-0123456789.' : '+-0123456789';
+			}
+			if (Z.getType() == jslet.data.DataType.DATE){
+				var displayFormat = Z.displayFormat();
+				validChars = '0123456789';
+				for(var i = 0, len = displayFormat.length; i &lt; len; i++) {
+					var c = displayFormat.charAt(i);
+					if(c === 'y' || c === 'M' || c === 'd' || c === 'h' || c === 'm' || c === 's') {
+						continue;
+					}
+					validChars += c;
+				}
+				return validChars;
+			}
+			return null;
+		}
+		
+		if(Z._dataType == jslet.data.DataType.PROXY) {
+			Z._setProxyPropValue('validChars', validChars);
+		} else {
+			Z._validChars = validChars;
+		}
+		Z._fireGlobalMetaChangedEvent('validChars');
+		return this;
+	},
+	
+<span id='jslet-data-Field-property-trueValue'>	/**
+</span>	 * @property
+	 * 
+	 * Used for Boolean field, actual value for 'true' value, like: 1, 'yes', 'true'. Example:
+	 * 
+	 *     @example
+	 *     var propValue = dsObj.trueValue(); //get property.
+	 *     
+	 *     var fldObj = dsObj.getField('booleanFld');
+	 *     var rec = dsObj.getRecord(); //Get original record object
+	 *     fldObj.trueValue(1); 
+	 *     fldObj.setValue(true);
+	 *     console.log(rec.booleanFld); //return 1
+	 *     
+	 *     fldObj.trueValue('yes'); //
+	 *     fldObj.setValue(true);
+	 *     console.log(rec.booleanFld); //return 'yes'
+	 * 
+	 * @param {Object | undefined} trueValue Actual value for 'true' value.
+	 * 
+	 * @return {this | Object}
+	 */
+	trueValue: function(trueValue) {
+		var Z = this;
+		if (trueValue === undefined) {
+			if(Z._dataType == jslet.data.DataType.PROXY) {
+				return Z._getProxyPropValue('trueValue');
+			}
+			return Z._trueValue;
+		}
+		if(Z._dataType == jslet.data.DataType.PROXY) {
+			Z._setProxyPropValue('trueValue', trueValue);
+		} else {
+			Z._trueValue = trueValue;
+		}
+		return this;		
+	},
+	
+<span id='jslet-data-Field-property-falseValue'>	/**
+</span>	 * @property
+	 * 
+	 * Used for Boolean field, actual value for 'false' value, like: 0, 'no', 'false'. Example:
+	 * 
+	 *     @example
+	 *     var propValue = dsObj.falseValue(); //get property.
+	 *     
+	 *     var fldObj = dsObj.getField('booleanFld');
+	 *     var rec = dsObj.getRecord(); //Get original record object
+	 *     fldObj.falseValue(1); 
+	 *     fldObj.setValue(false);
+	 *     console.log(rec.booleanFld); //return 1
+	 *     
+	 *     fldObj.trueValue('no'); //
+	 *     fldObj.setValue(false);
+	 *     console.log(rec.booleanFld); //return 'no'
+	 * 
+	 * @param {Object | undefined} falseValue Actual value for 'false' value.
+	 * 
+	 * @return {this | Object}
+	 */
+	falseValue: function(falseValue) {
+		var Z = this;
+		if (falseValue === undefined) {
+			if(Z._dataType == jslet.data.DataType.PROXY) {
+				return Z._getProxyPropValue('falseValue');
+			}
+			return Z._falseValue;
+		}
+		if(Z._dataType == jslet.data.DataType.PROXY) {
+			Z._setProxyPropValue('falseValue', falseValue);
+		} else {
+			Z._falseValue = falseValue;
+		}
+		return this;		
+	},
+	
+<span id='jslet-data-Field-property-trueText'>	/**
+</span>	 * @property
+	 * 
+	 * Used for Boolean field, diaplay text for 'true' value, like: 'Yes', 'True', 'Enabled'. Example:
+	 * 
+	 *     @example
+	 *     var propValue = dsObj.trueText(); //get property.
+	 *     
+	 *     var fldObj = dsObj.getField('booleanFld');
+	 *     fldObj.trueText('Enabled'); 
+	 *     fldObj.setValue(true);
+	 *     dsObj.getFieldText('booleanFld'); //return 'Enabled'
+	 *     
+	 *     fldObj.trueText('yes'); //
+	 *     fldObj.setValue(true);
+	 *     dsObj.getFieldText('booleanFld'); //return 'Yes'
+	 * 
+	 * @param {Object | undefined} trueText Display text for 'true' value.
+	 * 
+	 * @return {this | Object}
+	 */
+	trueText: function(trueText) {
+		var Z = this;
+		if (trueText === undefined) {
+			var result = Z._trueText;
+			if(Z._dataType == jslet.data.DataType.PROXY) {
+				result = Z._getProxyPropValue('trueText');
+			}
+			return result || jsletlocale.Dataset.trueText;
+		}
+		if(Z._dataType == jslet.data.DataType.PROXY) {
+			Z._setProxyPropValue('trueText', trueText);
+		} else {
+			Z._trueText = trueText;
+		}
+		return this;		
+	},
+	
+<span id='jslet-data-Field-property-falseText'>	/**
+</span>	 * @property
+	 * 
+	 * Used for Boolean field, diaplay text for 'false' value, like: 'No', 'False', 'Disabled'. Example:
+	 * 
+	 *     @example
+	 *     var propValue = dsObj.falseText(); //get property.
+	 *     
+	 *     var fldObj = dsObj.getField('booleanFld');
+	 *     fldObj.trueText('Disabled'); 
+	 *     fldObj.setValue(false);
+	 *     dsObj.getFieldText('booleanFld'); //return 'Disabled'
+	 *     
+	 *     fldObj.trueText('No'); //
+	 *     fldObj.setValue(false);
+	 *     dsObj.getFieldText('booleanFld'); //return 'No'
+	 * 
+	 * @param {Object | undefined} falseText Display text for 'false' value.
+	 * 
+	 * @return {this | Object}
+	 */
+	falseText: function(falseText) {
+		var Z = this;
+		if (falseText === undefined) {
+			var result = Z._falseText;
+			if(Z._dataType == jslet.data.DataType.PROXY) {
+				result = Z._getProxyPropValue('falseText');
+			}
+			return result || jsletlocale.Dataset.falseText;
+		}
+		if(Z._dataType == jslet.data.DataType.PROXY) {
+			Z._setProxyPropValue('falseText', falseText);
+		} else {
+			Z._falseText = falseText;
+		}
+		return this;		
+	},
+	
+<span id='jslet-data-Field-property-mergeSame'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get whether the same field values will be merged.
+	 * 
+	 *     @example
+	 *     dsFld.mergeSame(true); //Set property, return this.
+	 *     var propValue = fldObj.mergeSame(); //Get property value.
+	 * 
+	 * @param {Boolean | undefined} mergeSame.
+	 * 
+	 * @return {this | Boolean}
+	 */
+	mergeSame: function(mergeSame){
+		var Z = this;
+		if (mergeSame === undefined) {
+			return Z._mergeSame;
+		}
+		Z._mergeSame = mergeSame ? true: false;
+		Z._fireGlobalMetaChangedEvent('mergeSame');
+		return this;
+	},
+
+<span id='jslet-data-Field-property-mergeSameBy'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get the field names to be merge by. &lt;br /&gt;
+	 * Multiple field names are separated by ','.
+	 * 
+	 *     @example
+	 *     //The the same field values of &quot;salesNo&quot; + &quot;customer&quot; will be merged. 
+	 *     dsObj.getField('customer').mergeSame(true);
+	 *     dsFld.mergeSameBy('salesNo');
+	 * 
+	 * @param {String | undefined} mergeSameBy.
+	 * 
+	 * @return {this | String}
+	 */
+	mergeSameBy: function(mergeSameBy){
+		var Z = this;
+		if (mergeSameBy === undefined) {
+			return Z._mergeSameBy;
+		}
+		jslet.Checker.test('Field.mergeSameBy', mergeSameBy).isString();
+		Z._mergeSameBy = jslet.trim(mergeSameBy);
+		Z._fireGlobalMetaChangedEvent('mergeSameBy');
+		return this;
+	},
+	
+<span id='jslet-data-Field-property-valueFollow'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get if the field is following the value of previous record which append before.
+	 * 
+	 *     @example
+	 *     dsObj.getField('fld1').valueFollow(true);
+	 *     dsObj.setFieldValue('fld1', 123); //Step 1
+	 *     dsObj.confirm();
+	 *     dsObj.appendRecord();
+	 *     dsObj.getFieldValue('fld1'); //return 123, same as &quot;step 1&quot;
+	 * 
+	 * @param {Boolean | undefined} valueFollow True - the default value is same as the value which appended before, false -otherwise.
+	 * 
+	 * @return {this | Boolean}
+	 */
+	valueFollow: function(valueFollow) {
+		var Z = this;
+		if(valueFollow === undefined) {
+			if(Z._formula) { //Formula field can't set value followed or it will cause unpredictable issue.
+				return false;
+			}
+			return Z._valueFollow;
+		}
+		Z._valueFollow = valueFollow? true: false;
+		if(!Z._valueFollow &amp;&amp; Z._dataset) {
+			Z._dataset.clearFollowedValues();
+		}
+		Z._fireGlobalMetaChangedEvent('valueFollow');
+		return this;
+	},
+
+<span id='jslet-data-Field-property-trimBlank'>	/**
+</span>	 * @property
+	 * 
+	 * Identity whether trim the prefix or suffix blank character when setting field value.
+	 * 
+	 * @param {Boolean | undefined} trimBlank True - (Default) trim the prefix or suffix blank character, false -otherwise.
+	 * 
+	 * @return {this | Boolean}
+	 */
+	trimBlank: function(trimBlank) {
+		var Z = this;
+		if(trimBlank === undefined) {
+			return Z._trimBlank;
+		}
+		Z._trimBlank = trimBlank? true: false;
+		Z._fireGlobalMetaChangedEvent('_trimBlank');
+		return this;
+	},
+
+<span id='jslet-data-Field-property-focused'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get whether the field is focused or not. &lt;br /&gt;
+	 * If a field is focused, the input focus will be jumped in them.
+	 * 
+	 * @param {Boolean | undefined} focused True - the field is focused, false - otherwise.
+	 * 
+	 * @return {this | Boolean}
+	 */
+	focused: function(focused) {
+		var Z = this;
+		if(focused === undefined) {
+			return Z._focused;
+		}
+		focused = focused? true: false;
+		if(focused === Z._focused) {
+			return this;
+		}
+		Z._focused = focused;
+		if(Z._dataset) {
+			Z._dataset.calcFocusedFields();
+		}
+		Z._fireGlobalMetaChangedEvent('focused');
+		return this;
+	},
+
+<span id='jslet-data-Field-property-aggregated'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get whether the field value is aggregated.
+	 * 
+	 * @param {Boolean | undefined} aggregated.
+	 * 
+	 * @return {this | Boolean}
+	 */
+	aggregated: function (aggregated) {
+		var Z = this;
+		if (aggregated === undefined){
+			return Z._aggregated;
+		}
+		
+		Z._aggregated = aggregated? true: false;
+		if(Z._dataset) {
+			Z._dataset.refreshAggregatedFields();
+		}
+		Z._fireGlobalMetaChangedEvent('aggregated');
+		return this;
+	},
+
+	/*
+	 * @deprecated
+	 * Use aggregated instead.
+	 */
+	aggraded: function (aggregated) {
+		return this.aggregated(aggregated);
+	},
+
+<span id='jslet-data-Field-property-aggregatedBy'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get the field names to aggregate field value. &lt;br /&gt; 
+	 * Same field values which specified by &quot;aggregatedBy&quot; will only calculate once. Multiple field names are separated by ','.
+	 * 
+	 * @param {String | undefined} aggregatedBy Field names.
+	 * 
+	 * @return {this | String}
+	 */
+	aggregatedBy: function(aggregatedBy){
+		var Z = this;
+		if (aggregatedBy === undefined) {
+			return Z._aggregatedBy;
+		}
+		jslet.Checker.test('Field.aggregatedBy', aggregatedBy).isString();
+		Z._aggregatedBy = jslet.trim(aggregatedBy);
+		Z._fireGlobalMetaChangedEvent('aggregatedBy');
+		return this;
+	},
+
+	/*
+	 * @deprecated
+	 * Use aggregatedBy instead.
+	 */
+	aggradedBy: function(aggregatedBy){
+		return this.aggregatedBy(aggregatedBy);
+	},
+	
+	extendHostName: function(extendHostName) {
+		var Z = this;
+		if(extendHostName === undefined) {
+			return Z._extendHostName;
+		}
+		jslet.Checker.test('Field.extendHostName', extendHostName).isString();
+		Z._extendHostName = extendHostName;
+		return this;
+	},
+	
+	crossSource: function(crossSource) {
+		var Z = this;
+		if(crossSource === undefined) {
+			return Z._crossSource;
+		}
+		jslet.Checker.test('Field.crossSource', crossSource).isClass(jslet.data.CrossFieldSource.className);
+		Z._crossSource = crossSource;
+		return this;
+	},
+	
+<span id='jslet-data-Field-property-fixedValue'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get fixed field value, if field value not specified, fixed field value used.&lt;br /&gt;
+	 * This property can be used to display non-data field, like &quot;action field&quot;(one or multiple buttons).
+	 * 
+	 * @param {String | undefined} fixedValue Fixed value.
+	 * 
+	 * @return {this | String}
+	 */
+	fixedValue: function(fixedValue){
+		var Z = this;
+		if (fixedValue === undefined) {
+			return Z._fixedValue;
+		}
+		jslet.Checker.test('Field.fixedValue', fixedValue).isString();
+		Z._fixedValue = jslet.trim(fixedValue);
+		Z._fireGlobalMetaChangedEvent('fixedValue');
+		return this;
+	},
+	
+<span id='jslet-data-Field-method-getValue'>	/**
+</span>	 * Get field value.
+	 * 
+	 * @param {Integer} valueIndex (optional) Field value index, only used for field.valueStyle is BETWEEN or MULTIPLE, start with 0.
+	 * 
+	 * @return {Object}
+	 */
+	getValue: function(valueIndex) {
+		return this._dataset.getFieldValue(this._fieldName, valueIndex);
+	},
+	
+<span id='jslet-data-Field-method-setValue'>	/**
+</span>	 * Set field value.
+	 * 
+	 * @param {Object} value Field value.
+	 * @param {Integer} valueIndex (optional) Field value index, only used for field.valueStyle is BETWEEN or MULTIPLE, start with 0.
+	 * 
+	 * @return {this}
+	 */
+	setValue: function(value, valueIndex) {
+		this._dataset.setFieldValue(this._fieldName, value, valueIndex);
+		return this;
+	},
+
+<span id='jslet-data-Field-method-getTextValue'>	/**
+</span>	 * Get field text.
+	 * 
+	 * @param {Boolean} isEditing (optional) In edit mode or not, if in edit mode, return 'Input Text'(user inputting text), else return 'Display Text'(Display text is almost formatted). 
+	 * @param {Integer} valueIndex (optional) Field value index, only used for field.valueStyle is BETWEEN or MULTIPLE, starts with 0.
+	 * 
+	 * @return {String} Field text.
+	 */
+	getTextValue: function(isEditing, valueIndex) {
+		return this._dataset.getFieldText(this._fieldName, isEditing, valueIndex);
+	},
+	
+<span id='jslet-data-Field-method-setTextValue'>	/**
+</span>	 * Set field text.
+	 * 
+	 * @param {String} inputText String value inputed by user.
+	 * @param {Integer} valueIndex (optional) Field value index, only used for field.valueStyle is BETWEEN or MULTIPLE, starts with 0.
+	 * 
+	 * @return {this}
+	 */
+	setTextValue: function(inputText, valueIndex) {
+		this._dataset.setFieldText(this._fieldName, inputText, valueIndex);
+		return this;
+	},
+	
+<span id='jslet-data-Field-method-clone'>	/**
+</span>	 * Clone a field object. Example:
+	 * 
+	 *     @example
+	 *     var dsNew = jslet.data.getDataset('newDataset');
+	 *     var newFldObj = fldObj.clone('field1', dsNew);
+	 *     dsNew.addField(newFldObj);
+	 * 
+	 * @param {String} fldName Field name.
+	 * @param {jslet.data.Dataset} newDataset New dataset object.
+	 * 
+	 * @return {jslet.data.Field}
+	 */
+	clone: function(fldName, newDataset){
+		var Z = this;
+		jslet.Checker.test('Field.clone#fldName', fldName).required().isString();
+		
+		var result = new jslet.data.Field(newDataset, {name: fldName, dataType: Z._dataType, detailDataset: Z._detailDataset});
+		newDataset = newDataset || this.dataset();
+		result.dataset(newDataset);
+		result.visible(Z._visible);
+		if (Z._parent) {
+			result.parent(Z._parent.clone(Z._parent.name(), newDataset));
+		}
+		if (Z._children &amp;&amp; Z._children.length &gt; 0){
+			var childFlds = [], childFldObj;
+			for(var i = 0, cnt = Z._children.length; i &lt; cnt; i++){
+				childFldObj = Z._children[i];
+				childFlds.push(childFldObj.clone(childFldObj.name(), newDataset));
+			}
+			result.children(childFlds);
+		}
+		
+		result.length(Z._length);
+		result.scale(Z._scale);
+		result.alignment(Z._alignment);
+		result.defaultExpr(Z._defaultExpr);
+		result.defaultValue(Z._defaultValue);
+		result.label(Z._label);
+		result.displayLabel(Z._displayLabel);
+		
+		result.shortName(Z._shortName);
+		result.tip(Z._tip);
+		result.displayWidth(Z._displayWidth);
+		if (Z._editMask) {
+			result.editMask(Z._editMask.clone());
+		}
+		result.displayOrder(Z._displayOrder);
+		result.tabIndex(Z._tabIndex);
+		result.displayFormat(Z._displayFormat);
+		result.formula(Z._formula);
+		result.unique(Z._unique);
+		result.required(Z._required);
+		result.readOnly(Z._readOnly);
+		result.disabled(Z._disabled);
+		result.unitConverted(Z._underted);
+		if (Z._lookup) {
+			result.lookup(Z._lookup.clone(result));
+		}
+		result.displayControl(Z._displayControl);
+		result.editControl(Z._editControl);
+		result.urlExpr(Z._urlExpr);
+		result.urlTarget(Z._urlTarget);
+		result.valueStyle(Z._valueStyle);
+		result.valueCountLimit(Z._valueCountLimit);
+		result.valueCountRange(Z._valueCountRange);
+		result.nullText(Z._nullText);
+		result.dataRange(Z._dataRange);
+		if (Z._regularExpr) {
+			result.regularExpr(Z._regularExpr);
+		}
+		result.antiXss(Z._antiXss);
+		result.customValidator(Z._customValidator);
+		result.customValueConverter(Z._customValueConverter);
+		result.customValueAccessor(Z._customValueAccessor);
+		result.validChars(Z._validChars);
+		
+		result.mergeSame(Z._mergeSame);
+		result.mergeSameBy(Z._mergeSameBy);
+		result.fixedValue(Z._fixedValue);
+		
+		result.valueFollow(Z._valueFollow);
+		result.trimBlank(Z._trimBlank);
+		result.focused(Z._focused);
+		result.aggregated(Z._aggregated);
+		result.aggregatedBy(Z._aggregatedBy);
+
+		result.trueValue(Z._trueValue);
+		result.falseValue(Z._falseValue);
+		result.trueText(Z._trueText);
+		result.falseText(Z._falseText);
+		result._addRelation();
+		return result;
+	},
+	
+	_clearFieldCache: function() {
+		var Z = this;
+		if(Z._dataset &amp;&amp; Z._fieldName) {
+			jslet.data.FieldValueCache.clearAll(Z._dataset, Z._fieldName);
+		}
+	}
+	
+};
+
+jslet.data.Field.URLTARGETBLANK = '_blank';
+
+
+<span id='jslet-data-FieldLookup'>/**
+</span> * @class
+ * 
+ * A lookup field represents a field value is from another dataset named &quot;Lookup Dataset&quot;;
+ * 
+ * @param {jslet.data.Field} hostFieldObject Host field object.
+ * @param {Object} lookupConfig Lookup field configuration. Its member must be same the properties of jslet.data.FieldLookup.
+ */
+jslet.data.FieldLookup = function(hostFldObj, lookupCfg) {
+	jslet.Checker.test('FieldLookup#hostFldObj', hostFldObj).required().isClass(jslet.data.Field.className);
+	jslet.Checker.test('FieldLookup#lookupCfg', lookupCfg).required();
+	if (jslet.isString(lookupCfg)) {
+		lookupCfg = lookupCfg.trim();
+		if(lookupCfg) {
+			if(lookupCfg.trim().startsWith('{')) {
+				lookupCfg = jslet.JSON.parse(lookupCfg);
+			} else {
+				lookupCfg = {dataset: lookupCfg};
+			}
+		}
+	}
+
+	jslet.Checker.test('FieldLookup#lookupCfg.dataset', lookupCfg.dataset).required();
+	var Z = this;
+	Z._hostDatasetName = hostFldObj.dataset().name();
+	Z._hostField = hostFldObj;//The field which contains this lookup field object.
+	Z._dataset = null;
+	Z._realDataset = null;
+	Z._dsParsed = false;
+	Z._keyField = null;
+	Z._codeField = null;
+	Z._nameField = null;
+	Z._codeFormat = null;
+	Z._displayFields = null;
+	Z._innerdisplayFields = null;
+	Z._parentField = null;
+	Z._onlyLeafLevel = true;
+	Z._returnFieldMap = null;
+	Z._editFilter = null;
+	Z._editItemDisabled = false;
+	Z._onlyLookupFields = false;
+	Z._includeFields = null;
+	Z._excludeFields = null;
+	Z._visibleFields = null;
+	Z._create(lookupCfg);
+};
+jslet.data.FieldLookup.className = 'jslet.data.FieldLookup';
+
+jslet.data.FieldLookup.prototype = {
+	className: jslet.data.FieldLookup.className,
+	
+	_create: function(param) {
+		var Z = this;
+		if (param.realDataset !== undefined) {
+			Z.realDataset(param.realDataset);
+		}
+		
+		if (param.keyField !== undefined) {
+			Z.keyField(param.keyField);
+		}
+		if (param.codeField !== undefined) {
+			Z.codeField(param.codeField);
+		}
+		if (param.nameField !== undefined) {
+			Z.nameField(param.nameField);
+		}
+		if (param.parentField !== undefined) {
+			Z.parentField(param.parentField);
+		}
+		if (param.displayFields !== undefined) {
+			Z.displayFields(param.displayFields);
+		}
+		if (param.onlyLeafLevel !== undefined) {
+			Z.onlyLeafLevel(param.onlyLeafLevel);
+		}
+		if (param.returnFieldMap !== undefined) {
+			Z.returnFieldMap(param.returnFieldMap);
+		}
+		if (param.editFilter !== undefined) {
+			Z.editFilter(param.editFilter);
+		}
+		if (param.editItemDisabled !== undefined) {
+			Z.editItemDisabled(param.editItemDisabled);
+		}
+		
+		if (param.onlyLookupFields !== undefined) {
+			Z.onlyLookupFields(param.onlyLookupFields);
+		}
+		
+		if (param.includeFields !== undefined) {
+			Z.includeFields(param.includeFields);
+		}
+		
+		if (param.excludeFields !== undefined) {
+			Z.excludeFields(param.excludeFields);
+		}
+		
+		if (param.visibleFields !== undefined) {
+			Z.visibleFields(param.visibleFields);
+		}
+		
+		Z.dataset(param.dataset);
+	},
+	
+	clone: function(hostFldObj){
+		var Z = this, 
+			result = new jslet.data.FieldLookup(hostFldObj, {dataset: Z._dataset});
+		result.keyField(Z._keyField);
+		result.codeField(Z._codeField);
+		result.nameField(Z._nameField);
+		result.displayFields(Z._displayFields);
+		result.parentField(Z._parentField);
+		result.onlyLeafLevel(Z._onlyLeafLevel);
+		result.returnFieldMap(Z._returnFieldMap);
+		result.editFilter(Z._editFilter);
+		result.editItemDisabled(Z._editItemDisabled);
+		
+		result.onlyLookupFields(Z._onlyLookupFields);
+		result.includeFields(Z._includeFields);
+		result.excludeFields(Z._excludeFields);
+		result.visibleFields(Z._visibleFields);
+		return result;
+	},
+	
+	toPlanObject: function() {
+		var Z = this,
+			result = {};
+		result.dataset = Z._dataset;
+		result.keyField = Z._keyField;
+		result.codeField = Z._codeField;
+		result.nameField = Z._nameField;
+		result.displayFields = Z._displayFields;
+		result.parentField = Z._parentField;
+		result.onlyLeafLevel = Z._onlyLeafLevel;
+		result.returnFieldMap = Z._returnFieldMap;
+		result.editFilter = Z._editFilter;
+		result.editItemDisabled = Z._editItemDisabled;
+		
+		result.onlyLookupFields = Z._onlyLookupFields;
+		result.includeFields = Z._includeFields;
+		result.excludeFields = Z._excludeFields;
+		result.visibleFields = Z._visibleFields;
+		return result;
+	},
+	
+	hostField: function(fldObj) {
+		var Z = this;
+		if (fldObj === undefined) {
+			return Z._hostField;
+		}
+		jslet.Checker.test('FieldLookup.hostField', fldObj).isClass(jslet.data.Field.className);
+		Z._hostField = fldObj;
+		return this;
+	},
+	
+<span id='jslet-data-FieldLookup-method-_fireLookupChangedEvent'>	/**
+</span>	 * Fire lookup setting changed event.
+	 */
+	_fireLookupChangedEvent: function() {
+		var Z = this;
+		if(!Z._hostField) {
+			return;
+		}
+		Z._hostField._fireLookupChangedEvent();
+	},
+
+<span id='jslet-data-FieldLookup-property-dataset'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get lookup dataset.
+	 * 
+	 * @param {jslet.data.Dataset | undefined} dataset Lookup dataset.
+	 * 
+	 * @return {this | jslet.data.Dataset}
+	 */
+	dataset: function(lkdataset) {
+		var Z = this;
+		if (lkdataset === undefined) {
+			if(!Z._dsParsed) {
+				Z.dataset(Z._dataset);
+				if(!Z._dsParsed) {
+					throw new Error('Not found lookup dataset: ' + Z._dataset);
+				}			}
+			
+			return Z._dataset;
+		}
+		var lkDsName;
+		if(lkdataset) {
+			if (typeof(lkdataset) == 'string') {
+				lkDsName = lkdataset;
+			} else {
+				lkDsName = lkdataset.name();
+			}
+			if(lkDsName == Z._hostDatasetName) {
+				throw new Error(jsletlocale.Dataset.LookupDatasetNotSameAsHost);
+			}
+		}
+		var lkDsObj = lkdataset;
+		if (typeof(lkDsObj) == 'string') {
+			lkDsObj = jslet.data.getDataset(lkDsObj);
+			if(!lkDsObj) {
+				var creatingOpt = {datasetType: jslet.data.DatasetType.LOOKUP, 
+						onlyLookupFields: (Z._onlyLookupFields === undefined || Z._onlyLookupFields)};
+				if(Z._includeFields) {
+					creatingOpt.includeFields = Z._includeFields;
+				}
+				if(Z._excludeFields) {
+					creatingOpt.excludeFields = Z._excludeFields;
+				}
+				if(Z._visibleFields) {
+					creatingOpt.visibleFields = Z._visibleFields;
+				}
+				if(Z._realDataset) {
+					creatingOpt.realDatasetName = Z._realDataset;
+				}
+				if(Z._hostField.dataset().createdByFactory) {
+				    jslet.data.datasetFactory.createDataset(lkdataset, creatingOpt);
+				} else if(jslet.global.dataset.onDatasetCreating &amp;&amp;
+					jslet.data.defaultDatasetCreatingManager.allowCreatingDataset(Z._hostDatasetName)) {
+					jslet.data.createDynamicDataset(lkdataset, creatingOpt, Z._hostDatasetName);
+				} 
+			}
+		}
+		if(lkDsObj) {
+			Z._dataset = lkDsObj;
+			Z._dataset.autoRefreshHostDataset(true);
+			Z._dsParsed = true;
+			Z._fireLookupChangedEvent();
+		} else {
+			Z._dataset = lkdataset;
+			Z._dsParsed = false;
+		}
+
+		return this;
+	},
+
+<span id='jslet-data-FieldLookup-property-realDataset'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get key field. &lt;br /&gt;
+	 * Key field is optional, if it is null, it will use LookupDataset.keyField instead. 
+	 * 
+	 * @param {String | undefined} keyFldName Key field name.
+	 * 
+	 * @return {this | String}
+	 */
+	realDataset: function(realDataset) {
+		var Z = this;
+		if (realDataset === undefined){
+			return Z._realDataset;
+		}
+
+		jslet.Checker.test('FieldLookup.realDataset', realDataset).isString();
+		Z._realDataset = realDataset;
+		return this;
+	},
+	
+<span id='jslet-data-FieldLookup-property-keyField'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get key field. &lt;br /&gt;
+	 * Key field is optional, if it is null, it will use LookupDataset.keyField instead. 
+	 * 
+	 * @param {String | undefined} keyFldName Key field name.
+	 * 
+	 * @return {this | String}
+	 */
+	keyField: function(keyFldName) {
+		var Z = this;
+		if (keyFldName === undefined){
+			return Z._keyField || Z.dataset().keyField();
+		}
+
+		jslet.Checker.test('FieldLookup.keyField', keyFldName).isString();
+		Z._keyField = jslet.trim(keyFldName);
+		Z._fireLookupChangedEvent();
+		return this;
+	},
+
+<span id='jslet-data-FieldLookup-property-codeField'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get code field. &lt;br /&gt;
+	 * Code field is optional, if it is null, it will use LookupDataset.codeField instead. 
+	 * 
+	 * @param {String | undefined} codeFldName Code field name.
+	 * 
+	 * @return {this | String}
+	 */
+	codeField: function(codeFldName) {
+		var Z = this;
+		if (codeFldName === undefined){
+			return Z._codeField || Z.dataset().codeField();
+		}
+
+		jslet.Checker.test('FieldLookup.codeField', codeFldName).isString();
+		Z._codeField = jslet.trim(codeFldName);
+		Z._fireLookupChangedEvent();
+		return this;
+	},
+	
+	codeFormat: function(format) {
+		var Z = this;
+		if (format === undefined) {
+			return Z._codeFormat;
+		}
+
+		jslet.Checker.test('FieldLookup.codeFormat', format).isString();
+		Z._codeFormat = jslet.trim(format);
+		Z._fireLookupChangedEvent();
+		return this;
+	},
+
+<span id='jslet-data-FieldLookup-property-nameField'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get name field. &lt;br /&gt;
+	 * Name field is optional, if it is null, it will use LookupDataset.nameField instead. 
+	 * 
+	 * @param {String | undefined} nameFldName Name field name.
+	 * 
+	 * @return {this | String}
+	 */
+	nameField: function(nameFldName) {
+		var Z = this;
+		if (nameFldName === undefined){
+			return Z._nameField || Z.dataset().nameField();
+		}
+
+		jslet.Checker.test('FieldLookup.nameField', nameFldName).isString();
+		Z._nameField = jslet.trim(nameFldName);
+		Z._fireLookupChangedEvent();
+		return this;
+	},
+
+<span id='jslet-data-FieldLookup-property-parentField'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get parent field. &lt;br /&gt;
+	 * Parent field is optional, if it is null, it will use LookupDataset.parentField instead. 
+	 * 
+	 * @param {String | undefined} parentFldName Parent field name.
+	 * 
+	 * @return {this | String}
+	 */
+	parentField: function(parentFldName) {
+		var Z = this;
+		if (parentFldName === undefined){
+			return Z._parentField || Z.dataset().parentField();
+		}
+
+		jslet.Checker.test('FieldLookup.parentField', parentFldName).isString();
+		Z._parentField = jslet.trim(parentFldName);
+		Z._fireLookupChangedEvent();
+		return this;
+	},
+
+<span id='jslet-data-FieldLookup-property-displayFields'>	/**
+</span>	 * @property
+	 * 
+	 * An expression for display field value. Example:
+	 * 
+	 *     @example
+	 *     lookupFldObj.displayFields('[code]-[name]'); //set property value
+	 *     lookupFldObj.displayFields(); //get property value.
+	 *    
+	 * @param {String | undefined} displayFields Display fields expression.
+	 * 
+	 * @return {this | String}
+	 */
+	displayFields: function(fieldExpr) {
+		var Z = this;
+		if (fieldExpr === undefined) {
+			return Z._displayFields? Z._displayFields: this.getDefaultDisplayFields();
+		}
+		jslet.Checker.test('FieldLookup.displayFields', fieldExpr).isString();
+		fieldExpr = jslet.trim(fieldExpr);
+		if (Z._displayFields != fieldExpr) {
+			Z._displayFields = fieldExpr;
+			Z._innerdisplayFields = null;
+			if(Z._hostField) {
+				Z._hostField._clearFieldCache();
+			}
+		}
+		Z._fireLookupChangedEvent();
+		return this;
+	},
+	
+<span id='jslet-data-FieldLookup-property-returnFieldMap'>	/**
+</span>	 * @property
+	 * 
+	 * Return extra field values of lookup dataset into main dataset. &lt;br /&gt;
+	 * Map format: {&quot;main dataset field name&quot;:&quot;lookup dataset field name&quot;, ...}. &lt;br /&gt; 
+	 * Example:
+	 * 
+	 *     @example
+	 *     lookupObj.returnFieldMap({hostDsFieldName: lookupDsFieldName}); //Set property value
+	 *     lookupObj.returnFieldMap(); //Get property value
+	 *     
+	 *     var dsDepartment = jslet.data.getDataset('customer'); //Fields: custNo, custName, contactor
+	 *     var dsSales = jslet.data.getDataset('sales'); //Fields: customer, customerName, contactor
+	 *     
+	 *     dsSales.getField('customer').lookup().returnFieldMap({&quot;customerName&quot;: &quot;custName&quot;, &quot;contactor&quot;: &quot;contactor&quot;});
+	 *     
+	 *     dsSales.setFieldValue('customer', 23); //Add customer(custName: 'IBM', contactor: 'James')
+	 *     
+	 *     //After customer is set, the field value of 'customerName' and 'contactor' will be set automatically.
+	 *     dsSales.getFieldValue('customerName'); //return 'IBM'
+	 *     dsSales.getFieldValue('contactor'); //return 'James'
+	 *     
+	 *       
+	 * @param {Object | undefined} returnFieldMap The key is master dataset's field name, and the value is the lookup dataset's field name.
+	 * 
+	 * @return {this | Object}
+	 */
+	returnFieldMap: function(returnFieldMap) {
+		if(returnFieldMap === undefined) {
+			return this._returnFieldMap;
+		}
+		jslet.Checker.test('FieldLookup.returnFieldMap', returnFieldMap).isObject();
+		this._returnFieldMap = returnFieldMap;
+	},
+	
+<span id='jslet-data-FieldLookup-method-getDefaultDisplayFields'>	/**
+</span>	 * @private
+	 */
+	getDefaultDisplayFields: function() {
+//		var expr = '[',fldName = this.codeField();
+//		if (fldName) {
+//			expr += fldName + ']';
+//		}
+//		fldName = this.nameField();
+//
+//		if (fldName) {
+//			expr += '+&quot;-&quot;+[';
+//			expr += fldName + ']';
+//		}
+//		if (expr === '') {
+//			expr = '&quot;Not set displayFields&quot;';
+//		}
+//		
+		var expr = '[' + (this.nameField() || this.codeField() || this.keyField()) + ']';
+		return expr;
+	},
+
+<span id='jslet-data-FieldLookup-method-getCurrentDisplayValue'>	/**
+</span>	 * @private
+	 */
+	getCurrentDisplayValue: function() {
+		var Z = this;
+		if (Z._displayFields === null) {
+			this.displayFields(this.getDefaultDisplayFields());
+		}
+		if(!Z._innerdisplayFields) {
+			Z._innerdisplayFields = new jslet.data.Expression(Z.dataset(), Z.displayFields());
+		}
+		
+		return Z._innerdisplayFields.eval();
+	},
+
+<span id='jslet-data-FieldLookup-property-onlyLeafLevel'>	/**
+</span>	 * @property
+	 * 
+	 * Identify whether user can select leaf level item if lookup dataset is a tree-style dataset.
+	 * 
+	 * @param {Boolean | undefined} onlyLeafLevel True(Default) - Only leaf level item user can selects, false - otherwise.
+	 * @return {this | Boolean}
+	 */
+	onlyLeafLevel: function(flag) {
+		var Z = this;
+		if (flag === undefined) {
+			return Z._onlyLeafLevel;
+		}
+		Z._onlyLeafLevel = flag ? true: false;
+		Z._fireLookupChangedEvent();
+		return this;
+	},
+
+<span id='jslet-data-FieldLookup-property-editFilter'>	/**
+</span>	 * @property
+	 * 
+	 * An expression to filter lookup dataset records when editing the host dataset. Example:
+	 * 
+	 *     @example
+	 *     lookupFldObj.editFilter('like([code], &quot;101%&quot; ');
+	 * 
+	 * @param {String | undefined} editFilter An expression to filter the lookup dataset.
+	 * 
+	 * @return {this | String}
+	 */
+	editFilter: function(editFilter) {
+		var Z = this;
+		if (editFilter === undefined) {
+			return Z._editFilter;
+		}
+		jslet.Checker.test('FieldLookup.editFilter', editFilter).isString();
+		
+		if (Z._editFilter != editFilter) {
+			Z._editFilter = editFilter;
+		}
+		Z._fireLookupChangedEvent();
+		return this;
+	},
+	
+<span id='jslet-data-FieldLookup-property-editItemDisabled'>	/**
+</span>	 * @property
+	 * 
+	 * Disable or hide the edit item which not match the 'editFilter'.
+	 * editItemDisabled is true, the non-matched item will be disabled, not hidden.
+	 * 
+	 * @param {Boolean | undefined} editItemDisabled - true: disable edit item, false: hide edit item, default is true.
+	 * 
+	 * @return {this | Boolean}
+	 */
+	editItemDisabled: function(editItemDisabled) {
+		var Z = this;
+		if (editItemDisabled === undefined) {
+			return Z._editItemDisabled;
+		}
+		
+		Z._editItemDisabled = editItemDisabled? true: false;
+		Z._fireLookupChangedEvent();
+		return this;
+	},
+	
+<span id='jslet-data-FieldLookup-property-onlyLookupFields'>	/**
+</span>	 * @property
+	 * 
+	 * It's used to create lookup dataset.
+	 * if onlyLookupFields is true, it will create dataset with fields 
+	 * which specified by the following dataset's properties: keyField, codeField, nameField, parentField and statusField;
+	 * 
+	 * @param{Boolean | undefined} onlyLookupFields
+	 * 
+	 * @return {this | Boolean}
+	 */
+	onlyLookupFields: function(onlyLookupFields) {
+		var Z = this;
+		if (onlyLookupFields === undefined) {
+			return Z._onlyLookupFields;
+		}
+		
+		Z._onlyLookupFields = onlyLookupFields? true: false;
+		return this;
+	},
+	
+<span id='jslet-data-FieldLookup-property-includeFields'>	/**
+</span>	 * @property
+	 * 
+	 * It's used to create lookup dataset.
+	 * Creating lookup dataset with the specified field names.
+	 * 
+	 * @param {String[] | undefined} includeFields.
+	 * 
+	 * @return {this | String[]}
+	 */
+	includeFields: function(includeFields) {
+		var Z = this;
+		if (includeFields === undefined) {
+			return Z._includeFields;
+		}
+		
+		jslet.Checker.test('FieldLookup.includeFields', includeFields).isArray();
+		Z._includeFields = includeFields;
+		return this;
+	},
+	
+<span id='jslet-data-FieldLookup-property-excludeFields'>	/**
+</span>	 * @property
+	 * 
+	 * It's used to create lookup dataset.
+	 * Creating lookup dataset with the specified field names.
+	 * 
+	 * @param{String[] | undefined} excludeFields.
+	 * 
+	 * @return {this | String[]}
+	 */
+	excludeFields: function(excludeFields) {
+		var Z = this;
+		if (excludeFields === undefined) {
+			return Z._excludeFields;
+		}
+		
+		jslet.Checker.test('FieldLookup.excludeFields', excludeFields).isArray();
+		Z._excludeFields = excludeFields;
+		return this;
+	},
+	
+<span id='jslet-data-FieldLookup-property-visibleFields'>	/**
+</span>	 * @property
+	 * 
+	 * It's used to create lookup dataset to specified which fields is visible.
+	 * 
+	 * @param{String[] | undefined} visibleFields Visible fields.
+	 * 
+	 * @return {this | String[]}
+	 */
+	visibleFields: function(visibleFields) {
+		var Z = this;
+		if (visibleFields === undefined) {
+			return Z._visibleFields;
+		}
+		
+		jslet.Checker.test('FieldLookup.visibleFields', visibleFields).isArray();
+		Z._visibleFields = visibleFields;
+		return this;
+	}
+	
+};
+
+jslet.data.CrossFieldSource = function() {
+	var Z = this;
+	
+	Z._sourceType = 0; //Optional value: 0-field, 1-custom'
+	Z._sourceField = null;
+	Z._lookupLevel = 1;
+	
+	Z._labels = null;
+	Z._values = null;
+	Z._matchExpr = null;
+	
+	Z._hideEmptyValue = false;
+	Z._hasSubtotal = true;
+	Z._subtotalPosition = 1; //Optional value: 0-first, 1-end
+	Z._subtotalLabel = null;		
+};
+jslet.data.CrossFieldSource.className = 'jslet.data.CrossFieldSource';
+
+jslet.data.CrossFieldSource.prototype = {
+	className: jslet.data.CrossFieldSource.className,
+	
+	clone: function(){
+		var Z = this, 
+			result = new jslet.data.CrossFieldSource();
+		result.sourceType(Z._sourceType);
+		result.sourceField(Z._sourceField);
+		result.lookupLevel(Z._lookupLevel);
+		result.labels(Z._labels);
+		result.values(Z._values);
+		result.matchExpr(Z._matchExpr);
+		result.hideEmptyValue(Z._hideEmptyValue);
+		result.hasSubtotal(Z._hasSubtotal);
+		result.subtotalPosition(Z._subtotalPosition);
+		result.subtotalLabel(Z._subtotalLabel);
+		return result;
+	},
+	
+<span id='jslet-data-FieldLookup-method-sourceType'>	/**
+</span>	 * Cross source type, optional value: 0 - field, 1 - custom.
+	 * 
+	 * @param {Integer | undefined} sourceType Cross source type.
+	 * @return {this | Integer}
+	 */
+	sourceType: function(sourceType) {
+		var Z = this;
+		if (sourceType === undefined) {
+			return Z._sourceType;
+		}
+		jslet.Checker.test('CrossFieldSource.sourceType', sourceType).isNumber();
+		Z._sourceType = sourceType;
+		return this;
+	},
+
+<span id='jslet-data-FieldLookup-method-sourceField'>	/**
+</span>	 * Identify the field name which is used to create cross field. Avaliable when crossType is 0-Field.
+	 * sourceField must be a lookup field and required. 
+	 * 
+	 * @param {String | undefined} sourceField The field name which is used to create cross field.
+	 * @return {this | String}
+	 */
+	sourceField: function(sourceField) {
+		var Z = this;
+		if (sourceField === undefined) {
+			return Z._sourceField;
+		}
+		jslet.Checker.test('CrossFieldSource.sourceField', sourceField).isString();
+		Z._sourceField = sourceField;
+		return this;
+	},
+	
+<span id='jslet-data-FieldLookup-method-labels'>	/**
+</span>	 * Identify cross field labels. Avaliable when crossType is 1-Field.
+	 * If labels is null, use &quot;values&quot; as &quot;labels&quot; instead.
+	 * 
+	 * @param {String[] | undefined} labels The cross field labels.
+	 * @return {this | String[]}
+	 */
+	labels: function(labels) {
+		var Z = this;
+		if (labels === undefined) {
+			return Z._labels;
+		}
+		jslet.Checker.test('CrossFieldSource.labels', labels).isArray();
+		Z._labels = labels;
+		return this;
+	},
+	
+<span id='jslet-data-FieldLookup-method-values'>	/**
+</span>	 * Identify cross field cross values. Avaliable when crossType is 1-Field.
+	 * If crossType is 1-Field, &quot;values&quot; is reqired.
+	 * 
+	 * @param {Object[] | undefined} values The cross field source values.
+	 * @return {this | Object[]}
+	 */
+	values: function(values) {
+		var Z = this;
+		if (values === undefined) {
+			return Z._values;
+		}
+		jslet.Checker.test('CrossFieldSource.values', values).isArray();
+		Z._values = values;
+		return this;
+	},
+	
+<span id='jslet-data-FieldLookup-method-matchExpr'>	/**
+</span>	 * Identify the field name which is used to create cross field. Avaliable when crossType is 1-Custom.
+	 * If crossType is 1-Custom, matchExpr is required. 
+	 * 
+	 * @param {String | undefined} matchExpr The expression which use to match value.
+	 * @return {this | String}
+	 */
+	matchExpr: function(matchExpr) {
+		var Z = this;
+		if (matchExpr === undefined) {
+			return Z._matchExpr;
+		}
+		jslet.Checker.test('CrossFieldSource.matchExpr', matchExpr).isString();
+		Z._matchExpr = matchExpr;
+		return this;
+	},
+	
+<span id='jslet-data-FieldLookup-method-hasSubtotal'>	/**
+</span>	 * Identify it has subtotal column or not.
+	 * 
+	 * @param {Boolean | undefined} hasSubtotal True - has subtotal, false otherwise.
+	 * @return {this | Boolean}
+	 */
+	hasSubtotal: function(hasSubtotal) {
+		var Z = this;
+		if (hasSubtotal === undefined) {
+			return Z._hasSubtotal;
+		}
+		jslet.Checker.test('CrossFieldSource.hasSubtotal', hasSubtotal).isString();
+		Z._hasSubtotal = hasSubtotal;
+		return this;
+	},
+	
+<span id='jslet-data-FieldLookup-method-subtotalPosition'>	/**
+</span>	 * Identify the &quot;subtotal&quot; column position. Avaliable when &quot;hasSubtotal&quot; is true;
+	 * Optional Value: 0 - At first column, 1 - At last column.
+	 * 
+	 * @param {Integer | undefined} subtotalPosition subtotal column position.
+	 * @return {this | Integer}
+	 */
+	subtotalPosition: function(subtotalPosition) {
+		var Z = this;
+		if (subtotalPosition === undefined) {
+			return Z._subtotalPosition;
+		}
+		jslet.Checker.test('CrossFieldSource.subtotalPosition', subtotalPosition).isNumber();
+		Z._subtotalPosition = subtotalPosition;
+		return this;
+	},
+
+<span id='jslet-data-FieldLookup-method-subtotalLabel'>	/**
+</span>	 * Subtotal label. Avaliable when &quot;hasSubtotal&quot; is true;
+	 * 
+	 * @param {String | undefined} subtotalLabel Subtotal label.
+	 * @return {this | String}
+	 */
+	subtotalLabel: function(subtotalLabel) {
+		var Z = this;
+		if (subtotalLabel === undefined) {
+			return Z._subtotalLabel;
+		}
+		jslet.Checker.test('CrossFieldSource.subtotalLabel', subtotalLabel).isString();
+		Z._subtotalLabel = subtotalLabel;
+		return this;
+	}
+};
+
+jslet.data.createCrossFieldSource = function(cfg) {
+	var result = new jslet.data.CrossFieldSource();
+	var srcType = cfg.sourceType || 0;
+	result.sourceType(srcType);
+	if(cfg.hasSubtotal !== undefined) {
+		result.hasSubtotal(cfg.hasSubtotal);
+	}
+	
+	if(cfg.subtotalPosition !== undefined) {
+		result.subtotalPosition(cfg.subtotalPosition);
+	}
+	
+	if(cfg.subtotalLabel !== undefined) {
+		result.subtotalLabel(cfg.subtotalLabel);
+	}
+	
+	if(srcType === 0) {
+		result.sourceField(cfg.sourceField);
+	} else {
+		result.labels(cfg.labels);
+		result.values(cfg.values);
+		result.matchExpr(cfg.matchExpr);
+	}
+	return result;
+};
+</pre>
+</body>
+</html>

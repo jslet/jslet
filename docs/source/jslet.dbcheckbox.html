@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js"><span id='jslet-ui-DBCheckBox'>/**
+</span> * @class
+ * @extend jslet.ui.DBFieldControl
+ *  
+ * DBCheckBox. Example:
+ * 
+ *     @example
+ *      var jsletParam = {type:&quot;DBCheckBox&quot;, dataset:&quot;employee&quot;, field:&quot;married&quot;};
+ * 
+ *     //1. Declaring:
+ *      &lt;input type='checkbox' data-jslet='type:&quot;DBCheckBox&quot;,dataset:&quot;employee&quot;, field:&quot;married&quot;' /&gt;
+ *      or
+ *      &lt;div data-jslet='jsletParam' /&gt;
+ *
+ *     //2. Binding
+ *      &lt;input id=&quot;ctrlId&quot; type=&quot;checkbox&quot; /&gt;
+ *      //Js snippet
+ *      var el = document.getElementById('ctrlId');
+ *      jslet.ui.bindControl(el, jsletParam);
+ *
+ *     //3. Create dynamically
+ *      jslet.ui.createControl(jsletParam, document.body);
+ */
+jslet.ui.DBCheckBox = jslet.Class.create(jslet.ui.DBFieldControl, {
+<span id='jslet-ui-DBCheckBox-method-initialize'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	initialize: function ($super, el, params) {
+		var Z = this;
+		Z.isCheckBox = true;
+		Z.allProperties = 'styleClass,dataset,field,beforeClick';
+		Z._beforeClick = null;
+		
+		Z._skipRefresh = false;
+		jQuery(el).attr('type', 'checkbox');
+		$super(el, params);
+	},
+
+	beforeClick: function(beforeClick) {
+		if(beforeClick === undefined) {
+			return this._beforeClick;
+		}
+		jslet.Checker.test('DBCheckBox.beforeClick', beforeClick).isFunction();
+		this._beforeClick = beforeClick;
+		return this;
+	},
+
+<span id='jslet-ui-DBCheckBox-method-isValidTemplateTag'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	isValidTemplateTag: function (el) {
+		return el.tagName.toLowerCase() == 'input';
+	},
+
+<span id='jslet-ui-DBCheckBox-method-bind'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	bind: function () {
+		var Z = this;
+		Z.renderAll();
+		Z.el.name = Z._field;
+		var jqEl = jQuery(Z.el);
+		if(!jqEl.hasClass('jl-dbcheck')) {
+			jqEl.addClass('jl-dbcheck');
+		}
+		jqEl.on('click', Z._doClick);
+		jqEl.focus(function(event) {
+			jslet.ui.globalFocusManager.activeDataset(Z._dataset.name()).activeField(Z._field).activeValueIndex(Z._valueIndex);
+		});
+		jqEl.blur(function(event) {
+			jslet.ui.globalFocusManager.activeDataset(null).activeField(null).activeValueIndex(null);
+		});
+		jqEl.addClass('checkbox-inline form-control');
+	}, // end bind
+
+	_doClick: function (event) {
+		var Z = this.jslet;
+		if (Z._beforeClick) {
+			var result = Z._beforeClick.call(Z, Z.el);
+			if (!result) {
+				return;
+			}
+		}
+		Z.updateToDataset();
+	},
+	
+<span id='jslet-ui-DBCheckBox-method-doMetaChanged'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	doMetaChanged: function($super, metaName){
+		$super(metaName);
+		var Z = this,
+			fldObj = Z._dataset.getField(Z._field);
+		if(!metaName || metaName == &quot;disabled&quot; || metaName == &quot;readOnly&quot;) {
+			var disabled = fldObj.disabled() || fldObj.readOnly();
+			jslet.ui.setEditableStyle(Z.el, disabled, disabled, false, fldObj.required());
+			Z.setTabIndex();
+		}
+		if(!metaName || metaName == 'tabIndex') {
+			Z.setTabIndex();
+		}
+	},
+	
+<span id='jslet-ui-DBCheckBox-method-doValueChanged'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	doValueChanged: function() {
+		var Z = this;
+		if(Z._skipRefresh) {
+			return;
+		}
+		var fldObj = Z._dataset.getField(Z._field),
+			value = Z.getValue();
+		if (value) {
+			Z.el.checked = true;
+		} else {
+			Z.el.checked = false;
+		}
+	},
+	
+	focus: function() {
+		this.el.focus();
+	},
+	
+<span id='jslet-ui-DBCheckBox-method-renderAll'>	/**
+</span>	 * @override
+	 */
+	renderAll: function () {
+		this.refreshControl(jslet.data.RefreshEvent.updateAllEvent(), true);
+		return this;
+	},
+
+	updateToDataset: function () {
+		var Z = this;
+		if (Z._keep_silence_) {
+			return;
+		}
+		var fldObj = Z._dataset.getField(Z._field),
+			value = Z.el.checked;
+		Z._keep_silence_ = true;
+		try {
+			Z._dataset.setFieldValue(Z._field, value, Z._valueIndex);
+		} finally {
+			Z._keep_silence_ = false;
+		}
+	}, // end updateToDataset
+	
+<span id='jslet-ui-DBCheckBox-method-destroy'>	/**
+</span>	 * @override
+	 */
+	destroy: function($super){
+		jQuery(this.el).off();
+		$super();
+	}
+});
+
+jslet.ui.register('DBCheckBox', jslet.ui.DBCheckBox);
+jslet.ui.DBCheckBox.htmlTemplate = '&lt;input type=&quot;checkbox&quot;&gt;&lt;/input&gt;';
+
+</pre>
+</body>
+</html>

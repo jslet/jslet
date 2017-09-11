@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js"><span id='jslet-ui-DBCustomComboBox'>/**
+</span> * @class
+ * @extend jslet.ui.DBFieldControl
+ * 
+ * DBCustomComboBox: used for jslet.ui.DBComboSelect and jslet.ui.DBDatePicker.
+ */
+jslet.ui.DBCustomComboBox = jslet.Class.create(jslet.ui.DBFieldControl, {
+<span id='jslet-ui-DBCustomComboBox-method-initialize'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	initialize: function ($super, el, params) {
+		var Z = this;
+		Z.allProperties = 'styleClass,dataset,field,textReadOnly';
+		Z._textReadOnly = false;
+		Z.enableInvalidTip = false;
+
+		$super(el, params);
+	},
+
+<span id='jslet-ui-DBCustomComboBox-property-textReadOnly'>	/**
+</span>	 * @property
+	 * 
+	 * Identify whether the text box is read only.
+	 * 
+	 * @param {Boolean | undefined} textReadOnly True - text box is read only, false - otherwise.
+	 * 
+	 * @return {this | Boolean}
+	 */
+	textReadOnly: function(textReadOnly) {
+		if(textReadOnly === undefined) {
+			return this._textReadOnly;
+		}
+		this._textReadOnly = textReadOnly ? true: false;
+		if(this.textCtrl) {
+			this.textCtrl.readOnly(textReadOnly);
+		}
+		return this;
+	},
+	
+//	/**
+//	 * @protected
+//	 * @override
+//	 */
+//	afterBind: function ($super) {
+//		$super();
+//		
+//		if (this._textReadOnly) {
+//			this.el.childNodes[0].readOnly = true;
+//		}
+//	},
+
+<span id='jslet-ui-DBCustomComboBox-method-bind'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	bind: function () {
+		var Z = this;
+		var jqEl = jQuery(Z.el);
+		if (!jqEl.hasClass('input-group')) {
+			jqEl.addClass('input-group input-group-sm');
+		}
+		var btnCls = Z.comboButtonCls ? Z.comboButtonCls:'fa-caret-down'; 
+		var s = '&lt;input type=&quot;text&quot; class=&quot;form-control&quot;&gt;' + 
+    	'&lt;span class=&quot;input-group-btn jl-comb-btn-group&quot;&gt;&lt;button class=&quot;btn btn-default btn-sm &quot; tabindex=&quot;-1&quot;&gt;&lt;i class=&quot;fa ' + btnCls + '&quot;&gt;&lt;/i&gt;&lt;/button&gt;&lt;/span&gt;'; 
+		jqEl.html(s);
+		var dbtext = jqEl.find('[type=&quot;text&quot;]')[0];
+		Z.textCtrl = new jslet.ui.DBText(dbtext, {
+			type: 'dbtext',
+			dataset: Z._dataset,
+			field: Z._textField || Z._field,
+			enableInvalidTip: true,
+			valueIndex: Z._valueIndex,
+			tabIndex: Z._tabIndex,
+			readOnly: Z._textReadOnly
+		});
+		jQuery(dbtext).on('keydown', function(event) {
+			var keyCode = event.which;
+			if(keyCode === jslet.ui.KeyCode.BACKSPACE &amp;&amp; !this.value) {
+				Z.buttonClick();
+			}
+		});
+		
+		jQuery(dbtext).on('click', function(event) {
+			if(Z._textReadOnly) {
+				Z.buttonClick();
+			}
+       		event.preventDefault();
+       		event.stopImmediatePropagation();
+       		return false;
+		});
+		
+		Z.addChildControl(Z.textCtrl);
+		
+		var jqBtn = jqEl.find('button');
+		if (this.buttonClick) {
+			
+			jqBtn.on('click', function(event){
+				Z.buttonClick(jqBtn[0]);
+			});
+			jqBtn.focus(function(event) {
+				jslet.ui.globalFocusManager.activeDataset(Z._dataset.name()).activeField(Z._field).activeValueIndex(Z._valueIndex);
+			});
+			jqBtn.blur(function(event) {
+				jslet.ui.globalFocusManager.activeDataset(null).activeField(null).activeValueIndex(null);
+			});
+			
+		}
+	},
+
+
+<span id='jslet-ui-DBCustomComboBox-method-tableId'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	tableId: function ($super, tableId) {
+		$super(tableId);
+		this.textCtrl.tableId(tableId);
+	},
+	
+<span id='jslet-ui-DBCustomComboBox-method-renderAll'>	/**
+</span>	 * @override
+	 */
+	renderAll: function () {
+		this.refreshControl();
+		return this;
+	},
+	
+<span id='jslet-ui-DBCustomComboBox-method-innerFocus'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	innerFocus: function() {
+		var Z = this;
+		if(Z._textReadOnly) {
+			jQuery(Z.el).find('button').focus();
+		} else {
+			Z.textCtrl.focus();
+		}
+	},
+	
+<span id='jslet-ui-DBCustomComboBox-method-doMetaChanged'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	doMetaChanged: function($super, metaName){
+		$super(metaName);
+		var Z = this;
+		if(!metaName || metaName == &quot;disabled&quot; || metaName == &quot;readOnly&quot;) {
+			var fldObj = Z._dataset.getField(Z._field),
+				flag = fldObj.disabled() || fldObj.readOnly();
+			var jqEl = jQuery(Z.el);
+			jqEl.find('button').attr(&quot;disabled&quot;, flag);
+		}
+	},
+	
+<span id='jslet-ui-DBCustomComboBox-method-destroy'>	/**
+</span>	 * @override
+	 */
+	destroy: function($super){
+		var Z = this;
+		var dbbtn = Z.el.childNodes[1];
+		dbbtn.onclick = null;
+		jQuery(Z.textCtrl.el).off('keydown', this.popupUp);
+		Z.textCtrl.destroy();
+		Z.textCtrl = null;
+		$super();
+	}
+});
+
+
+
+</pre>
+</body>
+</html>

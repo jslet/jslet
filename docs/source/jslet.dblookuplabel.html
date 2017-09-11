@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js"><span id='jslet-ui-DBLookupLabel'>/**
+</span> * @class 
+ * @extend jslet.ui.DBControl
+ * 
+ * DBLookupLabel. Display field value according to another field and its value. Example:
+ * 
+ *     @example
+ *      var jsletParam = {type:&quot;DBLookupLabel&quot;,dataset:&quot;department&quot;,lookupField:&quot;deptcode&quot;, lookupValue: '0101', returnField: 'name'};
+ * 
+ *      //1. Declaring:
+ *      &lt;label data-jslet='{type:&quot;DBLookupLabel&quot;,dataset:&quot;department&quot;,lookupField:&quot;deptcode&quot;, lookupValue: &quot;0101&quot;, returnField: &quot;name&quot;}' /&gt;
+ *      or
+ *      &lt;label data-jslet='jsletParam' /&gt;
+ *
+ *     //2. Binding
+ *      &lt;label id=&quot;ctrlId&quot;  /&gt;
+ *      //Js snippet
+ *      var el = document.getElementById('ctrlId');
+ *      jslet.ui.bindControl(el, jsletParam);
+ *
+ *     //3. Create dynamically
+ *      jslet.ui.createControl(jsletParam, document.body);
+ */
+jslet.ui.DBLookupLabel = jslet.Class.create(jslet.ui.DBControl, {
+<span id='jslet-ui-DBLookupLabel-method-initialize'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	initialize: function ($super, el, params) {
+		var Z = this;
+		Z.allProperties = 'styleClass,dataset,lookupField,returnField,lookupValue';
+		Z.requiredProperties = 'lookupValue,lookupField,returnField';
+
+		Z._lookupField = null;
+		
+		Z._lookupValue = null;
+		
+		Z._returnField = null;
+		
+		$super(el, params);
+	},
+
+<span id='jslet-ui-DBLookupLabel-property-lookupField'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get the field name for looking up.
+	 * 
+	 * @param {String | undefined} lookupField Lookup field name.
+	 * 
+	 * @return {this | String}
+	 */
+	lookupField: function(lookupField) {
+		if(lookupField === undefined) {
+			return this._lookupField;
+		}
+		jslet.Checker.text('lookupField', lookupField).required().isString();
+		this._lookupField = lookupField;
+		return this;
+	},
+	
+<span id='jslet-ui-DBLookupLabel-property-lookupValue'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get the lookup value.
+	 * 
+	 * @param {Object | undefined} lookupField Lookup value.
+	 * 
+	 * @return {this | Object}
+	 */
+	lookupValue: function(lookupValue) {
+		if(lookupValue === undefined) {
+			return this._lookupValue;
+		}
+		jslet.Checker.text('lookupValue', lookupValue).required();
+		this._lookupValue = lookupValue;
+		return this;
+	},
+	
+<span id='jslet-ui-DBLookupLabel-property-returnField'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get the return field name.
+	 * 
+	 * @param {String | undefined} returnField Return field name.
+	 * 
+	 * @return {this | String}
+	 */
+	returnField: function(returnField) {
+		if(returnField === undefined) {
+			return this._returnField;
+		}
+		jslet.Checker.text('returnField', returnField).required().isString();
+		this._returnField = returnField;
+		return this;
+	},
+	
+<span id='jslet-ui-DBLookupLabel-method-bind'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	bind: function () {
+		this.renderAll();
+		jQuery(this.el).addClass('form-control');
+	},
+
+<span id='jslet-ui-DBLookupLabel-method-isValidTemplateTag'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	isValidTemplateTag: function (el) {
+		return el.tagName.toLowerCase() == 'label';
+	},
+
+<span id='jslet-ui-DBLookupLabel-method-refreshControl'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	refreshControl: function (evt, isForce) {
+		if (evt.eventType != jslet.data.RefreshEvent.UPDATEALL) {
+			return;
+		}
+		if (!isForce) {
+			return;
+		}
+		var Z = this;
+		var result = Z.dataset.lookup(Z._lookupField, Z._lookupValue, Z._returnField);
+		if (result === null) {
+			result = 'NOT found: ' + Z._lookupValue;
+		}
+		Z.el.innerHTML = result;
+	},
+
+<span id='jslet-ui-DBLookupLabel-method-renderAll'>	/**
+</span>	 * @override
+	 */
+	renderAll: function () {
+		this.refreshControl(jslet.data.RefreshEvent.updateAllEvent, true);
+		return this;
+	},
+	
+<span id='jslet-ui-DBLookupLabel-method-canFocus'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	canFocus: function() {
+		return false;
+	}
+});
+jslet.ui.register('DBLookupLabel', jslet.ui.DBLookupLabel);
+jslet.ui.DBLookupLabel.htmlTemplate = '&lt;label&gt;&lt;/label&gt;';
+
+</pre>
+</body>
+</html>

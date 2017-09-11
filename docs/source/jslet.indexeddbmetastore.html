@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js"><span id='jslet-data-IndexedDBMetaStore'>/**
+</span> * @class
+ * 
+ * The dataset meta store which store in IndexedDB. Example:
+ * 
+ *     @example
+ *     var indexedDBMetaStore = new jslet.data.IndexedDBMetaStore('demo');
+ *     jslet.data.datasetFactory.addMetaStore(indexedDBMetaStore);
+ * 
+ * @param {String} databaseName IndexedDB database name.
+ */
+jslet.data.IndexedDBMetaStore = function(dbName) {
+	var Z = this;
+	Z._dbName = dbName;
+	Z._db = null;
+ }
+
+jslet.data.IndexedDBMetaStore.prototype = {
+	openDatabase: function() {
+		var Z = this;
+		var defer = jQuery.Deferred();
+		var request = indexedDB.open(this._dbName, 1);
+		request.onsuccess = function(event) {
+			Z._db = request.result;	
+			defer.resolve();
+		};
+		request.onerror = function(event) {
+			console.error(event);
+			defer.reject();
+		};
+		
+		request.onupgradeneeded = function (evt) {   
+	    	var store = evt.currentTarget.result.createObjectStore
+				(&quot;datasetMeta&quot;, {keyPath: &quot;name&quot;});
+	    };
+	    
+	    return defer.promise();
+	},
+	
+<span id='jslet-data-IndexedDBMetaStore-method-getDatasetMeta'>	/**
+</span>	 * This method will be called by jslet.data.DatasetFactory. Do not call it manually. &lt;br /&gt;
+	 * This method uses to get dataset meta when creating dataset. &lt;br /&gt;
+	 * It is called asynchronously.
+	 * 
+	 * @param {String} datasetName Dataset name.
+	 * 
+	 * @return {Promise} 
+	 */
+	getDatasetMeta: function(datasetName) {
+		var Z = this;
+		function innerGet() {
+		
+			var defer = jQuery.Deferred(),
+				transaction = Z._db.transaction('datasetMeta', 'readonly'),
+				store = transaction.objectStore('datasetMeta').get(datasetName);
+			store.onsuccess = function(event) {
+				defer.resolve(event.target.result);
+			};
+			store.onerror = function(event) {
+				console.error(event);
+				defer.reject(null);
+			};
+			return defer.promise();
+		}
+		if(!Z._db) {
+			var defer = jQuery.Deferred();
+			Z.openDatabase().done(function() {
+				innerGet().done(function(result) {
+					defer.resolve(result);
+				}).fail(function() {
+					defer.reject();
+				});
+			}).fail(function() {
+				defer.reject();
+			});
+			return defer.promise();
+		} else {
+			return innerGet();
+		}
+	},
+	
+<span id='jslet-data-IndexedDBMetaStore-method-addDatasetMeta'>	/**
+</span>	 * Add a dataset meta.
+	 * 
+	 * @param {String} datasetName Dataset name.
+	 * @param {Object} datasetMeta Dataset meta object.
+	 * 
+	 * @return {this}
+	 */
+	addDatasetMeta: function(datasetName, datasetMeta) {
+		jslet.Checker.test('addDatasetMeta#datasetName', datasetName).required().isString();
+		jslet.Checker.test('addDatasetMeta#datasetMeta', datasetMeta).required().isObject();
+		var Z = this;
+		if(Z._db) {
+			Z._db.transaction('datasetMeta', &quot;readwrite&quot;);
+			var store = transaction.objectStore('datasetMeta');
+			store.put(datasetName, datasetMeta);
+		} else {
+			Z.openDatabase().done(function() {
+				var store = Z._db.transaction('datasetMeta', &quot;readwrite&quot;).objectStore('datasetMeta');
+				datasetMeta.name = datasetName;
+				store.add(datasetMeta);
+			})
+		}
+		return this;
+	},
+	
+<span id='jslet-data-IndexedDBMetaStore-method-addDatasetMetas'>	/**
+</span>	 * Add some dataset metas.
+	 * 
+	 * @param {Object[]} datasetMeta Dataset meta objects.
+	 * 
+	 * @return {this}
+	 */
+	addDatasetMetas: function(datasetMetas) {
+		jslet.Checker.test('addDatasetMetas#datasetMetas', datasetMetas).required().isArray();
+		var Z = this, 
+			i, len = datasetMetas.length, datasetMeta;
+		for(i = len - 1; i &gt;= 0; i--) {
+			datasetMeta = datasetMetas[i];
+			if(datasetMeta) {
+				jslet.Checker.test('addDatasetMeta#datasetName', datasetMeta.name).required().isString();
+			} else {
+				datasetMetas.splice(i, 1);
+			}
+		}
+		if(Z._db) {
+			Z._db.transaction('datasetMeta', &quot;readwrite&quot;);
+			var store = transaction.objectStore('datasetMeta');
+			for(i = 0; i &lt; len; i++) {
+				datasetMeta = datasetMetas[i];
+				store.put(datasetMeta.name, datasetMeta);
+			}
+		} else {
+			Z.openDatabase().done(function() {
+				var store = Z._db.transaction('datasetMeta', &quot;readwrite&quot;).objectStore('datasetMeta');
+				for(i = 0; i &lt; len; i++) {
+					datasetMeta = datasetMetas[i];
+					store.add(datasetMeta);
+				}
+			});
+		}
+		return this;
+	}
+	
+}</pre>
+</body>
+</html>

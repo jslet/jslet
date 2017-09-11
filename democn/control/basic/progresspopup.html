@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="../../css/demo.css" />
+    
+    <title>Jslet - 弹出式进度条（ProgressPopup）</title>
+    <script type="text/javascript" data-main="../../config.js" src="../../lib/requirejs/require.min.js"></script>
+    <script type="text/javascript">
+	    require(['control/basic/progresspopup']);
+    </script>
+</head>
+<body>
+    <div class="demo-header">
+    <h4 id="top">Jslet - 弹出式进度条（ProgressPopup）</h4>
+	</div>
+	<hr />
+    <div>与jslet.StepProcessor配合<button id="btnStart" class="btn btn-default btn-sm"> 开始（可中断） </button>
+    	<button id="btnStartNoCancel" class="btn btn-default btn-sm"> 开始（不可中断） </button></div>
+	<hr />
+	<h4>源码</h4>
+    <pre class="prettyprint linenums"><code>
+	//与jslet.StepProcessor配合（可中断）
+	$('#btnStart').click(function(){
+		var cancelled = false;
+		var progressObj = new jslet.ui.ProgressPopup(document.body, '正在保存...', true, function() {
+			cancelled = true;
+		});
+		progressObj.show();
+		
+		var ProcessFn = function(start, end, percent) {
+			for(var i = start; i <= end; i++) {
+				//模拟耗时操作
+				for(var j = 0; j < 20; j++) {
+					console.log(j)
+				}
+			}
+			if(cancelled || percent === 100) {
+				progressObj.destroy();
+				return false;
+			}
+			progressObj.value(percent);
+		};
+		//把5000条数据分为20部分来执行，每执行一部分就更新一次进度条
+		new jslet.StepProcessor(5000, ProcessFn, 20).run();
+	});
+
+	//与jslet.StepProcessor配合（不可中断）
+	$('#btnStartNoCancel').click(function(){
+		var progressObj = new jslet.ui.ProgressPopup(document.body, '正在保存...');
+		progressObj.show();
+		
+		var ProcessFn = function(start, end, percent) {
+			for(var i = start; i <= end; i++) {
+				//模拟耗时操作
+				for(var j = 0; j < 20; j++) {
+					console.log(j)
+				}
+			}
+			if(percent === 100) {
+				progressObj.destroy();
+				return false;
+			}
+			progressObj.value(percent);
+		};
+		//把5000条数据分为20部分来执行，每执行一部分就更新一次进度条
+		new jslet.StepProcessor(5000, ProcessFn, 20).run();
+	});
+	</code></pre>
+
+    <script type="text/javascript">
+		window.LOADER_BASE_URL = "../../lib/prettify";
+    </script>
+    <script type="text/javascript" src="../../lib/prettify/run_prettify.js"></script>
+		
+</body>
+</html>

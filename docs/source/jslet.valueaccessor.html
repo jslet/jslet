@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js"><span id='jslet-data-FieldRawValueAccessor'>/**
+</span> * @private
+ * @class
+ * 
+ * Raw value accessor for field object.
+ */
+jslet.data.FieldRawValueAccessor = {
+<span id='jslet-data-FieldRawValueAccessor-method-getRawValue'>	/**
+</span>	 * Get raw value from an data record.
+	 * 
+	 * @param {Object} dataRec Data record, normally it's a plan object, like: {field1: value1, field2: value2}.
+	 * @param {jslet.data.Field} fldObj Field object.
+	 * @return {Object} 
+	 */
+	getRawValue: function(dataRec, fldObj) {
+		var fldName = fldObj.shortName() || fldObj.name(),
+			customValueAccessor = fldObj.customValueAccessor();
+		
+		var fldType = fldObj.getType(), value = null;
+		var extHostName = fldObj.extendHostName();
+		if(extHostName) {
+			var extHostValue = dataRec[extHostName];
+			if(extHostValue) {
+				value = extHostValue[fldName];
+			}
+		} else {
+			value = this._innerGetValue(dataRec,  fldName, customValueAccessor);
+		}
+		if(value === undefined || value === null) {
+			return null;
+		}
+		if(fldType === jslet.data.DataType.BOOLEAN) {
+			return value === fldObj.trueValue();
+		}
+		
+		if(fldType === jslet.data.DataType.PROXY) {
+			return jslet.JSON.parse(value);
+		}
+
+		if(fldType === jslet.data.DataType.DATE) {
+			var flag = false;
+			if(jslet.isArray(value)) {
+				for(var i = 0, len = value.length; i &lt; len; i++) {
+					var val = value[i];
+					if (!jslet.isDate(val)) {
+						val = jslet.convertISODate(val);
+						value[i] = val;
+						flag = true;
+					} //end if
+					
+				}
+			} else {
+				if (!jslet.isDate(value)) {
+					value = jslet.convertISODate(value);
+					flag = true;
+				} //end if
+			}
+			if(flag) {
+				this._innerSetValue(dataRec, fldName, value, customValueAccessor);
+			}
+		}
+		return value;
+	},
+	
+<span id='jslet-data-FieldRawValueAccessor-method-setRawValue'>	/**
+</span>	 * Set a field value of a data record.
+	 * 
+	 * @param {Object} dataRec Data record, normally it's a plan object, like: {field1: value1, field2: value2}.
+	 * @param {jslet.data.Field} fldObj Field object.
+	 * @param {Object} value Field value.
+	 */
+	setRawValue: function(dataRec, fldObj, value) {
+		var fldName = fldObj.shortName() || fldObj.name(),
+			customValueAccessor = fldObj.customValueAccessor();
+		
+		var fldType = fldObj.getType();
+		if(value === undefined) {
+			value = null;
+		}
+		if(value !== null &amp;&amp; fldType === jslet.data.DataType.BOOLEAN) {
+			value = (value? fldObj.trueValue(): fldObj.falseValue());
+		}
+		
+		if(value !== null &amp;&amp; fldType === jslet.data.DataType.PROXY) {
+			value = jslet.JSON.stringify(value);
+		}
+		var extHostName = fldObj.extendHostName();
+		if(extHostName) {
+			var extHostValue = dataRec[extHostName];
+			if(!extHostValue) {
+				extHostValue = {};
+				dataRec[extHostName] = extHostValue;
+			}
+			extHostValue[fldName] = value;
+		} else {
+			this._innerSetValue(dataRec, fldName, value, customValueAccessor);
+		}
+	},
+	
+<span id='jslet-data-FieldRawValueAccessor-method-_innerGetValue'>	_innerGetValue: function(dataRec, fldName, customValueAccessor) {
+</span>		if(customValueAccessor) {
+			return customValueAccessor.getValue(dataRec, fldName);
+		} else {
+			return dataRec[fldName];
+		}
+	},
+	
+<span id='jslet-data-FieldRawValueAccessor-method-_innerSetValue'>	_innerSetValue:  function(dataRec, fldName, value, customValueAccessor) {
+</span>		if(customValueAccessor) {
+			return customValueAccessor.setValue(dataRec, fldName, value);
+		} else {
+			dataRec[fldName] = value;
+		}
+	}
+};
+</pre>
+</body>
+</html>

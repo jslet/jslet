@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="../../css/demo.css" />
+    
+    <title>Jslet - DBDatePicker</title>
+    <script type="text/javascript" data-main="../../config.js" src="../../lib/requirejs/require.min.js"></script>
+    <script type="text/javascript">
+	    require(['dbcontrol/form/c-dbdatepicker']);
+    </script>
+</head>
+<body>
+    <div class="demo-header">
+    <h4 id="top">Jslet - DBDatePicker</h4>
+	</div>
+	<hr />
+
+	<div data-jslet="type: 'DBTable', dataset: 'employee'" style="margin-bottom: 10px"></div>
+	
+	<div class="container-fluid">
+	<div class="form-horizontal">
+	
+	<div class="form-group form-group-sm" style="vertical-align: middle">
+	<div class="col-sm-1">
+		<label>日期</label>
+	</div>
+	<div class="col-sm-3">
+		<div data-jslet="type: 'DBDatePicker', dataset: 'employee', field: 'birthday'"></div>
+	</div>
+	<div class="col-sm-1">
+	<div>
+		<button id="btnSetRange" class="btn btn-default btn-sm">设置范围为今年内出生的</button>
+	</div>
+	</div>
+	</div>
+
+	</div>
+	</div>
+	
+	<hr />
+	<h4>源码</h4>
+	<h5>HTML</h5>
+    <pre class="prettyprint linenums"><code>
+    //层级结构，可录入可选择
+    &lt;div data-jslet="type: 'DBDatePicker', dataset: 'employee', field: 'birthday'">&lt;/div>
+	</code></pre>
+    
+	<h5>JavaScript</h5>
+    <pre class="prettyprint linenums"><code>
+	//datasetMetaStore定义在公共js:common/datasetmetastore.js中
+	//将数据集定义信息仓库加到datasetFactory中，创建Dataset时会仓库里去定义信息
+	jslet.data.datasetFactory.addMetaStore(window.datasetMetaStore);
+	//通过工厂方法，可以自动创建主数据集及相关的数据集
+    jslet.data.datasetFactory.createDataset('employee').done(function() {
+    	var dsEmployee = jslet.data.getDataset('employee');
+    	dsEmployee.query();
+    	jslet.ui.install();
+    });
+    
+    //设置范围为今年内出生的
+    $('#btnSetRange').click(function() {
+    	var dsEmployee = jslet.data.getDataset('employee');
+    	var fldObj = dsEmployee.getField('birthday');
+    	var currDate = new Date();
+    	var currYear = currDate.getFullYear();
+    	
+    	fldObj.dataRange({min: new Date(currYear, 0, 1), max: new Date()})
+    	jslet.ui.info('已设置了生日范围，请点击日期控件！');
+    });
+	</code></pre>
+
+    <script type="text/javascript">
+       window.LOADER_BASE_URL = "../../lib/prettify";
+    </script>
+    <script type="text/javascript" src="../../lib/prettify/run_prettify.js"></script>
+		
+</body>
+</html>

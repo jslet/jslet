@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js">if(!jslet.ui.table) {
+	jslet.ui.table = {};
+}
+
+<span id='jslet-ui-table-CellRender'>/**
+</span> * @class
+ * 
+ * Cell render.
+ */
+jslet.ui.table.CellRender = jslet.Class.create({
+<span id='jslet-ui-table-CellRender-method-createHeader'>	/**
+</span>	 * Create column header.
+	 * 
+	 * @param {HtmlElement} cellPanel Cell panel.
+	 * @param {jslet.ui.table.TableColumn} colSetting Column settings.
+	 */
+	createHeader: function(cellPanel, colSetting) {
+		
+	},
+	
+<span id='jslet-ui-table-CellRender-method-createCell'>	/**
+</span>	 * Create cell.
+	 * 
+	 * @param {HtmlElement} cellPanel Cell panel.
+	 * @param {jslet.ui.table.TableColumn} colSetting Column settings.
+	 */
+	createCell: function(cellPanel, colCfg) {
+	
+	},
+	
+<span id='jslet-ui-table-CellRender-method-refreshCell'>	/**
+</span>	 * Refresh cell content.
+	 * 
+	 * @param {HtmlElement} cellPanel Cell panel.
+	 * @param {jslet.ui.table.TableColumn} colSetting Column settings.
+	 * @param {Integer} recNo Record number.
+	 */
+	refreshCell: function(cellPanel, colCfg, recNo) {
+	
+	}
+});
+
+<span id='jslet-ui-table-DefaultCellRender'>/**
+</span> * @class
+ * @extend jslet.ui.table.CellRender
+ * 
+ * Default cell render.
+ */
+jslet.ui.table.DefaultCellRender =  jslet.Class.create(jslet.ui.table.CellRender, {
+<span id='jslet-ui-table-DefaultCellRender-method-createCell'>	/**
+</span>	 * @override
+	 */
+	createCell: function(cellPanel, colCfg) {
+		var Z = this,
+			fldName = colCfg.field,
+			fldObj = Z._dataset.getField(fldName);
+		cellPanel.parentNode.style.textAlign = fldObj.alignment();
+	},
+								
+<span id='jslet-ui-table-DefaultCellRender-method-refreshCell'>	/**
+</span>	 * @override
+	 */
+	refreshCell: function(cellPanel, colCfg, recNo) {
+		if (!colCfg || colCfg.noRefresh) {
+			return;
+		}
+		var Z = this,
+			fldName = colCfg.field;
+		if (!fldName) {
+			return;
+		}
+		
+		var fldObj = Z._dataset.getField(fldName), text;
+		try {
+			text = Z._dataset.getFieldTextByRecno(recNo, fldName);
+		} catch (e) {
+			text = 'error: ' + e.message;
+			console.error(e);
+		}
+		
+		if (fldObj.urlExpr()) {
+			var url = '&lt;a href=' + fldObj.calcUrl(),
+				target = fldObj.urlTarget();
+			if (target) {
+				url += ' target=' + target;
+			}
+			url += '&gt;' + text + '&lt;/a&gt;';
+			text = url;
+		}
+		if(text === '' || text === null || text === undefined) {
+			text = '&amp;nbsp;';
+		}
+		var jqCellPanel = jQuery(cellPanel); 
+		jqCellPanel.html(text);
+		cellPanel.title = jqCellPanel.text();
+		Z._showSelected(cellPanel.parentNode, fldName, recNo);
+	} 
+});
+
+<span id='jslet-ui-table-SequenceCellRender'>/**
+</span> * @class
+ * @extend jslet.ui.table.CellRender
+ * 
+ * Sequence column cell render.
+ */
+jslet.ui.table.SequenceCellRender = jslet.Class.create(jslet.ui.table.CellRender, {
+<span id='jslet-ui-table-SequenceCellRender-method-createHeader'>	/**
+</span>	 * @override
+	 */
+	createHeader: function(cellPanel, colCfg) {
+		cellPanel.innerHTML = this._seqColHeader || '&amp;nbsp;';
+	},
+	
+<span id='jslet-ui-table-SequenceCellRender-method-createCell'>	/**
+</span>	 * @override
+	 */
+	createCell: function(cellPanel, colCfg) {
+		jQuery(cellPanel.parentNode).addClass('jl-tbl-sequence');
+	},
+	
+<span id='jslet-ui-table-SequenceCellRender-method-refreshCell'>	/**
+</span>	 * @override
+	 */
+	refreshCell: function(cellPanel, colCfg) {
+		if (!colCfg || colCfg.noRefresh) {
+			return;
+		}
+		var jqDiv = jQuery(cellPanel), 
+			text,
+			recno = this.listvm.getCurrentRecno();
+		if(this._reverseSeqCol) {
+			text = this._dataset.recordCount() - recno;
+		} else {
+			text = recno + 1;
+		}
+		var title;
+		if(this._dataset.existRecordError(recno)) {
+			jqDiv.parent().addClass('has-error');
+			title = this._dataset.getRecordErrorInfo(recno);
+		} else {
+			jqDiv.parent().removeClass('has-error');
+			title = text;
+		}
+		
+		cellPanel.title = title;
+		jqDiv.html(text);
+	}
+});
+
+<span id='jslet-ui-table-SelectCellRender'>/**
+</span> * @class
+ * @extend jslet.ui.table.CellRender
+ * 
+ * Select column cell render.
+ */
+jslet.ui.table.SelectCellRender = jslet.Class.create(jslet.ui.table.CellRender, {
+<span id='jslet-ui-table-SelectCellRender-method-createHeader'>	/**
+</span>	 * @override
+	 */
+	createHeader: function(cellPanel, colCfg) {
+		cellPanel.style.textAlign = 'center';
+		var ocheckbox = document.createElement('input');
+		ocheckbox.type = 'checkbox';
+		var Z = this;
+		jQuery(ocheckbox).addClass('jl-tbl-select-check jl-tbl-select-all').on('click', function(event) {
+			if(Z._beforeSelectAll) {
+				Z._beforeSelectAll.call(Z);
+			}
+			Z._dataset.selectAll(this.checked ? 1 : 0, Z._onSelectAll);
+			if(Z._afterSelectAll) {
+				Z._afterSelectAll.call(Z);
+			}
+		});
+		cellPanel.appendChild(ocheckbox);
+	},
+	
+<span id='jslet-ui-table-SelectCellRender-method-createCell'>	/**
+</span>	 * @override
+	 */
+    createCell: function(cellPanel, colCfg) {
+	    cellPanel.style.textAlign = 'center';
+		var Z = this, 
+		ocheck = document.createElement('input'),
+		jqCheck = jQuery(ocheck);
+		jqCheck.attr('type', 'checkbox').addClass('jl-tbl-select-check');
+		jqCheck.click(Z._doSelectBoxClick);
+		cellPanel.appendChild(ocheck);
+	},
+
+<span id='jslet-ui-table-SelectCellRender-method-refreshCell'>	/**
+</span>	 * @override
+	 */
+	refreshCell: function(cellPanel, colCfg, recNo) {
+		if (!colCfg || colCfg.noRefresh) {
+			return;
+		}
+		var Z = this,
+			ocheck = cellPanel.firstChild;
+		if(Z._dataset.checkSelectable(recNo)) {
+			ocheck.checked = Z._dataset.selectedByRecno(recNo);
+			ocheck.style.display = '';
+		} else {
+			ocheck.style.display = 'none';
+		}
+	}
+});
+
+<span id='jslet-ui-table-EditActionCellRender'>/**
+</span> * @class
+ * @extend jslet.ui.table.CellRender
+ * 
+ * Edit action column cell render.
+ */
+jslet.ui.table.EditActionCellRender = jslet.Class.create(jslet.ui.table.CellRender, {
+<span id='jslet-ui-table-EditActionCellRender-method-createHeader'>	/**
+</span>	 * @override
+	 */
+	createHeader: function(cellPanel, colCfg) {
+		cellPanel.style.textAlign = 'center';
+		
+		var Z = this,
+			jqCell = jQuery(cellPanel);
+		jqCell.html('&lt;a class=&quot;jl-tbl-insert&quot; href=&quot;javascript: void(0)&quot; title=&quot;' + jsletlocale.DBTable.appendTip +
+				'&quot;&gt;&lt;i class=&quot;fa fa-plus&quot;&gt;&lt;/i&gt;&lt;/a&gt;');
+		jqCell.on('click', function(event) {
+			window.setTimeout(function() {
+				Z._doAppendRecord();
+			}, 80);
+		});
+	},
+	
+<span id='jslet-ui-table-EditActionCellRender-method-createCell'>	/**
+</span>	 * @override
+	 */
+    createCell: function(cellPanel, colCfg) {
+	    cellPanel.style.textAlign = 'center';
+		var Z = this,
+			jqCell = jQuery(cellPanel);
+		jqCell.html('&lt;a class=&quot;jl-tbl-delete&quot; href=&quot;javascript: void(0)&quot; title=&quot;' + jsletlocale.DBTable.deleteTip +
+				'&quot;&gt;&lt;i class=&quot;fa fa-minus&quot;&gt;&lt;/i&gt;&lt;/a&gt;');
+		jqCell.on('click', function(event) {
+			window.setTimeout(function() {
+				Z._doDeleteRecord();
+			}, 80);
+		});
+	}
+
+});
+
+jslet.ui.table.SubgroupCellRender = jslet.Class.create(jslet.ui.table.CellRender, {
+	createCell: function(cellPanel, colCfg) {
+		//TODO
+	}
+});
+
+<span id='jslet-ui-table-BoolCellRender'>/**
+</span> * @class
+ * @extend jslet.ui.table.CellRender
+ * 
+ * Boolean column cell render.
+ */
+jslet.ui.table.BoolCellRender = jslet.Class.create(jslet.ui.table.DefaultCellRender, {
+	createCell: function(cellPanel, colCfg) {
+		var jqCell = jQuery(cellPanel);
+		jqCell.css('textAlign', 'center');
+		jqCell.html('&lt;i class=&quot;fa fa-square-o&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;');
+	},
+
+<span id='jslet-ui-table-BoolCellRender-method-refreshCell'>	/**
+</span>	 * @override
+	 */
+	refreshCell: function(cellPanel, colCfg, recNo) {
+		if (!colCfg || colCfg.noRefresh) {
+			return;
+		}
+		var jqCell = jQuery(cellPanel);
+		var Z = this,
+			fldName = colCfg.field, 
+			fldObj = Z._dataset.getField(fldName);
+		if (Z._dataset.getFieldValueByRecno(recNo, fldName)) {
+			jqCell.find('.fa-square-o').removeClass('fa-square-o').addClass('fa-check-square-o');
+		}
+		else {
+			jqCell.find('.fa-check-square-o').removeClass('fa-check-square-o').addClass('fa-square-o');
+		}
+		Z._showSelected(cellPanel.parentNode, fldName, recNo);
+	}
+});
+
+<span id='jslet-ui-table-TreeCellRender'>/**
+</span> * @class
+ * @extend jslet.ui.table.CellRender
+ * 
+ * Tree column cell render.
+ */
+jslet.ui.table.TreeCellRender = jslet.Class.create(jslet.ui.table.CellRender, {
+<span id='jslet-ui-table-TreeCellRender-method-createCell'>	/**
+</span>	 * @override
+	 */
+	createCell: function(cellPanel, colCfg, recNo) {
+		var Z = this;
+
+		var odiv = document.createElement('div'),
+			jqDiv = jQuery(odiv);
+		odiv.style.height = Z.rowHeight() - 2 + 'px';
+		jqDiv.html('&lt;span class=&quot;jl-tbltree-indent&quot;&gt;&lt;/span&gt;&lt;a class=&quot;jl-tbltree-btn&quot; href=&quot;javascript:void()&quot;&gt;&lt;i class=&quot;fa fa-minus-square-o&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;/a&gt;' + 
+				'&lt;span class=&quot;jl-tbltree-iconhost&quot;&gt;&lt;/span&gt;&lt;span class=&quot;jl-tbltree-text&quot;&gt;&lt;/span&gt;');
+		
+		cellPanel.appendChild(odiv);
+	},
+	
+<span id='jslet-ui-table-TreeCellRender-method-refreshCell'>	/**
+</span>	 * @override
+	 */
+	refreshCell: function(cellPanel, colCfg, recNo) {
+		if (!colCfg || colCfg.noRefresh) {
+			return;
+		}
+		var odiv = cellPanel.firstChild,
+			jqDiv = jQuery(odiv),
+			arrSpan = odiv.childNodes,
+			Z = this,
+			level = Z.listvm.getLevel(recNo);
+		
+		if (!jslet.ui.table.TreeCellRender.iconWidth) {
+			jslet.ui.table.TreeCellRender.iconWidth = parseInt(jslet.ui.getCssValue('jl-tbltree-indent', 'width'));
+		}
+		var hasChildren = Z.listvm.hasChildren(recNo),
+			indentWidth = (!hasChildren ? level + 1 : level) * jslet.ui.table.TreeCellRender.iconWidth;
+		//Indent
+		jqDiv.find('.jl-tbltree-indent').css('width', indentWidth + 'px');
+		
+		//Expand button
+		var jqExpBtn = jqDiv.find('.jl-tbltree-btn'); //expand button
+		jqExpBtn.css('display', hasChildren ? 'inline-block' : 'none');
+		if (hasChildren) {
+			var expanded = Z._dataset.expandedByRecno(recNo);
+			if(expanded) {
+				jqExpBtn.find('.fa-plus-square-o').removeClass('fa-plus-square-o').addClass('fa-minus-square-o');
+			} else {
+				jqExpBtn.find('.fa-minus-square-o').removeClass('fa-minus-square-o').addClass('fa-plus-square-o');
+			}
+		}
+		//Icon
+		if (colCfg.getIconClass) {
+			var iconCls = colCfg.getIconClass(level, hasChildren);
+			if (iconCls) {
+				var jqIcon = jqDiv.find('.jl-tbltree-iconhost');
+				jqIcon.addClass('jl-tbltree-icon ' + iconCls);
+			}
+		}
+		
+		//Text
+		var fldName = colCfg.field, fldObj = Z._dataset.getField(fldName), text;
+		try {
+			text = Z._dataset.getFieldTextByRecno(recNo, fldName);
+		} catch (e) {
+			text = 'error: ' + e.message;
+		}
+		cellPanel.title = text;
+		if (fldObj.urlExpr()) {
+			var url = '&lt;a href=' + fldObj.calcUrl();
+			var target = fldObj.urlTarget();
+			if (target) {
+				url += ' target=' + target;
+			}
+			url += '&gt;' + text + '&lt;/a&gt;';
+			text = url;
+		}
+		jqDiv.find('.jl-tbltree-text').html(text);
+		Z._showSelected(cellPanel.parentNode, fldName, recNo);
+	}
+});
+
+
+jslet.ui.table.cellRenders = {
+	defaultCellRender: new jslet.ui.table.DefaultCellRender(),
+	treeCellRender: new jslet.ui.table.TreeCellRender(),
+	boolCellRender: new jslet.ui.table.BoolCellRender(),
+	sequenceCellRender: new jslet.ui.table.SequenceCellRender(),
+	selectCellRender: new jslet.ui.table.SelectCellRender(),
+	editActionCellRender: new jslet.ui.table.EditActionCellRender(),
+	subgroupCellRender: new jslet.ui.table.SubgroupCellRender()
+};
+
+</pre>
+</body>
+</html>

@@ -1,0 +1,11 @@
+﻿.jl-folder {
+	color: rgb(248, 228, 176)!important;
+	font-size: 13px!important;
+	text-align: center;
+}
+
+.jl-file {
+	color: rgb(200, 200, 160)!important;
+	font-size: 13px!important;
+	text-align: center;
+}

@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="../../css/demo.css" />
+    
+    <title>Jslet - 展示大数据</title>
+    <script type="text/javascript" data-main="../../config.js" src="../../lib/requirejs/require.min.js"></script>
+    <script type="text/javascript">
+	    require(['dbcontrol/tree/performance']);
+    </script>
+</head>
+<body >
+    <div class="demo-header">
+    <h4 id="top">Jslet - 展示大数据</h4>
+	</div>
+	<hr />
+	<div class="container-fluid">
+	<div class="form-horizontal">
+	<div class="col-sm-3">
+	<p>多级多数据（共5000条）</p>
+	<div id="trAgency" data-jslet="type: 'DBTreeView', dataset: 'agency',expandLevel: 0" style="height: 200px"></div>
+	</div>
+	<div class="col-sm-3">
+	<p>单级多数据（共10000条）</p>
+	<div data-jslet="type: 'DBTreeView', dataset: 'performance'" style="height: 200px"></div>
+	</div>
+	</div>
+	</div>
+	
+	<div class="demo-desc">
+	<p>演示内容：</p>
+	<p>传统的树形控件有两大痛点：</p>
+	<ol>
+	<li>节点太多，这个勉强可以通过延迟加载来解决，即点击某个树节点时加载下一级节点，但这也有弊端：用户需要一级一级点击，还有用户如果点击过多页面一样的卡死；</li>
+	<li>某个节点的下级节点太多，这种情况传统树形控件基本无解；</li>
+	</ol>
+	<p>以上的问题对Jslet来说，都是小菜一碟。Jslet树控件对大数量有天然的支持，实际上Jslet对数据量是没有限制的。</p>
+	</div>
+	<hr />
+	<h4>源码</h4>
+    <pre class="prettyprint linenums"><code>
+	//创建机构数据集用于显示树控件
+	var dsAgency = new jslet.data.Dataset({name: "agency", fields: [
+	   {name: 'id', label: 'ID', dataType: 'N', required: true},
+	   {name: 'parentid', label: 'ParentID', dataType: 'N', readOnly: true},
+	   {name: 'code', label: 'Code', dataType: 'S', required: true},
+	   {name: 'name', label: 'Name', dataType: 'S', required: true},
+	   {name: 'iconcls', label: 'Icon Class', dataType: 'S', required: true},
+	   ],
+	   //所有的树控件必须配置以下属性
+	   keyField: 'id', codeField: 'code', nameField: 'name', parentField: 'parentid'
+	});
+	
+	//创建5000条随机数据
+	function getRandomChar(){
+		return String.fromCharCode(65 + Math.round(Math.random()*25));// + 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+	}
+	
+	function generateLargeData(){
+		var data = [], rec, code1, code2, m=1, id1, id2;
+		for(var i = 1; i < 11; i++){
+			code1 = i;
+			if(i < 10)
+				code1 ='00' + i;
+			else
+			if(i < 100)
+				code1 = '0' + i;
+			else
+				code1 = i;
+			
+			id1 = m++;
+			rec = {id: id1, code: code1, name: getRandomChar() + code1, iconcls: 'folderIcon'};
+			data.push(rec);
+			for(var j = 1; j < 6; j++){
+				code2 = code1+ (j < 10 ? '0': '')+j;
+				id2 = m++;
+				rec = {id: id2, code: code2, name: getRandomChar() + code2, parentid: id1, iconcls: 'folderIcon'};
+				data.push(rec);
+				for(var k = 1; k < 11; k++){
+					code3 = code2+(k < 10 ? '0': '') + k;
+					rec = {id: m++, code: code3, name: getRandomChar() + code3, parentid: id2, iconcls: 'fileIcon'};
+					data.push(rec);
+				}
+			}
+		}
+		return data;
+	}
+	
+	dsAgency.records(generateLargeData());
+	</code></pre>
+
+    <script type="text/javascript">
+       window.LOADER_BASE_URL = "../../lib/prettify";
+    </script>
+    <script type="text/javascript" src="../../lib/prettify/run_prettify.js"></script>
+		
+</body>
+</html>

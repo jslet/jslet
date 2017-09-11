@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js"><span id='jslet-ui-DBImage'>/**
+</span> * @class 
+ * @extend jslet.ui.DBFieldControl
+ * 
+ * DBImage. Display an image which store in database or which's path store in database. Example:
+ * 
+ *     @example
+ *      var jsletParam = {type:&quot;DBImage&quot;,dataset:&quot;employee&quot;,field:&quot;photo&quot;};
+ * 
+ *     //1. Declaring:
+ *      &lt;img data-jslet='{type:&quot;DBImage&quot;,dataset:&quot;employee&quot;,field:&quot;photo&quot;}' /&gt;
+ *      or
+ *      &lt;img data-jslet='jsletParam' /&gt;
+ *
+ *     //2. Binding
+ *      &lt;img id=&quot;ctrlId&quot;  /&gt;
+ *      //Js snippet
+ *      var el = document.getElementById('ctrlId');
+ *      jslet.ui.bindControl(el, jsletParam);
+ *
+ *     //3. Create dynamically
+ *      jslet.ui.createControl(jsletParam, document.body);
+ */
+jslet.ui.DBImage = jslet.Class.create(jslet.ui.DBFieldControl, {
+<span id='jslet-ui-DBImage-method-initialize'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	initialize: function ($super, el, params) {
+		var Z = this;
+		Z.allProperties = 'styleClass,dataset,field,locked,baseUrl,altField,enableViewer,viewUrlField';
+		
+		Z._locked = false;
+		
+		Z._baseUrl = null;
+		
+		Z._altField = null;
+		
+		Z._enableViewer = false;
+		
+		Z._viewUrlField = null;
+		
+		$super(el, params);
+	},
+
+<span id='jslet-ui-DBImage-property-baseUrl'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get base URL for image &quot;src&quot;. The whole image URL is : &quot;baseUrl&quot; + the value of field. 
+	 * 
+	 * @param {String | undefined} baseUrl Base URL.
+	 * 
+	 * @return {this | String}
+	 */
+	baseUrl: function(baseUrl) {
+		if(baseUrl === undefined) {
+			return this._baseUrl;
+		}
+		baseUrl = jQuery.trim(baseUrl);
+		jslet.Checker.test('DBImage.baseUrl', baseUrl).isString();
+		this._baseUrl = baseUrl;
+		return this;
+	},
+   
+<span id='jslet-ui-DBImage-property-enableViewer'>	/**
+</span>	 * @property
+	 * 
+	 * Identify whether show image viewer. If true, user can click the image to show the image viewer. 
+	 * 
+	 * @param {Boolean | undefined} enableViewer True - enable viewer, false - otherwise.
+	 * 
+	 * @return {this | Boolean}
+	 */
+	enableViewer: function(enableViewer) {
+		if(enableViewer === undefined) {
+			return this._enableViewer;
+		}
+		this._enableViewer = enableViewer? true: false;
+		return this;
+	},
+   
+<span id='jslet-ui-DBImage-property-viewUrlField'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get the field name for image viewer. If 'field' stores the thumbnail url, 'viewUrlField' is stores the initial image url which is 
+	 * provided for image viewer. Only enabled when 'enableViewer' is true.
+	 * 
+	 * @param {String | undefined} viewUrlField.
+	 * 
+	 * @return {this | String}
+	 */
+	viewUrlField: function(viewUrlField) {
+		if(viewUrlField === undefined) {
+			return this._viewUrlField;
+		}
+		viewUrlField = jQuery.trim(viewUrlField);
+		jslet.Checker.test('DBImage.viewUrlField', viewUrlField).isString();
+		this._viewUrlField = viewUrlField;
+		return this;
+	},
+	
+<span id='jslet-ui-DBImage-property-altField'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get the field name for image &quot;alt&quot;. If not found the image, it displays the &quot;alt&quot; value.
+	 * 
+	 * @param {String | undefined} baseUrl Base url.
+	 * 
+	 * @return {this | String}
+	 */
+	altField: function(altField) {
+		if(altField === undefined) {
+			return this._altField;
+		}
+		altField = jQuery.trim(altField);
+		jslet.Checker.test('DBImage.altField', altField).isString();
+		this._altField = altField;
+		return this;
+	},
+   
+<span id='jslet-ui-DBImage-property-locked'>	/**
+</span>	 * @property
+	 * 
+	 * Identify whether stop refreshing image when moving dataset's cursor.
+	 * 
+	 * @param {Boolean | undefined} locked True - stop refreshing, false - otherwise.
+	 * 
+	 * @return {this | Boolean}
+	 */
+	locked: function(locked) {
+		if(locked === undefined) {
+			return this._locked;
+		}
+		this._locked = locked;
+		return this;
+	},
+   
+<span id='jslet-ui-DBImage-method-isValidTemplateTag'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	isValidTemplateTag: function (el) {
+		return el.tagName.toLowerCase() == 'img';
+	},
+
+<span id='jslet-ui-DBImage-method-bind'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	bind: function () {
+		var Z = this;
+		Z.renderAll();
+		var jqEl = jQuery(Z.el);
+		jqEl.addClass('img-responsive img-rounded');
+		if(jslet.ui.ImageViewer) {
+			jqEl.on('click', function() {
+				if(Z._locked || !Z._enableViewer) {
+					return;
+				}
+				var viewer = new jslet.ui.ImageViewer();
+				viewer.show(Z._getImgUrl(true));
+			});
+		}
+	},
+
+	_getImgUrl: function(isForViewer) {
+		var Z = this, srcUrl;
+		if(isForViewer &amp;&amp; Z._viewUrlField) {
+			srcUrl = Z._dataset.getFieldValue(Z._viewUrlField);
+			if(!srcUrl) {
+				srcUrl = Z.getValue();
+			}
+		}else {
+			srcUrl = Z.getValue();
+		}
+		if (!srcUrl) {
+			srcUrl = '';
+		} else {
+			if (Z._baseUrl) {
+				srcUrl = Z._baseUrl + srcUrl;
+			}
+		}
+		return srcUrl;
+	},
+	
+<span id='jslet-ui-DBImage-method-doValueChanged'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	doValueChanged: function() {
+		var Z = this,
+			fldObj = Z._dataset.getField(Z._field);
+		if (Z._locked) {
+			Z.el.alt = jsletlocale.DBImage.lockedImageTips;
+			Z.el.src = '';
+			return;
+		}
+
+		var srcURL = Z._getImgUrl();
+		if (Z.el.src != srcURL) {
+			var altText = srcURL;
+			if(Z._altField) {
+				altText = Z._dataset.getFieldText(Z._altField);
+			}
+			Z.el.alt = altText || '';
+			Z.el.src = srcURL;
+		}
+	},
+
+<span id='jslet-ui-DBImage-method-renderAll'>	/**
+</span>	 * @override
+	 */
+	renderAll: function () {
+		this.refreshControl(jslet.data.RefreshEvent.updateAllEvent(), true);
+		return this;
+	},
+	
+<span id='jslet-ui-DBImage-method-canFocus'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	canFocus: function() {
+		return false;
+	}
+});
+
+jslet.ui.register('DBImage', jslet.ui.DBImage);
+jslet.ui.DBImage.htmlTemplate = '&lt;img&gt;&lt;/img&gt;';
+</pre>
+</body>
+</html>

@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js"><span id='jslet-ui-FieldSet'>/**
+</span> * @class
+ * @extend jslet.ui.Control
+ * 
+ * FieldSet. Example:
+ * 
+ *     @example
+ *     //1. Declaring:
+ *       &lt;div data-jslet='type:&quot;FieldSet&quot;' /&gt;
+ *
+ *     //2. Binding
+ *       &lt;div id='ctrlId' /&gt;
+ *       //Js snippet
+ *       var jsletParam = {type:&quot;FieldSet&quot;};
+ *       var el = document.getElementById('ctrlId');
+ *       jslet.ui.bindControl(el, jsletParam);
+ *
+ *     //3. Create dynamically
+ *       var jsletParam = {type:&quot;FieldSet&quot;};
+ *       jslet.ui.createControl(jsletParam, document.body);
+ */
+jslet.ui.FieldSet = jslet.Class.create(jslet.ui.Control, {
+<span id='jslet-ui-FieldSet-method-initialize'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	initialize: function ($super, el, params) {
+		var Z = this;
+		Z.el = el;
+		Z.allProperties = 'styleClass,caption,collapsed';
+
+		Z._caption = null; 
+		
+		Z._collapsed = false;
+		
+		$super(el, params);
+	},
+
+<span id='jslet-ui-FieldSet-property-caption'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get caption of FieldSet.
+	 * 
+	 * @param {String | undefined} caption Caption of FieldSet.
+	 * 
+	 * @return {this | String}
+	 */
+	caption: function(caption) {
+		if(caption === undefined) {
+			return this._caption;
+		}
+		jslet.Checker.test('FieldSet.caption', caption).isString();
+		this._caption = caption;
+		return this;
+	},
+
+<span id='jslet-ui-FieldSet-property-collapsed'>	/**
+</span>	 * @property
+	 * 
+	 * Identify FieldSet is collapsed or not.
+	 * 
+	 * @param {Boolean | undefined} collapsed True - FieldSet is collapsed, false(default) - otherwise. 
+	 * @return {this | Boolean}
+	 */
+	collapsed: function(collapsed) {
+		if(collapsed === undefined) {
+			return this._collapsed;
+		}
+		this._collapsed = collapsed ? true: false;
+		return this;
+	},
+
+<span id='jslet-ui-FieldSet-method-bind'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	bind: function () {
+		this.renderAll();
+	},
+
+<span id='jslet-ui-FieldSet-method-renderAll'>	/**
+</span>	 * @override
+	 */
+	renderAll: function () {
+		var Z = this, jqEl = jQuery(Z.el);
+		if (!jqEl.hasClass('jl-fieldset')) {
+			jqEl.addClass('jl-fieldset jl-round5');
+		}
+		
+		var tmpl = ['&lt;legend class=&quot;jl-fieldset-legend&quot;&gt;'];
+		tmpl.push('&lt;span class=&quot;jl-fieldset-title&quot;&gt;&lt;i class=&quot;fa fa-chevron-circle-up jl-fieldset-btn&quot;&gt;');
+		tmpl.push('&lt;span&gt;');
+		tmpl.push(Z._caption);
+		tmpl.push('&lt;/span&gt;&lt;/span&gt;&lt;/legend&gt;&lt;div class=&quot;jl-fieldset-body&quot;&gt;&lt;/div&gt;');
+		
+		var nodes = Z.el.childNodes, 
+			children = [],
+			i, cnt;
+		cnt = nodes.length;
+		for(i = 0; i &lt; cnt; i++){
+			children.push(nodes[i]);
+		}
+
+		jqEl.html(tmpl.join(''));
+		var obody = jQuery(Z.el).find('.jl-fieldset-body')[0];
+		cnt = children.length;
+		for(i = 0; i &lt; cnt; i++){
+			obody.appendChild(children[i]);
+		}
+		
+		jqEl.find('.jl-fieldset-btn').click(jQuery.proxy(Z._doExpandBtnClick, this));
+	},
+	
+	_doExpandBtnClick: function(){
+		var Z = this, jqEl = jQuery(Z.el);
+		var fsBody = jqEl.find('.jl-fieldset-body');
+		if (!Z._collapsed){
+			fsBody.slideUp();
+			jqEl.addClass('jl-fieldset-collapse');
+			jqEl.find('.jl-fieldset-btn').addClass('fa-chevron-circle-down');
+		}else{
+			fsBody.slideDown();
+			jqEl.removeClass('jl-fieldset-collapse');
+			jqEl.find('.jl-fieldset-btn').removeClass('fa-chevron-circle-down');
+		}
+		fsBody[0].focus();
+		Z._collapsed = !Z._collapsed;
+	},
+	
+<span id='jslet-ui-FieldSet-method-destroy'>	/**
+</span>	 * @override
+	 */
+	destroy: function($super){
+		var jqEl = jQuery(this.el);
+		jqEl.find('input.jl-fieldset-btn').off();
+		$super();
+	}
+});
+
+jslet.ui.register('FieldSet', jslet.ui.FieldSet);
+jslet.ui.FieldSet.htmlTemplate = '&lt;fieldset&gt;&lt;/fieldset&gt;';
+</pre>
+</body>
+</html>

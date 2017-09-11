@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js"><span id='jslet-ui-DBChart'>/**
+</span> * @class 
+ * @extend jslet.ui.DBControl
+ * 
+ * DBChart, show data as a chart. We use an open source chart component to show chart: EChart(http://echarts.baidu.com/).
+ * EChart is very powerful, but we implement these usual chart: column, bar, line, area, pie. &lt;br /&gt;  
+ * Example:
+ * 
+ *     @example
+ *     var jsletParam = {type:&quot;DBChart&quot;, dataset:&quot;summary&quot;, chartType:&quot;column&quot;,categoryField:&quot;month&quot;,valueFields:&quot;amount&quot;,recordRange: jslet.data.RecordRange.ALL, reverse: false};
+ * 
+ *     //1. Declaring:
+ *     &lt;div id=&quot;chartId&quot; data-jslet='type:&quot;DBChart&quot;,chartType:&quot;column&quot;,categoryField:&quot;month&quot;,valueFields:&quot;amount,netProfit&quot;, dataset:&quot;summary&quot;' /&gt;
+ *     or
+ *     &lt;div data-jslet='jsletParam' /&gt;
+ *
+ *     //2. Binding
+ *     &lt;div id=&quot;ctrlId&quot;  /&gt;
+ *     //Js snippet
+ *     var el = document.getElementById('ctrlId');
+ *     jslet.ui.bindControl(el, jsletParam);
+ *
+ *     //3. Create dynamically
+ *     jslet.ui.createControl(jsletParam, document.body);
+ *
+ */
+jslet.ui.DBChart = jslet.Class.create(jslet.ui.DBControl, {
+	chartTypes: ['line', 'stackline', 'bar', 'stackbar', 'pie'],
+	
+	legendPositions: ['none', 'top', 'bottom', 'left', 'right'],
+	
+<span id='jslet-ui-DBChart-method-initialize'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	initialize: function ($super, el, params) {
+		var Z = this;
+		Z.allProperties = 'styleClass,dataset,chartType,chartTitle,categoryField,valueFields,legendPos,recordRange,reverse';
+		Z.requiredProperties = 'valueFields,categoryField';
+		
+		Z._chartType = &quot;line&quot;;
+		
+		Z._categoryField = null;
+		
+		Z._valueFields = null;
+		
+		Z._chartTitle = null;
+
+		Z._legendPos = 'none';
+		
+		Z._recordRange = jslet.data.RecordRange.ALL;
+		
+		Z._reverse = false;
+		
+		Z._fieldValidated = false;
+		
+		Z._oldHeight = -1;
+		
+		Z._echart = null;
+		
+		Z._onSetChartOption = null;
+		
+		$super(el, params);
+	},
+
+<span id='jslet-ui-DBChart-property-chartType'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get chart type. Optional chart type: line(default), column, bar, area, pie.
+	 * 
+	 * @param {String | undefined} chartType Chart type, optional value: 'line'(default), 'stackline', 'bar', 'stackbar', 'pie'.
+	 * 
+	 * @return {this | String}
+	 */
+	chartType: function(chartType) {
+		if(chartType === undefined) {
+			return this._chartType;
+		}
+		chartType = jQuery.trim(chartType);
+		var checker = jslet.Checker.test('DBChart.chartType', chartType).isString().required();
+		checker.testValue(chartType.toLowerCase()).inArray(this.chartTypes);
+		this._chartType = chartType;
+		return this;
+	},
+	
+<span id='jslet-ui-DBChart-property-categoryField'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get category field.
+	 * 
+	 * @param {String | undefined} categoryField Category field.
+	 * 
+	 * @return {this | String}
+	 */
+	categoryField: function(categoryField) {
+		if(categoryField === undefined) {
+			return this._categoryField;
+		}
+		jslet.Checker.test('DBChart.categoryField', categoryField).isString().required();
+		categoryField = jQuery.trim(categoryField);
+		this._categoryField = categoryField;
+		this._fieldValidated = false;
+		return this;
+	},
+	
+<span id='jslet-ui-DBChart-property-valueFields'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get value fields, multiple fields are separated with comma(,).
+	 * 
+	 * @param {String | undefined} valueFields Value fields.
+	 * 
+	 * @return {this | String}
+	 */
+	valueFields: function(valueFields) {
+		if(valueFields === undefined) {
+			return this._valueFields;
+		}
+		jslet.Checker.test('DBChart.valueFields', valueFields).isString().required();
+		valueFields = jQuery.trim(valueFields);
+		this._valueFields = valueFields.split(',');
+		this._fieldValidated = false;
+		return this;
+	},
+	
+<span id='jslet-ui-DBChart-property-chartTitle'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get chart title.
+	 * 
+	 * @param {String | undefined} chartTitle Chart title.
+	 * 
+	 * @return {this | String}
+	 */
+	chartTitle: function(chartTitle) {
+		if(chartTitle === undefined) {
+			return this._chartTitle;
+		}
+		jslet.Checker.test('DBChart.chartTitle', chartTitle).isString();
+		this._chartTitle = chartTitle;
+		return this;
+	},
+	
+<span id='jslet-ui-DBChart-property-legendPos'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get chart legend position, optional value: 'none', 'top'(default), 'bottom', 'left', 'right'.
+	 * 
+	 * @param {String | undefined} legendPos Chart legend position.
+	 * 
+	 * @return {this | String}
+	 */
+	legendPos: function(legendPos) {
+		if(legendPos === undefined) {
+			return this._legendPos;
+		}
+		legendPos = jQuery.trim(legendPos);
+		var checker = jslet.Checker.test('DBChart.legendPos', legendPos).isString().required();
+		checker.testValue(legendPos.toLowerCase()).inArray(this.legendPositions);
+		this._legendPos = legendPos;
+		return this;
+	},
+		
+<span id='jslet-ui-DBChart-property-recordRange'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get record range, optional value: jslet.data.RecordRange.ALL, jslet.data.RecordRange.CURRENT, jslet.data.RecordRange.SELECTED.
+	 * 
+	 * @param {jslet.data.RecordRange | undefined} recordRange default is jslet.data.RecordRange.ALL.
+	 * 
+	 * @return {this | jslet.data.RecordRange}
+	 */
+	recordRange: function(recordRange) {
+		if(recordRange === undefined) {
+			return this._recordRange;
+		}
+		this._recordRange = recordRange;
+		return this;
+	},
+		
+<span id='jslet-ui-DBChart-property-reverse'>	/**
+</span>	 * @property
+	 * 
+	 * Identify whether reverse the X-axis and Y-axis or not.
+	 * 
+	 * @param {Boolean | undefined} reverse True - reverse the X-axis and Y-axis, false - otherwise.
+	 * 
+	 * @return {this | Boolean}
+	 */
+	reverse: function(reverse) {
+		if(reverse === undefined) {
+			return this._reverse;
+		}
+		this._reverse = reverse? true: false;
+		return this;
+	},
+	
+	onSetChartOption: function(onSetChartOption) {
+		if(onSetChartOption === undefined) {
+			return this._onSetChartOption;
+		}
+		jslet.Checker.test('DBChart.onSetChartOption', onSetChartOption).isFunction();
+		this._onSetChartOption = onSetChartOption;
+		return this;
+	},
+	
+<span id='jslet-ui-DBChart-method-isValidTemplateTag'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	isValidTemplateTag: function (el) {
+		return el.tagName.toLowerCase() == 'div';
+	},
+
+<span id='jslet-ui-DBChart-method-bind'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	bind: function () {
+		if(!this.el.id) {
+			this.el.id = jslet.nextId();
+		}
+		this.renderAll();
+		jslet.ui.resizeEventBus.subscribe(this);
+	},
+	
+	_getEChart: function() {
+		if(!this._echart) {
+			this._echart = jslet.global.echarts.init(this.el);
+		}
+		return this._echart;
+	},
+
+	_validateFields: function() {
+		var Z = this;
+		if(Z._fieldValidated) {
+			return;
+		}
+		var dsObj = Z._dataset,
+			fldName = Z._categoryField;
+		if (!dsObj.getField(fldName)) {
+			throw new Error(jslet.formatMessage(jsletlocale.Dataset.fieldNotFound, [fldName]));
+		}
+		if(Z._valueFields) {
+			for(var i = 0, len = Z._valueFields.length; i &lt; len; i++) {
+				fldName = Z._valueFields[i];
+				if(!dsObj.getField(fldName)) {
+					throw new Error(jslet.formatMessage(jsletlocale.Dataset.fieldNotFound, [fldName]));
+				}
+			}
+		}
+		Z._fieldValidated = true;
+	},
+	
+	_getLineRecord: function(dsObj, xLabels, yValues, yFields, legendLabels) {
+		var Z = this,
+			startRecno = 0, endRecno = dsObj.recordCount() - 1;
+		if(Z._recordRange === jslet.data.RecordRange.CURRENT) {
+			startRecno = endRecno = dsObj.recno();
+		}
+		var isInit = false, valueFldName,
+			valueFldCnt = Z._valueFields.length,
+			valueArr, 
+			isSelectedRange = Z._recordRange === jslet.data.RecordRange.SELECTED;
+		for(var k = startRecno; k &lt;= endRecno; k++) {
+			dsObj.recnoSilence(k);
+			if(isSelectedRange &amp;&amp; !dsObj.selected()) {
+				continue;
+			}
+			xLabels.push(dsObj.getFieldText(Z._categoryField));
+			for(var i = 0; i &lt; valueFldCnt; i++) {
+				valueFldName = Z._valueFields[i];
+				if(!isInit) {
+					valueArr = [];
+					yValues.push(valueArr);
+					legendLabels.push(dsObj.getField(valueFldName).label());
+					yFields.push(valueFldName);
+				} else {
+					valueArr = yValues[i];
+				}
+				valueArr.push(dsObj.getFieldValue(valueFldName));
+			}
+			isInit = true;
+		} //End for k
+	},
+	
+	_getLineRecordReverse: function(dsObj, xLabels, yValues, yFields, legendLabels) {
+		var Z = this,
+			startRecno = 0, endRecno = dsObj.recordCount() - 1;
+		if(Z._recordRange === jslet.data.RecordRange.CURRENT) {
+			startRecno = endRecno = dsObj.recno();
+		}
+		var isInit = false, valueFldName,
+			valueFldCnt = Z._valueFields.length,
+			valueArr, 
+			isSelectedRange = Z._recordRange === jslet.data.RecordRange.SELECTED;
+		for(var k = startRecno; k &lt;= endRecno; k++) {
+			dsObj.recnoSilence(k);
+			if(isSelectedRange &amp;&amp; !dsObj.selected()) {
+				continue;
+			}
+			legendLabels.push(dsObj.getFieldText(Z._categoryField));
+			valueArr = [];
+			for(var i = 0; i &lt; valueFldCnt; i++) {
+				valueFldName = Z._valueFields[i];
+				if(!isInit) {
+					xLabels.push(dsObj.getField(valueFldName).label());
+					yFields.push(valueFldName);
+				}
+				valueArr.push(dsObj.getFieldValue(valueFldName));
+			}
+			yValues.push(valueArr);
+			isInit = true;
+		} //End for k
+	},
+	
+	_getLineData: function() {
+		var Z = this,
+			dsObj = Z._dataset,
+			xLabels = [],
+			yValues = [],
+			yFields = [],
+			legendLabels = [];
+
+		if(dsObj.recordCount() === 0 || !Z._valueFields) {
+			return {xLabels: xLabels, yValues: yValues, yFields: yFields, legendLabels: legendLabels};
+		}
+		var oldRecno = dsObj.recnoSilence();
+		try {
+			if(Z._reverse) {
+				Z._getLineRecordReverse(dsObj, xLabels, yValues, yFields, legendLabels);
+			} else {
+				Z._getLineRecord(dsObj, xLabels, yValues, yFields, legendLabels);
+			}
+		} finally {
+			dsObj.recnoSilence(oldRecno);
+		}
+		return {xLabels: xLabels, yValues: yValues, yFields: yFields, legendLabels: legendLabels};
+	},
+
+	_getPieData: function() {
+		var Z = this,
+			dsObj = Z._dataset,
+			chartData = [],
+			legendLabels = [],
+			result = {chartData: chartData, legendLabels: legendLabels, title: ''};
+		if(dsObj.recordCount() === 0 || !Z._valueFields) {
+			chartData = [['', 0]];
+			return result;
+		}
+		var startRecno = 0, endRecno = dsObj.recordCount() - 1;
+		if(Z._recordRange === jslet.data.RecordRange.CURRENT || Z._reverse) {
+			startRecno = endRecno = dsObj.recno();
+		}
+		if(Z._reverse) {
+			result.title = Z._dataset.getField(Z._valueFields[0]).displayLabel();
+		} else {
+		}
+		var oldRecno = dsObj.recnoSilence(), k, len, valueFldName, label, value,
+			isSelectedRange = Z._recordRange === jslet.data.RecordRange.SELECTED;
+		try {
+			if(!Z._reverse) {
+				result.title = Z._dataset.getField(Z._valueFields[0]).displayLabel();
+				valueFldName = Z._valueFields[0];
+				for(k = startRecno; k &lt;= endRecno; k++) {
+					dsObj.recnoSilence(k);
+					if(isSelectedRange &amp;&amp; !dsObj.selected()) {
+						continue;
+					}
+					label = dsObj.getFieldText(Z._categoryField);
+					value = dsObj.getFieldValue(valueFldName);
+					chartData.push({name: label, value: value});
+					legendLabels.push(label);
+				}
+			} else {
+				dsObj.recnoSilence(startRecno);
+				result.title = Z._dataset.getField(Z._categoryField).displayLabel();
+				var fldObj;
+				for(k = 0, len = Z._valueFields.length; k &lt; len; k++) {
+					valueFldName = Z._valueFields[k];
+					fldObj = dsObj.getField(valueFldName);
+					label = fldObj.displayLabel();
+					value = fldObj.getValue();
+					chartData.push([label, value]);
+				}
+			}
+		} finally {
+			dsObj.recnoSilence(oldRecno);
+		}
+		return result;
+	},
+
+	_drawLineChart: function() {
+		var Z = this,
+			chartData = Z._getLineData(),
+			echart = Z._getEChart(),
+			legendLabels = chartData.legendLabels,
+			option = {title: {text: Z._chartTitle},
+				legend: {data: legendLabels},
+				xAxis: {data: chartData.xLabels},
+				yAxis: {type: 'value'}
+			};
+		var yValues = chartData.yValues,
+			yFields = chartData.yFields,
+			series = [], stack = null,
+			chtype = Z._chartType;
+		if(chtype === 'stackline'){
+			stack = 'stack';
+			chtype = 'line';
+		}
+		if(chtype === 'stackbar') {
+			stack = 'stack';
+			chtype = 'bar';
+		}
+		for(var i = 0, len = yValues.length; i &lt; len; i++) {
+			series.push({field: yFields[i], name: legendLabels[i], data: yValues[i], type: chtype, stack: stack});
+		}
+		option.series = series;
+		
+		if(Z._onSetChartOption) {
+			Z._onSetChartOption(option);
+		}
+		echart.setOption(option);
+	},
+		
+	_drawPieChart: function() {
+		var Z = this,
+			chartData = Z._getPieData(),
+			echart = Z._getEChart(),
+			title = chartData.title,
+			chartTitle = (Z._chartTitle? Z._chartTitle + ' - ' : '') + title,
+		legendLabels = chartData.legendLabels;
+		chartData = chartData.chartData;
+			
+		var option = {title: {text: chartTitle},
+				legend: {data: legendLabels}
+			};
+		
+		var series = [{type: 'pie', data: chartData}];
+		option.series = series;
+		if(Z._onSetChartOption) {
+			Z._onSetChartOption(option);
+		}
+		echart.setOption(option);
+	},
+	
+	drawChart: function () {
+		var Z = this,
+			dsObj = Z._dataset;
+		if(jQuery(Z.el).is(':hidden')) {
+			return;
+		}
+		Z._getEChart().clear();
+		
+		if(dsObj.recordCount() === 0) {
+			return;
+		}
+		if(Z._recordRange === jslet.data.RecordRange.SELECTED) {
+			if(!Z._dataset.hasSelectedRecords()) {
+				return;
+			}
+		}
+		Z._validateFields();
+		if(Z._chartType == 'pie') {
+			Z._drawPieChart();
+			return;
+		}
+		if(Z._chartType == 'line' || Z._chartType == 'bar' || 
+			Z._chartType == 'stackline' || Z._chartType == 'stackbar') {
+			Z._drawLineChart();
+			return;
+		}
+	},
+
+	refreshControl: function (evt) {
+		var evtType = evt.eventType;
+		if (evtType === jslet.data.RefreshEvent.UPDATEALL || 
+			evtType === jslet.data.RefreshEvent.UPDATERECORD ||
+			evtType === jslet.data.RefreshEvent.UPDATECOLUMN || 
+			evtType === jslet.data.RefreshEvent.INSERT || 
+			evtType === jslet.data.RefreshEvent.DELETE || 
+			(evtType === jslet.data.RefreshEvent.SCROLL &amp;&amp; this._recordRange === jslet.data.RecordRange.CURRENT) || 
+			((evtType === jslet.data.RefreshEvent.SELECTRECORD || evtType === jslet.data.RefreshEvent.SELECTALL) &amp;&amp;
+				this._recordRange === jslet.data.RecordRange.SELECTED)
+			) {
+			this.drawChart();
+		}
+	},
+	
+<span id='jslet-ui-DBChart-method-renderAll'>	/**
+</span>	 * @override
+	 */
+	renderAll: function () {
+		this.refreshControl(jslet.data.RefreshEvent.updateAllEvent(), true);
+		return this;
+	},
+	
+<span id='jslet-ui-DBChart-method-checkSizeChanged'>	/**
+</span>	 * Run when container size changed, it's revoked by jslet.ui.resizeEventBus.
+	 * 
+	 */
+	checkSizeChanged: function(){
+		var Z = this;
+		var currHeight = jQuery(Z.el).height();
+		if(Z._oldHeight &lt; 0 || Z._oldHeight === currHeight) {
+			return;
+		} 
+		Z._oldHeight = currHeight;
+		window.setTimeout(function() {
+			Z.drawChart();
+		}, 10);
+	},
+	
+<span id='jslet-ui-DBChart-method-destroy'>	/**
+</span>	 * @override
+	 */
+	destroy: function($super){
+		this.jqplot = null;
+		jslet.ui.resizeEventBus.unsubscribe(this);
+		$super();
+	}
+});
+
+jslet.ui.register('DBChart', jslet.ui.DBChart);
+jslet.ui.DBChart.htmlTemplate = '&lt;div&gt;&lt;/div&gt;';
+</pre>
+</body>
+</html>

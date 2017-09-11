@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js"><span id='jslet-ui-ChartDialog'>/**
+</span> * Show chart for a dataset. Example:
+ * 
+ *     @example
+ *     var dialog = new jslet.ui.ChartDialog(dsObj, options);
+ *     dialog.show();
+ *       
+ * @param {jslet.data.Dataset | String} dataset Dataset object or dataset name which the chart is shown on.
+ * @param {Object} options Chart dialog options.
+ * @param {Object} options.chartTypes See property &quot;chartTypes&quot;.
+ * @param {Object} options.categoryField See property &quot;categoryField&quot;.
+ * @param {Object} options.valueFields See property &quot;valueFields&quot;.
+ * @param {Object} options.excludeValueFields See property &quot;excludeValueFields&quot;.
+ * @param {Object} options.width See property &quot;width&quot;.
+ * @param {Object} options.height See property &quot;height&quot;.
+ */
+jslet.ui.ChartDialog = function(dataset, options) {
+	jslet.Checker.test('ChartDialog#dataset', dataset).required();
+	
+	var Z = this;
+	Z._dataset = jslet.data.getDataset(dataset);
+	
+	Z._width = 800;
+	Z._height = 500;
+
+	function setProp(options, propName) {
+		if(options &amp;&amp; options[propName] !== undefined &amp;&amp; Z[propName] !== undefined) {
+			Z[propName](options[propName]);
+		}
+	}
+	setProp(options, 'chartTypes');
+	setProp(options, 'categoryField');
+	setProp(options, 'valueFields');
+	setProp(options, 'excludeValueFields');
+	setProp(options, 'width');
+	setProp(options, 'height');
+	
+	Z._dlgId = null;
+	Z._chartId = null;
+	Z._parsedValueFields = null;
+	
+	Z._chartSettingDs = null;
+	Z._chartSettingDsName = null;
+	Z._chartTypeDs = null;
+	Z._initialize();
+};
+
+jslet.ui.ChartDialog.prototype = {
+		
+	_initialize: function() {
+		var Z = this,
+			chartLocale = jsletlocale.ChartDialog;
+		var chartTypes = [{code: 'line', name:  chartLocale.ctLine}, 
+		                  {code: 'bar', name:  chartLocale.ctBar},
+		                  {code: 'pie', name:  chartLocale.ctPie},
+			              {code: 'stackbar', name:  chartLocale.ctStackBar}],
+			chartTypeDs = new jslet.data.Dataset({name: 'chartTypeDs' + jslet.nextId(), isEnum: true, defaultValue: 'line', 
+				records: chartTypes});
+		var ranges = [{code: jslet.data.RecordRange.ALL, name: chartLocale.rrAll}, 
+		              {code: jslet.data.RecordRange.CURRENT, name:  chartLocale.rrCurrent},
+			          {code: jslet.data.RecordRange.SELECTED, name:  chartLocale.rrSelected}],
+			rangeDs = new jslet.data.Dataset({name: 'rangeDs' + jslet.nextId(), isEnum: true, defaultValue: 'line', 
+				records: ranges});
+		
+		Z._chartTypeDs = chartTypeDs;
+		var valueFldLkDs = new jslet.data.Dataset({name: 'chartDlgDs' + jslet.nextId(), isEnum: true});
+		var fldCfg = [{name: 'chartType', dataType: 'S', label: chartLocale.chartType, lookup: {dataset: chartTypeDs}, required: true}, 
+		              {name: 'recordRange', dataType: 'N', label: chartLocale.recordRange, lookup: {dataset: rangeDs}, required: true, defaultValue: jslet.data.RecordRange.ALL},
+		              {name: 'reverse', dataType: 'B', label: chartLocale.reverse, defaultValue: false, visible: false},
+		              {name: 'valueFields', dataType: 'S', label: chartLocale.valueFields, required: true, lookup: {dataset: valueFldLkDs}, 
+			valueStyle: jslet.data.FieldValueStyle.MULTIPLE, editControl: {type:&quot;DBComboSelect&quot;, textReadOnly: true}}];
+		Z._chartSettingDsName = 'chartSetting' + jslet.nextId();
+		Z._chartSettingDs = new jslet.data.Dataset({name: Z._chartSettingDsName, fields: fldCfg});
+		Z._chartSettingDs.appendRecord();
+		Z._chartSettingDs.onFieldChanged(jQuery.proxy(Z._doFieldChanged, Z));
+	},
+	
+<span id='jslet-ui-ChartDialog-property-chartTypes'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get the valid chart types, the optional values are: 'line', 'stackline', 'pie', 'bar', 'stackbar'.
+	 *     
+	 * @param {String[] | undefined} chartTypes The valid chart types;
+	 * 
+	 * @return {this | String[]}
+	 */	
+	chartTypes: function(chartTypes) {
+		if(chartTypes === undefined) {
+			return this._chartTypes;
+		}
+		jslet.Checker.test('ChartDialog#chartTypes', chartTypes).isArray();
+		this._chartTypes = chartTypes;
+		return this;
+	},
+	
+<span id='jslet-ui-ChartDialog-property-categoryField'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get the category field name of chart.
+	 *     
+	 * @param {String | undefined} categoryField The category field name;
+	 * 
+	 * @return {this | String}
+	 */	
+	categoryField: function(categoryField) {
+		if(categoryField === undefined) {
+			return this._categoryField;
+		}
+		jslet.Checker.test('ChartDialog#categoryField', categoryField).isString().required();
+		this._categoryField = categoryField;
+		return this;
+	},
+	
+<span id='jslet-ui-ChartDialog-property-valueFields'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get the value fields name of chart. If this property is not set, it will use the all number fields as value fields.
+	 * 
+	 * @param {String[] | undefined} valueFields The value field name;
+	 * 
+	 * @return {this | String[]}
+	 */	
+	valueFields: function(valueFields) {
+		if(valueFields === undefined) {
+			return this._valueFields;
+		}
+		jslet.Checker.test('ChartDialog#valueFields', valueFields).isArray();
+		this._valueFields = valueFields;
+		return this;
+	},
+	
+<span id='jslet-ui-ChartDialog-property-excludeValueFields'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get which the fields name can not be value fields.
+	 *     
+	 * @param {String[] | undefined} valueFields The exclude value field names;
+	 * 
+	 * @return {this | String[]}
+	 */	
+	excludeValueFields: function(excludeValueFields) {
+		if(excludeValueFields === undefined) {
+			return this._excludeValueFields;
+		}
+		jslet.Checker.test('ChartDialog#excludeValueFields', excludeValueFields).isArray();
+		this._excludeValueFields = excludeValueFields;
+		return this;
+	},
+		
+<span id='jslet-ui-ChartDialog-method-width'>	/**
+</span>	 * Set or get the dialog width.
+	 * 
+	 * @param {Integer | undefined} width Dialog width;
+	 * 
+	 * @return {this | Integer}
+	 */
+	width: function(width) {
+		if(width === undefined) {
+			return this._width;
+		}
+		jslet.Checker.test('ChartDialog.width', width).isNumber();
+		return this;
+	},
+	
+<span id='jslet-ui-ChartDialog-method-height'>	/**
+</span>	 * Set or get the dialog height.
+	 * 
+	 * @param {Integer | undefined} height Dialog height;
+	 * 
+	 * @return {this | Integer}
+	 */
+	height: function(height) {
+		if(height === undefined) {
+			return this._height;
+		}
+		jslet.Checker.test('ChartDialog.height', height).isNumber();
+		return this;
+	},
+	
+<span id='jslet-ui-ChartDialog-method-show'>	/**
+</span>	 * Show chart dialog.
+	 */
+	show: function() {
+		var Z = this;
+		jslet.Checker.test('ChartDialog#categoryField', Z._categoryField).isString().required();
+		Z._refreshValueFields();
+		
+		if(!Z._parsedValueFields || Z._parsedValueFields.length === 0) {
+			jslet.ui.info(jsletlocale.ChartDialog.valueFieldsRequired);
+			return;
+		}
+		if(Z._chartTypes &amp;&amp; Z._chartTypes.length &gt; 0) {
+			Z._chartTypeDs.filter('inArray([code], ' + JSON.stringify(Z._chartTypes) + ')');
+			Z._chartTypeDs.filtered(true);
+		} else {
+			Z._chartTypeDs.filtered(false);
+		}
+		var creating = false;
+		if(!Z._dlgId) {
+			Z._createDialog();
+			creating = true;
+		}
+		var owin = jslet('#' + Z._dlgId);
+		owin.showModal();
+		owin.setZIndex(999);
+		jslet('#' + Z._chartId).drawChart();
+	},
+	
+	_refreshValueFields: function() {
+		var Z = this, i, len, fldObj, fldName;
+		if(Z._valueFields &amp;&amp; Z._valueFields.length &gt; 0) {
+			Z._parsedValueFields = Z._valueFields;
+		} else {
+			Z._parsedValueFields = [];
+			var fields = Z._dataset.getNormalFields(),
+				exFields = Z._excludeValueFields;
+			for(i = 0, len = fields.length; i &lt; len; i++) {
+				fldObj = fields[i];
+				fldName = fldObj.name();
+				if(fldObj.dataType() !== jslet.data.DataType.NUMBER || fldObj.lookup()) {
+					continue;
+				}
+				if(exFields &amp;&amp; exFields.indexOf(fldName) &gt;= 0) {
+					continue;
+				}
+				Z._parsedValueFields.push(fldName); 
+			}
+		}
+		var records = [], values = [];
+		for(i = 0, len = Z._parsedValueFields.length; i &lt; len; i++) {
+			fldName = Z._parsedValueFields[i];
+			fldObj = Z._dataset.getField(fldName);
+			records.push({code: fldName, name: fldObj.displayLabel()});
+			values.push(fldName);
+		}
+		var dsObj = Z._chartSettingDs,
+			lkds = dsObj.getField('valueFields').lookup().dataset();
+		dsObj.setFieldValue('valueFields', values);
+		lkds.records(records);
+	},
+	
+	_createDialog: function() {
+		var Z = this,
+			chartLocale = jsletlocale.ChartDialog;
+		var opt = { type: 'window', caption: chartLocale.caption, isCenter: true, resizable: true, minimizable: false, maximizable: true, animation: 'fade', styleClass: 'jl-chartdlg', 
+				onSizeChanged: function() {
+					window.setTimeout(function() {jslet('#' + Z._chartId).drawChart();}, 10);
+				}};
+		if(Z._width) {
+			opt.width = Z._width;
+		}
+		if(Z._height) {
+			opt.height = Z._height;
+		}
+		var owin = jslet.ui.createControl(opt);
+		owin.onClosed(function () {
+			Z.destroy();
+		});
+		var chartCfg = &quot;type: 'DBChart', dataset: '&quot; + Z._dataset.name() + 
+			&quot;', categoryField: '&quot; + Z._categoryField + 
+			&quot;', valueFields: '&quot; + Z._parsedValueFields.join(',') + &quot;'&quot;;
+		var html = '';
+		html += '&lt;div class=&quot;jl-chartdlg-editor&quot; data-jslet=&quot;type: \'DBEditPanel\', dataset: \'' + Z._chartSettingDsName + 
+		'\'&quot;&gt;&lt;/div&gt;';
+		html += '&lt;div class=&quot;jl-chartdlg-chart&quot; data-jslet=&quot;' + chartCfg + '&quot; style=&quot;width: 100%;height: 100%&quot;&gt;&lt;/div&gt;';
+		owin.setContent(html);
+		Z._dlgId = owin.el.id;
+		var jqEl = jQuery(owin.el);
+		
+		jslet.ui.install(owin.el, function() {
+			Z._chartId = jqEl.find('.jl-chartdlg-chart')[0].id;
+		});
+	},
+
+	_doFieldChanged: function(fldName, fldValue) {
+		var Z = this;
+		if(!Z._chartId) {
+			return;
+		}
+		var dsObj = Z._chartSettingDs;
+		var chartObj = jslet('#' + Z._chartId);
+		if(fldName === 'chartType') {
+			if(fldValue === 'pie') {
+				chartObj.chartType(fldValue);
+				dsObj.getField('valueFields').valueStyle(jslet.data.FieldValueStyle.NORMAL);
+				var valueFlds = dsObj.getFieldValue('valueFields');
+				if(valueFlds &amp;&amp; jslet.isArray(valueFlds) &amp;&amp; valueFlds.length &gt; 1) {
+					dsObj.setFieldValue('valueFields', valueFlds[0]);
+					return;
+				}
+			} else {
+				dsObj.getField('valueFields').valueStyle(jslet.data.FieldValueStyle.MULTIPLE);
+			}
+		}
+		if(fldName === 'valueFields' &amp;&amp; jslet.isArray(fldValue)) {
+			fldValue = fldValue.join(',');
+		}
+		chartObj[fldName](fldValue);
+		
+		chartObj.drawChart();
+	},
+	
+	destroy: function() {
+		var Z = this;
+    	if(Z._chartSettingDs) {
+    		var lkds = Z._chartSettingDs.getField('valueFields').lookup().dataset();
+    		lkds.destroy();
+    		Z._chartSettingDs.destroy();
+    		Z._chartSettingDs = null;
+    	}
+    	Z._dataset = null;
+    	
+	}
+
+};
+
+</pre>
+</body>
+</html>

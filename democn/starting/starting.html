@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="../css/demo.css" />
+    
+    <title>Jslet - 如何开始</title>
+</head>
+<body>
+    <div class="demo-header">
+    <h3 id="top">Jslet - 如何开始</h3>
+	</div>
+	<hr />
+	<div class="demo-desc">
+	<p>此页面主要让大家了解Jslet是如何开始的，实际的开发中，还是要使用模块化的方法去开发，比如用requirjs等。</p>
+	<p>下面开始，步骤：</p>
+	<p><a href="#step1">1、编写HTML框架</a> --> <a href="#step2">2、引入Css和JavaScript文件</a> --> <a href="#step3">3、定义数据集</a> -->
+	 <a href="#step4">4、定义控件模板</a>  --> <a href="#step5">5、完成，最终成果</a>   </p>
+	</div>
+	<hr />
+	<h4 id="step1">1、编写HTML框架</h4>
+    <pre class="prettyprint linenums lang-html"><code>
+	&lt;!DOCTYPE html>
+	&lt;html>
+	&lt;head>
+		&lt;meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+		&lt;meta name="viewport" content="width=device-width, initial-scale=1">
+	&lt;/head>
+	&lt;body>
+	&lt;/body>
+	&lt;/html>
+
+	</code></pre>
+
+	<h4 id="step2">2、引入Css和JavaScript文件</h4>
+    <pre class="prettyprint linenums lang-html"><code>
+	&lt;!DOCTYPE html>
+	&lt;html>
+	&lt;head>
+		&lt;meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+		&lt;meta name="viewport" content="width=device-width, initial-scale=1">
+	<b><i>
+		&lt;!-- Bootstrap 样式  -->
+		&lt;link rel="stylesheet" type="text/css" href="../../dist/lib/bootstrap-3.2.0-dist/css/bootstrap.min.css" />
+		&lt;link rel="stylesheet" type="text/css" href="../../dist/lib/bootstrap-3.2.0-dist/css/bootstrap-theme.min.css" />
+		&lt;!-- Font Awesome 样式  -->
+		&lt;link rel="stylesheet" type="text/css" href="../../dist/lib/fontawesome/css/font-awesome.min.css" />
+	
+		&lt;!--  Jslet 样式  -->
+		&lt;link rel="stylesheet" type="text/css" href="../../dist/asset/jslet.min.css" />
+		&lt;link rel="stylesheet" type="text/css" href="../../dist/asset/default/jslet-theme.min.css" />
+	
+		&lt;!--  jQuery  -->
+		&lt;script src="../../dist/lib/jquery/jquery-2.2.3.min.js">&lt;/script>
+	
+		&lt;!-- Jslet -->
+		&lt;!-- 语言包，下面是中文的，如果需要英文，则引进：../../dist/locale/en/jslet-locale.js -->
+		&lt;script src="../../dist/locale/zh-cn/jslet-locale.min.js">&lt;/script>
+	
+		&lt;script src="../../dist/jslet-data.min.js">&lt;/script>
+		&lt;script src="../../dist/jslet-ui.min.js">&lt;/script>
+	</i></b>
+	&lt;/head>
+	&lt;body>
+	&lt;/body>
+	&lt;/html>
+	</code></pre>
+		
+	<h4 id="step3">3、定义数据集</h4>
+    <pre class="prettyprint linenums lang-html"><code>
+	&lt;!DOCTYPE html>
+	&lt;html>
+	&lt;head>
+		&lt;meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+		&lt;meta name="viewport" content="width=device-width, initial-scale=1">
+
+		&lt;!-- Bootstrap 样式  -->
+		&lt;link rel="stylesheet" type="text/css" href="../../dist/lib/bootstrap-3.2.0-dist/css/bootstrap.min.css" />
+		&lt;link rel="stylesheet" type="text/css" href="../../dist/lib/bootstrap-3.2.0-dist/css/bootstrap-theme.min.css" />
+		&lt;!-- Font Awesome 样式  -->
+		&lt;link rel="stylesheet" type="text/css" href="../../dist/lib/fontawesome/css/font-awesome.min.css" />
+	
+		&lt;!--  Jslet 样式  -->
+		&lt;link rel="stylesheet" type="text/css" href="../../dist/asset/default/jslet-css.min.css" />
+	
+		&lt;!--  jQuery  -->
+		&lt;script src="../../dist/lib/jquery-2.2.3.min.js">&lt;/script>
+	
+		&lt;!-- Jslet -->
+		&lt;!-- 语言包，下面是中文的，如果需要英文，则引进：../../dist/locale/en/jslet-locale.js -->
+		&lt;script src="../../dist/locale/zh-cn/jslet-locale.min.js">&lt;/script>
+	
+		&lt;script src="../../dist/jslet-data.min.js">&lt;/script>
+		&lt;script src="../../dist/jslet-ui.min.js">&lt;/script>
+	<b>
+		&lt;script>
+			//定义字段
+			var fieldCfg = [
+				{name: 'field0', dataType: 'E', label: '编辑按钮列'},
+				{name: 'field1', dataType: 'S', label: '字符字段', required: true},
+				{name: 'field2', dataType: 'N', label: '数字字段'},
+				{name: 'field3', dataType: 'D', label: '日期字段', defaultValue: new Date()},
+				{name: 'field4', dataType: 'B', label: 'Bool字段'}
+			];
+			//创建数据集：test
+			var dsTest = new jslet.data.Dataset({name: 'test', fields: fieldCfg});
+			
+			$(document).ready(function() {
+				//文档加载完成后创建Jslet控件并与数据集绑定
+				jslet.ui.install();
+			})
+		&lt;/script>
+	</b>
+	&lt;/head>
+	&lt;body>
+	&lt;/body>
+	&lt;/html>
+	</code></pre>
+	
+	<h4 id="step4">4、定义控件模板</h4>
+    <pre class="prettyprint linenums lang-html"><code>
+	&lt;!DOCTYPE html>
+	&lt;html>
+	&lt;head>
+		&lt;meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+		&lt;meta name="viewport" content="width=device-width, initial-scale=1">
+
+		&lt;!-- Bootstrap 样式  -->
+		&lt;link rel="stylesheet" type="text/css" href="../../dist/lib/bootstrap-3.2.0-dist/css/bootstrap.min.css" />
+		&lt;link rel="stylesheet" type="text/css" href="../../dist/lib/bootstrap-3.2.0-dist/css/bootstrap-theme.min.css" />
+		&lt;!-- Font Awesome 样式  -->
+		&lt;link rel="stylesheet" type="text/css" href="../../dist/lib/fontawesome/css/font-awesome.min.css" />
+	
+		&lt;!--  Jslet 样式  -->
+		&lt;link rel="stylesheet" type="text/css" href="../../dist/asset/default/jslet-css.min.css" />
+	
+		&lt;!--  jQuery  -->
+		&lt;script src="../../dist/lib/jquery-2.2.3.min.js">&lt;/script>
+	
+		&lt;!-- Jslet -->
+		&lt;!-- 语言包，下面是中文的，如果需要英文，则引进：../../dist/locale/en/jslet-locale.js -->
+		&lt;script src="../../dist/locale/zh-cn/jslet-locale.min.js">&lt;/script>
+	
+		&lt;script src="../../dist/jslet-data.min.js">&lt;/script>
+		&lt;script src="../../dist/jslet-ui.min.js">&lt;/script>
+
+		&lt;script>
+			//定义字段
+			var fieldCfg = [
+				{name: 'field0', dataType: 'E', label: '编辑按钮列'},
+				{name: 'field1', dataType: 'S', label: '字符字段', required: true},
+				{name: 'field2', dataType: 'N', label: '数字字段'},
+				{name: 'field3', dataType: 'D', label: '日期字段', defaultValue: new Date()},
+				{name: 'field4', dataType: 'B', label: 'Bool字段'}
+			];
+			//创建数据集：test
+			var dsTest = new jslet.data.Dataset({name: 'test', fields: fieldCfg});
+			//插入一条数据
+			dsTest.appendRecord();
+			//设置字段值
+			dsTest.setFieldValue('field1', 'abcd');			
+			dsTest.setFieldValue('field2', 1000);			
+			//确认修改，确认时会做数据校验
+			dsTest.confirm();
+			
+			$(document).ready(function() {
+				jslet.ui.install();
+			})
+		&lt;/script>
+	&lt;/head>
+	&lt;body>
+		<b>&lt;h4>列表区&lt;/h4>
+		&lt;!--  定义表格控件, 通过'dataset'属性绑定到数据集：test  -->
+		&lt;div data-jslet="type: 'DBTable', dataset: 'test'" style="width: 1000px">&lt;/div>
+		&lt;h4>编辑区&lt;/h4>
+		&lt;!--  定义编辑区控件, 通过'dataset'属性绑定到数据集：test  -->
+		&lt;div data-jslet="type: 'DBEditPanel', dataset: 'test'" style="width: 1000px">&lt;/div></b>
+	&lt;/body>
+	&lt;/html>
+	</code></pre>
+
+	<h4 id="step5">5、完成，看看最终成果</h4><p>
+	<iframe src="first.html" style="width: 100%;height: 400px; border: 0px; padding: 10px">
+	</iframe>
+	
+    <script type="text/javascript">
+       window.LOADER_BASE_URL = "../lib/prettify";
+    </script>
+    <script type="text/javascript" src="../lib/prettify/run_prettify.js"></script>
+		
+</body>
+</html>

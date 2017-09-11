@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="../../css/demo.css" />
+   
+    <title>Jslet - 基础控件（DBLabel, DBDataLabel, DBCheckBox, DBPassword, DBTextArea，DBUEditor，DBCKEditor）</title>
+    <script type="text/javascript" data-main="../../config.js" src="../../lib/requirejs/require.min.js"></script>
+    <script type="text/javascript">
+	    require(['dbcontrol/form/a-genericcontrol']);
+    </script>
+</head>
+<body>
+    <div class="demo-header">
+    <h4 id="top">Jslet - 基础控件（DBLabel, DBDataLabel, DBCheckBox, DBPassword, DBTextArea，DBUEditor，DBCKEditor）</h4>
+	</div>
+	<hr />
+
+	<div data-jslet="type: 'DBTable', dataset: 'employee'" style="margin-bottom: 10px"></div>
+	
+	<div class="container-fluid">
+	<div class="form-horizontal">
+	<div class="form-group form-group-sm" style="vertical-align: middle">
+	<div class="col-sm-2">
+		<label class="">(DBLabel)</label>
+	</div>
+	<div class="col-sm-2">
+		<label data-jslet="type: 'DBLabel', dataset: 'employee', field: 'id'"></label>
+	</div>
+	<div class="col-sm-2">
+		<label class="">(DBDataLabel)</label>
+	</div>
+	<div class="col-sm-2">
+		<label data-jslet="type: 'DBDataLabel', dataset: 'employee', field: 'name'"></label>
+	</div>
+	<div class="col-sm-2">
+		<label class="">(DBCheckBox)</label>
+	</div>
+	<div class="col-sm-2">
+		<input data-jslet="type: 'DBCheckBox', dataset: 'employee', field: 'married'"></input>
+	</div>
+	</div>
+	<div class="form-group form-group-sm" style="vertical-align: middle">
+	<div class="col-sm-2">
+		<label class="">(DBPassword)</label>
+	</div>
+	<div class="col-sm-2">
+		<input data-jslet="type: 'DBPassword', dataset: 'employee', field: 'name'"></input>
+	</div>
+
+	<div class="col-sm-2">
+		<label class="">(DBTextArea)</label>
+	</div>
+	<div class="col-sm-2">
+		<TextArea data-jslet="type: 'DBTextArea', dataset: 'employee', field: 'summary'"></TextArea>
+	</div>
+	</div>
+
+	</div>
+	</div>
+	
+	
+	<hr />
+	<h4>源码</h4>
+	<h5>HTML</h5>
+    <pre class="prettyprint linenums"><code>
+    //DBLabel，HTML元素为Label
+    &lt;label data-jslet="type: 'DBLabel', dataset: 'employee', field: 'id'">&lt;/label>
+    
+    //DBDataLabel，HTML元素为Label
+    &lt;label data-jslet="type: 'DBDataLabel', dataset: 'employee', field: 'id'">&lt;/label>
+    
+    //DBCheckBox，HTML元素为Input
+    &lt;input data-jslet="type: 'DBCheckBox', dataset: 'employee', field: 'married'">&lt;/input>
+    
+    //DBPassword，HTML元素为Input
+    &lt;input data-jslet="type: 'DBPassword', dataset: 'employee', field: 'name'">&lt;/input>
+    
+    //DBTextArea，HTML元素为TextArea
+    &lt;TextArea data-jslet="type: 'DBTextArea', dataset: 'employee', field: 'summary'">&lt;/TextArea>
+    
+	</code></pre>
+    
+	<h5>JavaScript</h5>
+    <pre class="prettyprint linenums"><code>
+	//datasetMetaStore定义在公共js:common/datasetmetastore.js中
+	//将数据集定义信息仓库加到datasetFactory中，创建Dataset时会仓库里去定义信息
+	jslet.data.datasetFactory.addMetaStore(window.datasetMetaStore);
+	//通过工厂方法，可以自动创建主数据集及相关的数据集
+    jslet.data.datasetFactory.createDataset('employee').done(function() {
+    	jslet.data.getDataset('employee').query();
+    	jslet.ui.install();
+    });
+    
+	</code></pre>
+
+    <script type="text/javascript">
+       window.LOADER_BASE_URL = "../../lib/prettify";
+    </script>
+    <script type="text/javascript" src="../../lib/prettify/run_prettify.js"></script>
+		
+</body>
+</html>

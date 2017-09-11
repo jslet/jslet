@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="../css/demo.css" />
+    
+    <title>Jslet - 数据校验</title>
+    <script type="text/javascript" data-main="../config.js" src="../lib/requirejs/require.min.js"></script>
+    <script type="text/javascript">
+	    require(['dataset/c-validation']);
+    </script>
+</head>
+<body>
+    <div class="demo-header">
+    <h4 id="top">Jslet - 数据校验</h4>
+	</div>
+	<hr />
+	<div data-jslet="type: 'DBTable', dataset: 'employee', editable: true"></div>
+	<div class="demo-desc">
+	<p>Jslet有完善强大的数据校验机制，具体如下：</p>
+	<ul>
+	<li><p>内置的校验规则，内置校验规则都是通过字段的属性配置的：</p>
+		<ol>
+		<li>数据类型，不同的数据类型可输入的字符不同，比如：Number型只能输入数字、小数点和负号；</li>
+		<li>数据长度，输入的数据不能超过设置的长度，如 length：20</li>
+		<li>唯一性检查，如 unique: true；</li>
+		<li>必填，如 required: true；</li>
+		<li>范围，如 dataRange: {min: minValue, max: maxValue}；</li>
+		<li>正则表达式，如 regularExpr: {expr: '', message: ''}</li>
+		<li>查找字段，如果字段值来自另外一个数据集，则值必须是存在的；</li>
+		<li>对于String型字段，可以指定可输入的字符，如 validChars: 'abcd'</li>
+		<li>对于String型字段，可以指定EditMask，如 editMask: 'AA-9999'</li>
+		</ol>
+	</li>
+	<li><p>自定义数据校验规则，设置字段属性：customValidator来设置的，支持两种方式；</p>
+		<ol>
+		<li>浏览器端校验，比如：员工ID的长度不能小于4</li>
+		<li>服务器端校验，比如：“姓名”不能在服务端的黑名单中；</li>
+		</ol>
+		<p>在此演示中，员工Id是在服务端验证的，“姓名”是在浏览器端验证的（验证姓名是否在黑名单：['a', 'b', 'c']中）；</p>
+	</li>
+	<li><p>移到另外一行时的校验；</p>
+		<p>在此演示中，女性的年龄不能大于55，男性不能大于60；</p>
+	</li>
+	</ul>
+	</div>
+	<h4>源码</h4>
+	<h5>1、自定义校验规则和移到另外一行时的校验的源码</h5>
+    <pre class="prettyprint linenums"><code>
+	//datasetMetaStore定义在公共js:common/datasetmetastore.js中
+	//将数据集定义信息仓库加到datasetFactory中，创建Dataset时会仓库里去定义信息
+	jslet.data.datasetFactory.addMetaStore(window.datasetMetaStore);
+	//通过工厂方法，可以自动创建主数据集及相关的数据集
+    jslet.data.datasetFactory.createDataset('employee').done(function() {
+    	initialize();
+    	jslet.ui.install();
+    });
+    
+    function initialize() {
+		var dsEmployee = jslet.data.getDataset('employee');
+		dsEmployee.query();
+		
+		//设置“ID”的自定义校验规则（浏览器端校验）
+		dsEmployee.getField('id').customValidator(function(fldName, fldValue) {
+			if(fldValue && fldValue.length < 4) {
+				return '员工编码的长度不能小于4位！'
+			}
+			return null;
+		});
+
+		//设置“Name”的自定义校验规则（服务器端校验）
+		dsEmployee.getField('name').customValidator(function(fldName, fldValue, serverValidateFn) {
+			//黑名单为：['a', 'b', 'c']，返回的信息为：“不允许的名称！”
+			return serverValidateFn("/demo/employee/checkblacklist", {"name": fldValue});
+		});
+		
+		//设置录入结束时的事件，在光标移动到另外一行时对数据进行校验
+		dsEmployee.on(jslet.data.DatasetEvent.BEFORECONFIRM, function() {
+			var gender = dsEmployee.getFieldValue('gender');
+			var age = dsEmployee.getFieldValue('age');
+			if(gender === 'F' && age > 55) {
+				//设置错误信息到年龄字段上
+				dsEmployee.setFieldError('age', '女性年龄不能大于55！');
+			}
+		});
+    }
+	</code></pre>
+
+	<h5>2、内置的校验规则</h5>
+    <pre class="prettyprint linenums"><code>
+    //"员工信息"
+    var fldCfg = [
+       {name: 'id', datadataType: 'S', length: 11, label: '编码', required: true, tip: '编码不得重复!', unique: true}, 
+       {name: 'name', datadataType: 'S', length: 15, label: '姓名', required: true, unique: true, aggraded: true, tip: '名称不得重复!'}, 
+       {name: 'department', datadataType: 'S', length: 10, label: '部门', dislayWidth: 16, required: true, lookup: {dataset: 'department'}}, 
+       {name: 'gender', datadataType: 'S', length: 4, label: '性别', lookup: {dataset: 'gender'}},
+       {name: 'salutation', dataType: 'S', length: 10, label: '称呼', displayWidth: 6, lookup: {dataset: 'salutation'}},
+       {name: 'age', dataType: 'N', length: 6, label: '年龄', displayWidth: 6, dataRange: {min: 18, max: 60 }, formula: '(new Date()).getFullYear() - ([birthday]?[birthday].getFullYear(): 0)'},
+       {name: 'married', dataType: 'B', label: '婚否', trueValue: 1, falseValue: 0, displayWidth: 10},
+       {name: 'birthday', dataType: 'D', label: '生日', displayFormat: 'yyyy-MM-dd', dataRange: {min: new Date(1960, 1, 1)}},
+       {name: 'position', dataType: 'S', length: 10, label: '职位', lookup: {dataset: 'position'}},
+       {name: 'salary', dataType: 'N', length: 16, scale: 2, label: '薪水', displayFormat: '￥#,##0.##', aggraded: true},
+       {name: 'university', dataType: 'S', length: 20, label: '毕业院校'},
+       {name: 'province', dataType: 'S', length: 10, label: '省份', lookup: {dataset: 'province'}, editControl: 'DBComboSelect'},
+       {name: 'city', dataType: 'S', length: 8, label: '城市', visible: false},
+       {name: 'photo', dataType: 'S', length: 10, label: '照片'},
+       {name: 'officePhone', dataType: 'S', length: 12, label: '公司电话', 
+    	   		regularExpr: /(\(\d{3,4}\)|\d{3,4}-|\s)?\d{8}/ig, regularMessage: '无效电话号码!', tip: '格式:999-99999999'},
+       {name: 'cellPhone', dataType: 'S', length: 12, label: '手机', 
+    	   		regularExpr: /(\(\d{3,4}\)|\d{3,4}-|\s)?\d{8}/ig, regularMessage: '无效手机号码!', tip: '"1"+10 数字'},
+       {name: 'email', dataType: 'S', length: 50, label: 'Email', displayWidth: 20, 
+    	   		regularExpr: /^[a-zA-Z_0-9-'\+~]+(\.[a-zA-Z_0-9-'\+~]+)*@([a-zA-Z_0-9-]+\.)+[a-zA-Z]{2,7}$/ig, regularMessage: '无效 Email地址!', tip: 'foo@foo.com'},
+       {name: 'idcard', dataType: 'S', length: 18, label: '省份证号', 
+    	   		regularExpr: /\d{18}/ig, regularMessage: '无效身份证号, 须18位数字!', tip: '18数字'},
+       {name: 'summary', dataType: 'S', length: 200, label: '备注', displayWidth: 20} 
+    ];
+    </code></pre>
+
+    <script type="text/javascript">
+       window.LOADER_BASE_URL = "../lib/prettify";
+    </script>
+    <script type="text/javascript" src="../lib/prettify/run_prettify.js"></script>
+		
+</body>
+</html>

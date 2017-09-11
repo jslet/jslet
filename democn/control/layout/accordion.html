@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="../../css/demo.css" />
+    
+    <title>Jslet - Accordion</title>
+    <script type="text/javascript" data-main="../../config.js" src="../../lib/requirejs/require.min.js"></script>
+    <script type="text/javascript">
+	    require(['control/layout/accordion']);
+    </script>
+</head>
+<body>
+    <div class="demo-header">
+    <h4 id="top">Jslet - Accordion</h4>
+	</div>
+	<hr />
+	<div class="container-fluid">
+	<div class="form-horizontal">
+	<div class="col-sm-2">
+	<h5>缺省</h5>
+    <div id="accordion1" data-jslet='type:"Accordion",items:[{caption:"caption1"},{caption:"caption2"},{caption:"caption3"}]'
+        style="width: 160px; height: 300px;">
+        <div>content1</div>
+        <div>content2</div>
+        <div>content3</div>
+    </div>
+    </div>
+    
+ 	<div class="col-sm-2">
+	<h5>初始展示第2个面板</h5>
+    <div id="accordion2" data-jslet='type:"Accordion",selectedIndex:1,items:[{caption:"caption4"},{caption:"caption5"},{caption:"caption6"}]'
+        style="width: 160px; height: 300px;">
+        <div>content4</div>
+        <div>content5</div>
+        <div>content6</div>
+    </div>
+	</div>   
+    
+    </div>
+    </div>
+	<hr />
+	<h4>源码</h4>
+	<h5>HTML</h5>
+    <pre class="prettyprint linenums"><code>
+    &lt;div id="accordion1" data-jslet='type:"Accordion",items:[{caption:"caption1"},{caption:"caption2"},{caption:"caption3"}]'
+        style="height: 300px;">
+        &lt;div>content1&lt;/div>
+        &lt;div>content2&lt;/div>
+        &lt;div>content3&lt;/div>
+    &lt;/div>
+    
+    &lt;div id="accordion2" data-jslet='type:"Accordion",selectedIndex:1,items:[{caption:"caption4"},{caption:"caption5"},{caption:"caption6"}]'
+        style="height: 300px;">
+        &lt;div>content4&lt;/div>
+        &lt;div>content5&lt;/div>
+        &lt;div>content6&lt;/div>
+    &lt;/div>
+    
+    </code></pre>
+    
+	<h5>JavaScript</h5>
+    <pre class="prettyprint linenums"><code>
+	jslet.ui.install();
+	</code></pre>
+
+    <script type="text/javascript">
+		window.LOADER_BASE_URL = "../../lib/prettify";
+    </script>
+    <script type="text/javascript" src="../../lib/prettify/run_prettify.js"></script>
+		
+</body>
+</html>

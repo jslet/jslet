@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="../css/demo.css" />
+    
+    <title>Jslet - 上下文选择规则</title>
+    <script type="text/javascript" data-main="../config.js" src="../lib/requirejs/require.min.js"></script>
+    <script type="text/javascript">
+	    require(['dataset/r-contextselected']);
+    </script>
+</head>
+<body>
+    <div class="demo-header">
+    <h4 id="top">Jslet - 上下文选择规则</h4>
+	</div>
+	<hr />
+	<div style="padding-left: 5px;margin-bottom: 10px">
+	    <button class="btn btn-default btn-sm" id="btnQuery"> 查询 </button>
+	</div>
+	<div data-jslet="type: 'DBTable', dataset: 'employee', hasSelectCol: true, editable: true"></div>
+	<div class="demo-desc">
+	<p>勾选一条数据时才能录入“编码”字段，否则不可编辑。</p>
+	</div>
+	<hr />
+	<h4>源码</h4>
+    <pre class="prettyprint linenums"><code>
+	//datasetMetaStore定义在公共js:common/datasetmetastore.js中
+	//将数据集定义信息仓库加到datasetFactory中，创建Dataset时会仓库里去定义信息
+	jslet.data.datasetFactory.addMetaStore(window.datasetMetaStore);
+	//通过工厂方法，可以自动创建主数据集及相关的数据集
+    jslet.data.datasetFactory.createDataset('employee').done(function() {
+		var dsEmployee = jslet.data.getDataset('employee');
+		jslet.ui.install();
+
+		//规则：只有选择一条数据时才可录入“编码”字段.
+		var rule = {selected: true,
+			rules: [
+				{field: 'id', meta: {disabled:false}}
+			],
+			otherwise: [
+				{field: 'id', meta: {disabled:true}}
+			]
+		};
+		dsEmployee.contextRules([rule]);
+		dsEmployee.enableContextRule();
+		dsEmployee.query();
+    });
+    
+    //绑定按钮事件
+	$('#btnQuery').click(function() {
+		var dsEmployee = jslet.data.getDataset('employee');
+		dsEmployee.query();	
+	});
+	</code></pre>
+
+    <script type="text/javascript">
+		window.LOADER_BASE_URL = "../lib/prettify";
+    </script>
+    <script type="text/javascript" src="../lib/prettify/run_prettify.js"></script>
+		
+</body>
+</html>

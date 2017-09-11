@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js"><span id='jslet-ui-DBRating'>/**
+</span> * @class 
+ * @extend jslet.ui.Rating
+ * 
+ * DBRating. A control which usually displays some star to user, and user can click to rate something. Example:
+ * 
+ *     @example
+ *      var jsletParam = {type:&quot;DBRating&quot;,dataset:&quot;employee&quot;,field:&quot;grade&quot;, itemCount: 5};
+ * 
+ *     //1. Declaring:
+ *      &lt;div data-jslet='type:&quot;DBRating&quot;,dataset:&quot;employee&quot;,field:&quot;grade&quot;', itemCount: 5' /&gt;
+ *      or
+ *      &lt;div data-jslet='jsletParam' /&gt;
+ * 
+ *     //2. Binding
+ *      &lt;div id=&quot;ctrlId&quot;  /&gt;
+ *      //Js snippet
+ *      var el = document.getElementById('ctrlId');
+ *      jslet.ui.bindControl(el, jsletParam);
+ *
+ *     //3. Create dynamically
+ *      jslet.ui.createControl(jsletParam, document.body);
+ */
+jslet.ui.DBRating = jslet.Class.create(jslet.ui.Rating, {
+	_isDBControl: true,
+	
+<span id='jslet-ui-DBRating-method-initialize'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	initialize: function ($super, el, params) {
+		$super(el, params);
+		this.refreshControl();
+	},
+
+<span id='jslet-ui-DBRating-method-doMetaChanged'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	doMetaChanged: function($super, metaName){
+		$super(metaName);
+		var Z = this,
+			fldObj = Z._dataset.getField(Z._field);
+		if(!metaName || metaName == &quot;disabled&quot; || metaName == &quot;readOnly&quot;) {
+			Z._readOnly = fldObj.disabled() || fldObj.readOnly();
+		}
+		if(!metaName || metaName == &quot;required&quot;) {
+			Z._required = fldObj.required();
+		}
+	},
+	
+<span id='jslet-ui-DBRating-method-doValueChanged'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	doValueChanged: function() {
+		var Z = this,
+			fldObj = Z._dataset.getField(Z._field),
+			value = Z.getValue();
+		
+		Z._value = value;
+		Z._setValue(value);
+	},
+	
+<span id='jslet-ui-DBRating-method-doUIChanged'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	doUIChanged: function() {
+		var Z = this;
+		Z._dataset.setFieldValue(Z._field, Z.value(), Z._valueIndex);
+	}
+	
+});
+
+jslet.ui.register('DBRating', jslet.ui.DBRating);
+jslet.ui.DBRating.htmlTemplate = '&lt;Div&gt;&lt;/Div&gt;';
+</pre>
+</body>
+</html>

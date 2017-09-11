@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js"><span id='jslet-MessageBus'>/**
+</span>* @class
+* Message bus. Example:
+* 
+*     @example
+*     var myCtrlObj = {onReceiveMessage: function(messageName, messageBody){alert(messageBody.x);}};
+*     
+*     jslet.messageBus.subcribe('MyMessage', myCtrlObj); //Subcribe a message from MessageBus
+*     
+*     jslet.messageBus.unsubcribe('MyMessage', myCtrlObj); //Unsubcribe a message from MessageBus
+*     
+*     jslet.messageBus.sendMessage('MyMessage', {x: 10, y:10}); //Send a mesasge to MessageBus
+* 
+*/
+jslet.MessageBus = function () {
+	var _messages = {};
+	//SizeChanged is predefined message
+	_messages[jslet.MessageBus.SIZECHANGED] = [];
+	
+	var _timeoutHandlers = [];
+<span id='jslet-MessageBus-method-sendMessage'>	/**
+</span>	 * Send a message.
+	 * 
+	 * @param {String} messageName Message name.
+	 * @param {Object} mesageBody Message body.
+	 */
+	this.sendMessage = function (messageName, messageBody, sender) {
+		if(!_messages[messageName]) {
+			return;
+		}
+		var handler = _timeoutHandlers[messageName];
+		
+		if (handler){
+			window.clearTimeout(handler);
+		}
+		handler = setTimeout(function(){
+			_timeoutHandlers[messageName] = null;
+			var ctrls = _messages[messageName], ctrl;
+			for(var i = 0, cnt = ctrls.length; i &lt; cnt; i++){
+				ctrl = ctrls[i];
+				if (ctrl &amp;&amp; ctrl.onReceiveMessage){
+					ctrl.onReceiveMessage(messageName, messageBody);
+				}
+			}
+		}, 30);
+		_timeoutHandlers[messageName] = handler;
+	};
+
+<span id='jslet-MessageBus-method-subscribe'>	/**
+</span>	* Subscribe a message.
+	* 
+	* @param {String} messageName message name.
+	* @param {Object} ctrlObj control object which need subscribe a message.&lt;br /&gt; 
+	*   there must be a function: onReceiveMessage in ctrlObj.&lt;br /&gt;
+	*	onReceiveMessage: function(messageName, messageBody){}&lt;br /&gt;
+	*   //messageName: String, message name;&lt;br /&gt;
+	*   //messageBody: Object, message body;&lt;br /&gt;
+	*/
+	this.subscribe = function(messageName, ctrlObj){
+		if (!messageName || !ctrlObj) {
+			throw new Error(&quot;MessageName and ctrlObj required!&quot;);
+		}
+		var ctrls = _messages[messageName];
+		if (!ctrls){
+			ctrls = [];
+			_messages[messageName] = ctrls;
+		}
+		ctrls.push(ctrlObj);
+	};
+	
+<span id='jslet-MessageBus-method-unsubscribe'>	/**
+</span>	 * Subscribe a message.
+	 * 
+	 * @param {String} messageName message name.
+	 * @param {Object} ctrlObj control object which need subscribe a message.
+	 */
+	this.unsubscribe = function(messageName, ctrlObj){
+		var ctrls = _messages[messageName];
+		if (!ctrls) {
+			return;
+		}
+		var k = ctrls.indexOf(ctrlObj);
+		if (k &gt;= 0) {
+			ctrls.splice(k,1);
+		}
+	};
+};
+
+jslet.MessageBus.SIZECHANGED = &quot;SIZECHANGED&quot;;
+
+jslet.messageBus = new jslet.MessageBus();
+
+jQuery(window).on(&quot;resize&quot;,function(){
+	jslet.messageBus.sendMessage(jslet.MessageBus.SIZECHANGED, null, window);
+});
+</pre>
+</body>
+</html>

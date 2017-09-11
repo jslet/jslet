@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js">if (!jslet.data) {
+	jslet.data = {};
+}
+
+jslet.data.XLSXXPorter = {
+	/*
+	 * Import data into the specifed dataset from Excel file.
+	 * @param {jslet.data.Dataset or String} dataset - Dataset object or dataset name.
+	 * @param {String} fileContent - Excel file content.
+	 */
+	importData: function(dataset, fileContent) {
+		function getHeader(sheet) {
+		    var headers = [];
+		    if (!sheet['!ref']) return;
+		    var range = XLSX.utils.decode_range(sheet['!ref']);
+		    var C, R = range.s.r; /* start in the first row */
+		    /* walk every column in the range */
+		    for(C = range.s.c; C &lt;= range.e.c; ++C) {
+		        var cell = sheet[XLSX.utils.encode_cell({c:C, r:R})] /* find the cell in the first row */
+
+		        var hdr = &quot;UNKNOWN &quot; + C; // &lt;-- replace with your desired default 
+		        if(cell &amp;&amp; cell.t) hdr = XLSX.utils.format_cell(cell);
+
+		        headers.push(hdr);
+		    }
+		    return headers;
+		}
+
+
+		if(!XLSX) {
+			throw new Error('js-xlsx.js(https://github.com/SheetJS/js-xlsx) NOT loaded!');
+		}
+		var workbook = XLSX.read(fileContent, {type: 'binary'});
+		var result = {};
+		if(workbook.SheetNames.length === 0) {
+			return null;
+		}
+		var sheetName = workbook.SheetNames[0],
+			sheet = workbook.Sheets[sheetName],
+			header = getHeader(sheet),
+			roa = XLSX.utils.sheet_to_row_object_array(sheet);
+		result.data = roa;
+		result.header = header;
+		return result;
+
+	},
+	
+	/*
+	 * Export dataset data to the specified Excel file.
+	 * 
+	 * @param {jslet.data.Dataset | String} dataset Dataset object or dataset name.
+	 * @param {String} fileName Excel file name.
+	 * @param {Object} exportOption Export option.
+	 * @param {Boolean} exportOption.exportHeader True - export field labels, false - otherwise, default is true.
+	 * @param {Boolean} exportOption.exportDisplayValue True - export display value of field, false - export actual value of field, default is true.
+	 * @param {Boolean} exportOption.onlySelected True - export selected records, false - otherwise, default is false.
+	 * @param {Boolean} exportOption.exportAggregated True - export aggregated value, false -otherwise, default is false.
+	 * @param {String[]} exportOption.includeFields Array of field names which to be exported.
+	 * @param {String[]} exportOption.excludeFields Array of field names which not to be exported.
+	 * @param {Function} exportOption.onExporting Exporting event.
+	 * @param {Integer} exportOption.onExporting.recno The exporting record number.
+	 * @param {Integer} exportOption.onExporting.recordcount The exporting record count.
+	 * 
+	 */
+	exportData: function(dataset, fileName, exportOption) {
+		if(!XLSX) {
+			throw new Error('js-xlsx.js(https://github.com/SheetJS/js-xlsx) NOT loaded!');
+		}
+		dataset.confirm();
+		if(dataset.existDatasetError()) {
+			console.warn(jsletlocale.Dataset.cannotConfirm);
+		}
+
+		var exportHeader = true,
+			exportDisplayValue = true,
+			onlySelected = false,
+			includeFields = null,
+			excludeFields = null,
+			exportAggregated = false,
+			onlyOnce = true,
+			onExporting = null,
+			onExported = null;
+			
+		if(exportOption &amp;&amp; jQuery.isPlainObject(exportOption)) {
+			if(exportOption.exportHeader !== undefined) {
+				exportHeader = exportOption.exportHeader? true: false;
+			}
+			if(exportOption.onlySelected !== undefined) {
+				onlySelected = exportOption.onlySelected? true: false;
+			}
+			if(exportOption.exportAggregated !== undefined) {
+				exportAggregated = exportOption.exportAggregated? true: false;
+			}
+			if(exportOption.includeFields !== undefined) {
+				includeFields = exportOption.includeFields;
+				jslet.Checker.test('Dataset.exportCsv#exportOption.includeFields', includeFields).isArray();
+			}
+			if(exportOption.excludeFields !== undefined) {
+				excludeFields = exportOption.excludeFields;
+				jslet.Checker.test('Dataset.exportCsv#exportOption.excludeFields', excludeFields).isArray();
+			}
+			if(exportOption.onExporting !== undefined) {
+				jslet.Checker.test('Dataset.exportCsv#exportOption.onExporting', onExporting).isFunction();
+				onExporting = exportOption.onExporting;
+			}
+			if(exportOption.onExported !== undefined) {
+				jslet.Checker.test('Dataset.exportCsv#exportOption.onExported', onExported).isFunction();
+				onExported = exportOption.onExported;
+			}
+			if(exportOption.onlyOnce !== undefined) {
+				onlyOnce = exportOption.onlyOnce? true: false;
+			}
+		}
+		var parsedExpCfg = this._getExportFields(dataset, includeFields, excludeFields)
+		var topDsCfg = parsedExpCfg.datasets;
+		var exportFields = parsedExpCfg.fields;
+		
+		var workSheet = {},
+			row = 0, lastRow, lastCol,
+			fldCnt = exportFields.length,
+			startCell = {r: 0, c: 0}, 
+			endCell = {r: 0, c: fldCnt - 1},
+			expFld, i;
+		
+		if (exportHeader) {
+			for(i = 0; i &lt; fldCnt; i++) {
+				expFld = exportFields[i];
+				var label = expFld.label;
+				if(!label) {
+					label = '';
+				} else {
+					label = jslet.removeHtmlTag(label);
+				}
+				this._convertToXLSXFormat(workSheet, row, i, 's', label);
+			}
+			row++;
+			lastRow = 0, lastCol = fldCnt - 1;
+		}
+		topDsCfg.endRow = row - 1;
+		
+		function doEndExporting() {
+			endCell.r = topDsCfg.endRow;
+			workSheet['!ref'] = XLSX.utils.encode_range({s: startCell, e: endCell});
+			
+			var ws_name = 'Sheet1';
+			var wb = {SheetNames: [], Sheets: {}};
+			wb.SheetNames.push(ws_name);
+			wb.Sheets[ws_name] = workSheet;
+			var xlsxOpt = {bookType:'xlsx', bookSST:true, type: 'binary'};
+			var wbout = XLSX.write(wb, xlsxOpt);
+			
+			function convertToUnitArray(workBook) {
+				var len = workBook.length,
+					buf = new ArrayBuffer(len),
+					view = new Uint8Array(buf);
+				for (var k = 0; k != len; ++k) {
+					view[k] = workBook.charCodeAt(k) &amp; 0xFF;
+				}
+				return buf;
+			}
+
+			saveAs(new Blob([convertToUnitArray(wbout)], {type:&quot;application/octet-stream&quot;}), fileName);
+			if(onExported) {
+				onExported();
+			}
+		}
+		var recordCount = dataset.recordCount();
+		if(recordCount === 0) {
+			doEndExporting();
+			return;
+		}
+		var Z = this;
+		new jslet.StepProcessor(dataset.recordCount(), function(start, end, percent) {
+			Z._innerExportData(workSheet, topDsCfg, exportFields, onlySelected, onlyOnce, exportAggregated, start, end);
+			if(onExporting) {
+				onExporting(percent);
+			}
+			if(percent === 100) {
+				doEndExporting();
+			}
+		}).run();
+	},
+
+	_convertToXLSXFormat: function(worksheet, row, col, type, value) {
+		var cell_ref = XLSX.utils.encode_cell({c: col,r: row}), 
+			cell = {t: type, v: value};
+		worksheet[cell_ref] = cell;
+	},
+
+	_innerExportData: function(workSheet, currDsCfg, exportFields, onlySelected, onlyOnce, exportAggregated, start, end) {
+		var dsObj = currDsCfg.dataset,
+			context = dsObj.startSilenceMove(), 
+			value, dataType, expFld, fldName,
+			row = currDsCfg.endRow + 1,
+			fldCnt = exportFields.length;
+		if(currDsCfg.master) {
+			row = currDsCfg.master.endRow;
+		} else {
+			row = currDsCfg.endRow + 1;
+		}
+		try {
+			var dsTmp, notFirst = false, isMaster,
+				hasMaster = currDsCfg.master? true: false;
+			if(!start) {
+				start = 0;
+			}
+			var totalRecCnt = dsObj.recordCount() - 1;
+			if(!end &amp;&amp; end !== 0) {
+				end = totalRecCnt;
+			}
+			var SType = jslet.data.DataType.STRING,
+				NType = jslet.data.DataType.NUMBER;
+			
+			for(var recno = start; recno &lt;= end; recno++) {
+				dsObj.recno(recno);
+				if (onlySelected &amp;&amp; !dsObj.selected()) {
+					continue;
+				}
+				for(var i = 0; i &lt; fldCnt; i++) {
+					expFld = exportFields[i];
+					fldName = expFld.field;
+					dsTmp = dsObj;
+					if(dsObj !== expFld.dataset) {
+						if(onlyOnce) {
+							continue;
+						}
+						isMaster = false;
+						var dsCfg = currDsCfg.master; 
+						while(true) {
+							if(!dsCfg) {
+								break;
+							}
+							if(dsCfg.dataset === expFld.dataset) {
+								isMaster = true;
+								dsTmp = dsCfg.dataset;
+								break;
+							}
+							dsCfg = dsCfg.master;
+						}
+						if(!isMaster) {
+							continue;
+						}
+					}
+					//If Number field does not have lookup field, return field value, not field text. 
+					//Example: 'amount' field
+					dataType = expFld.dataType;
+					if(dataType === NType &amp;&amp; !expFld.hasLookup) {
+						value = dsTmp.getFieldValue(fldName);
+						if(value === null || value === undefined) {
+							continue;
+						}
+						this._convertToXLSXFormat(workSheet, row, i, 'n', value);
+					} else {
+						value = dsTmp.getFieldText(fldName);
+						if(value === null || value === undefined || value === '') {
+							continue;
+						}
+						if(dataType === SType) {
+							var replaceFn = value.replace;
+							if(replaceFn) {
+								value = jslet.removeHtmlTag(value);
+							} else {
+								value += '';
+							}
+						}
+						this._convertToXLSXFormat(workSheet, row, i, 's', value);
+					}
+				} //end for i
+			
+				currDsCfg.endRow = row;
+				var details = currDsCfg.details, dtlCfg;
+				if(details &amp;&amp; details.length &gt; 0) {
+					for(var j = 0, cfgCnt = details.length; j &lt; cfgCnt; j++) {
+						this._innerExportData(workSheet, details[j], exportFields, false, onlyOnce, exportAggregated);
+					}
+					row = currDsCfg.endRow + 1;
+				} else {
+					row++
+				}
+				var aggrValues = dsObj.aggregatedValues();
+				if(exportAggregated &amp;&amp; recno === totalRecCnt &amp;&amp; aggrValues) {
+					var aggrValue;
+					for(i = 0; i &lt; fldCnt; i++) {
+						expFld = exportFields[i];
+						fldName = expFld.field;
+						aggrValue = aggrValues[fldName];
+						if(!aggrValue) {
+							continue;
+						}
+						dataType = expFld.dataType;
+						aggrValue = dataType === NType? aggrValue.sum: aggrValue.count;
+						if(aggrValue) {
+							this._convertToXLSXFormat(workSheet, row, i, 'n', aggrValue);
+						}
+					}
+					currDsCfg.endRow = row;
+				}
+				notFirst = true;
+			} // end for recno
+			var masterCfg = currDsCfg.master;
+			if(masterCfg &amp;&amp; masterCfg.endRow &lt; currDsCfg.endRow) {
+				masterCfg.endRow = currDsCfg.endRow;
+			}
+		}finally{
+			dsObj.endSilenceMove(context);
+		}
+	},
+	
+	_getExportFields: function(dataset, includeFields, excludeFields) {
+		function getMaster(dsCfg, dsMaster) {
+			if(dsCfg.dataset == dsMaster) {
+				return dsCfg;
+			} else {
+				var details = topDsCfg.details;
+				var dsObj, dsCfg;
+				for(var i = 0, len = details.length; i &lt; len; i++) {
+					dsCfg = details[i];
+					dsCfg = getMaster(dsCfg, dsMaster);
+					if(!dsCfg) {
+						return dsCfg;
+					}
+				}
+			}
+			return null;
+		}
+		
+		function addDs(topDsCfg, dsMaster, dsDetail) {
+			var dsCfg, details = topDsCfg.details;
+			if(!details) {
+				details = [];
+				topDsCfg.details = details;
+			}
+			var found = false;
+			var masterCfg = getMaster(topDsCfg, dsMaster);
+			details = masterCfg.details;
+			for(var k = 0, dsCnt = details.length; k &lt; dsCnt; k++) {
+				dsCfg = details[k];
+				if(dsCfg.dataset === dsDetail) {
+					found = true;
+					break;
+				}
+			}
+			if(!found) {
+				details.push({master: masterCfg, dataset: dsDetail});
+			}
+		}
+		
+		var exportFlds = [], datasets = {dataset: dataset},
+			fldName, fldObj, dtlFldObj, dsDetail, i, len, fldNames, expFld;
+		if(includeFields &amp;&amp; includeFields.length &gt; 0) {
+			for(i = 0, len = includeFields.length; i &lt; len; i++) {
+				fldName = includeFields[i];
+				expFld = {};
+				if(fldName.indexOf('.') &lt; 0) {
+					expFld.dataset = dataset;
+					expFld.field = fldName;
+					fldObj = dataset.getField(fldName);
+				} else {
+					fldNames = fldName.split('.');
+					var dsMaster = dataset;
+					for(var j = 0, cnt = fldNames.length - 1; j &lt; cnt; j++) {
+						dtlFldObj = dsMaster.getField(fldNames[j]);
+						dsDetail = dtlFldObj.detailDataset();
+						addDs(datasets, dsMaster, dsDetail);
+						dsMaster = dsDetail; 
+					}
+					fldName = fldNames[cnt];
+					expFld.dataset = dsDetail;
+					expFld.field = fldName;
+					fldObj = dsDetail.getField(fldName);
+				}
+				expFld.label = fldObj.label();
+				expFld.dataType = fldObj.getType();
+				expFld.hasLookup = fldObj.lookup() ? true: false;
+				exportFlds.push(expFld);
+			}
+		} else {
+			var fields = dataset.getNormalFields();
+			for(i = 0, len = fields.length; i &lt; len; i++) {
+				fldObj = fields[i];
+				if(!fldObj.visible()) {
+					continue;
+				}
+				fldName = fldObj.name();
+				if(excludeFields &amp;&amp; excludeFields.length &gt; 0) {
+					if(excludeFields.indexOf(fldName) &gt;= 0) {
+						continue;
+					}
+				} 
+				expFld = {dataset: dataset, field: fldName};
+				expFld.label = fldObj.label();
+				expFld.dataType = fldObj.getType();
+				expFld.hasLookup = fldObj.lookup() ? true: false;
+				exportFlds.push(expFld);
+			}
+		}
+		return {datasets: datasets, fields: exportFlds};
+	}
+};
+</pre>
+</body>
+</html>

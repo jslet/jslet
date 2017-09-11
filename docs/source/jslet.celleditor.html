@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js">if(!jslet.ui.table) {
+	jslet.ui.table = {};
+}
+jslet.ui.table.TableCellEditor = function(tableCtrl) { 
+	var _tableCtrl = tableCtrl; 
+	var _editPanel;
+	var _currField;
+	
+	function _create() { 
+		var html = '&lt;div class=&quot;form-group form-group-sm jl-tbl-editpanel&quot;&gt;&lt;table class=&quot;jl-tbl-edittable&quot;&gt;&lt;tbody&gt;&lt;tr class=&quot;jl-tbl-editrow&quot;&gt;';
+		var columns = _tableCtrl._sysColumns, colCfg,
+			tblDataset = tableCtrl.dataset(),
+			dsName = tblDataset.name(),
+			left = 1, i, len;
+			
+		for(i = 0, len = columns.length; i &lt; len; i++) {
+			colCfg = columns[i];
+			left += colCfg.width + 1;
+		}
+		columns = _tableCtrl.innerColumns;
+		var tableId = tableCtrl.el.id,
+			editorTabIndex = tableCtrl.editorTabIndex(),
+			isBool, fldObj, fldName, dataType,
+			alignStr = ';text-align: center',
+			editableFields = tableCtrl.editableFields(),
+			readOnlyFields = tableCtrl.readOnlyFields(),
+			isManual;
+		isManual = editableFields &amp;&amp; editableFields.length &gt; 0 || readOnlyFields &amp;&amp; readOnlyFields.length &gt; 0;
+		for(i = 0, len = columns.length; i &lt; len; i++) {
+			colCfg = columns[i];
+			fldName = colCfg.field;
+			if(!fldName) {
+				continue;
+			}
+			if(readOnlyFields &amp;&amp; readOnlyFields.indexOf(fldName) &gt;= 0) {
+				continue;
+			}
+			if(editableFields &amp;&amp; editableFields.indexOf(fldName) &lt; 0) {
+				continue;
+			}
+			fldObj = tblDataset.getField(fldName);
+			dataType = fldObj.getType();
+			if(dataType === jslet.data.DataType.ACTION || dataType === jslet.data.DataType.EDITACTION) {
+				continue;
+			}
+			html += '&lt;td class=&quot;jl-edtfld-' + fldName +  '&quot; style=&quot;display:none;vertical-align: middle' + 
+				(isBool? alignStr: '') + '&quot;&gt;';
+			if(isManual || !fldObj.fieldReadOnly() &amp;&amp; !fldObj.fieldDisabled()) {
+				var additionStr = '';
+				if(colCfg.prefix) {
+					additionStr = ', prefix: ' + jslet.JSON.stringify(colCfg.prefix);
+				}
+				if(colCfg.suffix) {
+					additionStr += ', suffix: ' + jslet.JSON.stringify(colCfg.suffix);
+				}
+				isBool = (fldObj.dataType() === jslet.data.DataType.BOOLEAN);
+				html += '&lt;div data-jslet=\'type:&quot;DBPlace&quot;,dataset:&quot;' + dsName + 
+					'&quot;,field:&quot;' + fldName + 
+					'&quot;, tableId: &quot;' + tableId + 
+					'&quot;, expandChildWidth: ' + (isBool? 'false': 'true') + 
+					(editorTabIndex? ', tabIndex: ' + editorTabIndex: '') + 
+					additionStr + 
+					'\' class=&quot;' + colCfg.widthCssName + 
+					(isBool? ' jl-tbl-check-col': '') + 
+					'&quot;&gt;&lt;/div&gt;';
+			}
+			html += '&lt;/td&gt;';
+		}
+		html += '&lt;/tr&gt;&lt;/tbody&gt;&lt;/table&gt;&lt;/div&gt;';
+		var jqPanel = jQuery(html);
+		jqPanel.appendTo(jQuery(_tableCtrl.el));
+		jqPanel.css('left', left + 'px');
+		jslet.ui.install(jqPanel[0]);
+		_editPanel = jqPanel;
+		jqPanel.height(_tableCtrl.rowHeight());
+		jqPanel.on('keydown', function(event) {
+			var keyCode = event.which;
+			//prevent to fire dbtable's ctrl+c
+			if(event.ctrlKey &amp;&amp; keyCode === jslet.ui.KeyCode.C) { //ctrl + c
+	       		event.stopImmediatePropagation();
+			}
+		});
+	}
+	
+	_create();
+	
+	this.showEditor = function(fldName, otd) {
+		var dataset = _tableCtrl.dataset();
+		if(dataset.recordCount() === 0) {
+			return;
+		}
+		if(!fldName) {
+			dataset.focusEditControl(_currField);
+			return;
+		}
+		var fldObj = dataset.getField(fldName);
+		if(!fldObj || fldObj.disabled() || fldObj.readOnly()) {
+			this.hideEditor();
+			return;
+		}
+		var jqTd = jQuery(otd),
+			firstId = jqTd.attr('jsletFirstId'),
+			cellPos;
+		if(firstId) {
+			var firstOffset = jQuery('#' + firstId).offset();
+			var offsetHeight = parseFloat(jqTd.attr('jsletOffsetHeight'));
+			cellPos = {left: firstOffset.left, top: firstOffset.top + offsetHeight};
+		} else {
+			cellPos = jqTd.offset();
+		}
+		_editPanel.show();
+		if(_currField) {
+			_editPanel.find('.jl-edtfld-' + _currField).hide();
+		}
+		var jqEditor = _editPanel.find('.jl-edtfld-' + fldName);
+		_editPanel.offset(cellPos);
+		jqEditor.show();
+		dataset.focusEditControl(fldName);
+		_currField = fldName;
+	};
+	
+	this.currentField = function() {
+		return _currField;
+	};
+	
+	this.hideEditor = function() {
+		_editPanel.hide();
+		_tableCtrl.el.focus();
+	};
+	
+	this.destroy = function() { 
+		_tableCtrl = null; 
+	};
+};
+
+
+</pre>
+</body>
+</html>

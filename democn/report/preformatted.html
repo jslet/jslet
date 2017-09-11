@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="../css/demo.css" />
+    
+    <title>Jslet - 标签打印（套打）</title>
+    <script type="text/javascript" data-main="../config.js" src="../lib/requirejs/require.min.js"></script>
+    <script type="text/javascript">
+	    require(['report/report']);
+    </script>
+</head>
+<body>
+    <div class="demo-header">
+    <h3 id="top">Jslet - 标签打印（套打）</h3>
+	</div>
+	<hr />
+	<div class="content">
+	报表打印需要先安装<a href="https://github.com/jslet/jslet/raw/master/report/JsletReport.exe" target="_blank">Jslet的报表打印助手</a>，此助手为绿色软件，解压即可使用。
+	</div>
+
+	<div style="border:1px solid gray;padding: 10px;border-radius: 5px">
+		<div style="padding-left: 5px;margin-bottom: 10px">
+	    <button class="btn btn-default btn-sm" id="btnQuery"> 查询 </button>
+	    <div class="btn-group">
+	    <button class="btn btn-default btn-sm" id="btnPreview"> 预览报表 </button>
+	    <button class="btn btn-default btn-sm" id="btnPrint"> 打印报表 </button>
+	    </div>
+	    <div class="btn-group">
+	    <button class="btn btn-default btn-sm" id="btnDesign"> 新增报表模板 </button>
+	    <button class="btn btn-default btn-sm" id="btnDesignEdit"> 修改报表模板 </button>
+	    </div>
+	
+	    <div class="form-horizontal" style="margin-top: 10px">
+			<div class="col-sm-12">
+	        <div data-jslet="type:'DBTable',dataset:'employee',hasSelectCol:true"></div>
+			</div>
+	    </div>
+	</div>
+	<div>
+	<hr />
+	<script type="text/text" id="reportTemplate">
+jslet-ui.js:28827 <?xml version="1.0" encoding="utf-8" standalone="no"?>
+<TfrxReport Version="5.3.16" DotMatrixReport="False" EngineOptions.MaxMemSize="100" IniFile="D:\github\jsletreport\source\Win32\Debug\\report.ini" PreviewOptions.Buttons="4095" PreviewOptions.Zoom="1" PrintOptions.Printer="预设" PrintOptions.PrintOnSheet="0" ReportOptions.CreateDate="42925.9437166782" ReportOptions.Description.Text="" ReportOptions.LastChange="42927.6175238079" ScriptLanguage="PascalScript" ScriptText.Text="begin&#13;&#10;&#13;&#10;end." StoreInDFM="False">
+  <Datasets>
+    <item DataSetName="员工信息"/>
+  </Datasets>
+  <TfrxDataPage Name="Data" Height="1000" Left="0" Top="0" Width="1000"/>
+  <TfrxReportPage Name="Page1" PaperWidth="210" PaperHeight="297" PaperSize="9" LeftMargin="10" RightMargin="10" TopMargin="10" BottomMargin="10" ColumnWidth="0" ColumnPositions.Text="" HGuides.Text="" VGuides.Text="">
+    <TfrxMasterData Name="MasterData1" FillType="ftBrush" FillGap.Top="0" FillGap.Left="0" FillGap.Bottom="0" FillGap.Right="0" Height="128.50402" Left="0" Top="18.89765" Width="718.1107" Columns="3" ColumnWidth="226.771653543307" ColumnGap="11.3385826771654" DataSetName="员工信息" RowCount="0">
+      <TfrxMemoView Name="Memo10" Left="26.45671" Top="68.03154" Width="79.37013" Height="18.89765" DataField="姓名" DataSetName="员工信息" Font.Charset="1" Font.Color="-16777208" Font.Height="-16" Font.Name="宋体" Font.Style="0" ParentFont="False" Text="[员工信息.&#34;姓名&#34;]"/>
+      <TfrxMemoView Name="Memo11" Left="26.45671" Top="90.70872" Width="79.37013" Height="18.89765" DataField="部门" DataSetName="员工信息" Font.Charset="1" Font.Color="-16777208" Font.Height="-16" Font.Name="宋体" Font.Style="0" ParentFont="False" Text="[员工信息.&#34;部门&#34;]"/>
+      <TfrxMemoView Name="Memo12" Left="117.16543" Top="68.03154" Width="79.37013" Height="18.89765" DataField="性别" DataSetName="员工信息" Font.Charset="1" Font.Color="-16777208" Font.Height="-16" Font.Name="宋体" Font.Style="0" ParentFont="False" Text="[员工信息.&#34;性别&#34;]"/>
+      <TfrxMemoView Name="Memo15" Left="117.16543" Top="90.70872" Width="79.37013" Height="18.89765" DataField="职位" DataSetName="员工信息" Font.Charset="1" Font.Color="-16777208" Font.Height="-16" Font.Name="宋体" Font.Style="0" ParentFont="False" Text="[员工信息.&#34;职位&#34;]"/>
+      <TfrxBarCodeView Name="BarCode1" Left="45.35436" Top="7.55906" Width="129" Height="56.69295" BarType="bcCode39" Expression="&#60;员工信息.&#34;编码&#34;&#62;" Rotation="0" Text="12345678" WideBarRatio="2" Zoom="1" Font.Charset="1" Font.Color="0" Font.Height="-12" Font.Name="Arial" Font.Style="0"/>
+      <TfrxLineView Name="Line1" Left="0" Top="117.16543" Width="226.7718" Height="0" Color="0" Diagonal="True"/>
+    </TfrxMasterData>
+  </TfrxReportPage>
+</TfrxReport>	</script>
+	
+	<div style="line-height: 2rem" class="demo-desc">
+	<p>以上界面的拥有如下功能：</p>
+	<ol>
+	<li>增加一个空白模板；</li>
+	<li>修改现有的模板；</li>
+	<li>预览报表和打印报表</li>
+	</ol>
+	</div>
+	<h3>Source</h3>
+	<h4>1、HTML控件定义，全部定义信息在属性：data-jslet</h4>
+    <pre class="prettyprint linenums lang-html"><code>
+Employee List:
+        &lt;div data-jslet="type:'DBTable',dataset:'employee',hasSelectCol:true,rowHeight:25"
+        &lt;/div&gt;
+	</code></pre>
+
+	<h4>2、report.js</h4>
+    <pre class="prettyprint linenums"><code>
+	var template = $('#reportTemplate').text();
+	
+	//查询报表数据
+	$('#btnQuery').click(function() {
+		dsEmployee.query();	
+	});
+	//设计新的报表模板
+	$('#btnDesign').click(function() {
+		jslet.defaultReport.design('employee', 'employee', '员工表');
+	});
+	//修改现有的报表模板
+	$('#btnDesignEdit').click(function() {
+		jslet.defaultReport.design('employee', 'employee', '员工表', template);
+	});
+	//预览报表
+	$('#btnPreview').click(function() {
+		jslet.defaultReport.preview('employee', 'employee', '员工表', template);
+	});
+	//打印报表
+	$('#btnPrint').click(function() {
+		jslet.defaultReport.print('employee', 'employee', '员工表', template);
+	});
+	
+	//查询数据，创建控件
+	dsEmployee.query();
+	jslet.ui.install();
+	</code></pre>
+
+    <script type="text/javascript">
+       window.LOADER_BASE_URL = "../lib/prettify";
+    </script>
+    <script type="text/javascript" src="../lib/prettify/run_prettify.js"></script>
+			
+</body>
+</html>

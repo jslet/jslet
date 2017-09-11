@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js"><span id='jslet-ui-DBDatePicker'>/**
+</span> * @class 
+ * @extend jslet.ui.DBCustomComboBox
+ * 
+ * DBDatePicker. Example:
+ * 
+ *     @example
+ *      var jsletParam = {type:&quot;DBDatePicker&quot;,dataset:&quot;employee&quot;,field:&quot;birthday&quot;, textReadOnly:true};
+ * 
+ *     //1. Declaring:
+ *      &lt;div data-jslet='type:&quot;DBDatePicker&quot;,dataset:&quot;employee&quot;,field:&quot;birthday&quot;, textReadOnly:true' /&gt;
+ *      or
+ *      &lt;div data-jslet='jsletParam' /&gt;
+ * 
+ *     //2. Binding
+ *      &lt;div id=&quot;ctrlId&quot;  /&gt;
+ *      //Js snippet
+ *      var el = document.getElementById('ctrlId');
+ *      jslet.ui.bindControl(el, jsletParam);
+ *
+ *     //3. Create dynamically
+ *      jslet.ui.createControl(jsletParam, document.body);
+ */
+jslet.ui.DBDatePicker = jslet.Class.create(jslet.ui.DBCustomComboBox, {
+<span id='jslet-ui-DBDatePicker-method-initialize'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	initialize: function ($super, el, params) {
+		var Z = this;
+		Z.allProperties = 'styleClass,dataset,field,textReadOnly,popupWidth,popupHeight';
+		
+		Z._popupWidth = 260;
+
+		Z._popupHeight = 226;
+
+		Z.popup = null;
+		
+		Z.comboButtonCls = 'fa-calendar';
+
+		$super(el, params);
+	},
+
+<span id='jslet-ui-DBDatePicker-property-popupHeight'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get pop up panel height.
+	 * 
+	 * @param {Integer | undefined} popupHeight The height of pop up panel.
+	 * 
+	 * @return {this | Integer}
+	 */
+	popupHeight: function(popupHeight) {
+		if(popupHeight === undefined) {
+			return this._popupHeight;
+		}
+		jslet.Checker.test('DBDatePicker.popupHeight', popupHeight).isGTEZero();
+		this._popupHeight = parseInt(popupHeight);
+		return this;
+	},
+
+<span id='jslet-ui-DBDatePicker-property-popupWidth'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get pop up panel width.
+	 * 
+	 * @param {Integer | undefined} popupHeight The width of pop up panel width.
+	 * 
+	 * @return {this | Integer}
+	 */
+	popupWidth: function(popupWidth) {
+		if(popupWidth === undefined) {
+			return this._popupWidth;
+		}
+		jslet.Checker.test('DBDatePicker.popupWidth', popupWidth).isGTEZero();
+		this._popupWidth = parseInt(popupWidth);
+		return this;
+	},
+		
+<span id='jslet-ui-DBDatePicker-method-isValidTemplateTag'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	isValidTemplateTag: function (el) {
+		return true;
+	},
+
+	buttonClick: function (btnEle) {
+		var el = this.el, 
+			Z = this, 
+			fldObj = Z._dataset.getField(Z._field),
+			jqEl = jQuery(el);
+		if (fldObj.readOnly() || fldObj.disabled()) {
+			return;
+		}
+		var width = Z._popupWidth,
+			height = Z._popupHeight,
+			dateValue = Z.getValue(),
+			range = fldObj.dataRange(),
+			minDate = null,
+			maxDate = null;
+		
+		if (range){
+			if (range.min) {
+				minDate = range.min;
+			}
+			if (range.max) {
+				maxDate = range.max;
+			}
+		}
+		if (!Z.contentPanel) {
+			Z.contentPanel = jslet.ui.createControl({ type: 'Calendar', value: dateValue, minDate: minDate, maxDate: maxDate,
+				onDateSelected: function (date) {
+					Z._dataset.setFieldValue(Z._field, new Date(date.getTime()), Z._valueIndex);
+					Z.popup.hide();
+					try {
+						Z.el.focus();
+					} catch(e) {
+						//Ignore
+					}
+				}
+			}, null, width + 'px', height + 'px', true); //Hide panel first
+			
+			Z.popup = new jslet.ui.PopupPanel(btnEle);
+			
+			Z.popup.onHidePopup = function() {
+				Z.focus();
+			};
+			Z.popup.contentElement(Z.contentPanel.el);
+		}
+		
+		var r = jqEl.offset(), 
+			h = jqEl.outerHeight(), 
+			x = r.left, y = r.top + h;
+		if (jsletlocale.isRtl){
+			x = x + jqEl.outerWidth();
+		}
+		Z.contentPanel.el.style.display = 'block';
+		Z.popup.show(x, y, width + 3, height + 3, 0, h);
+		Z.contentPanel.focus();
+		Z.contentPanel.setValue(dateValue);
+	},
+	
+<span id='jslet-ui-DBDatePicker-method-destroy'>	/**
+</span>	 * @override
+	 */
+	destroy: function($super){
+		var Z = this;
+		if(Z.contentPanel) {
+			Z.contentPanel.destroy();
+			Z.contentPanel = null;
+		}
+		if(Z.popup) {
+			Z.popup.destroy();
+			Z.popup = null;
+		}
+		$super();
+	}
+	
+});
+
+jslet.ui.register('DBDatePicker', jslet.ui.DBDatePicker);
+jslet.ui.DBDatePicker.htmlTemplate = '&lt;div&gt;&lt;/div&gt;';
+</pre>
+</body>
+</html>

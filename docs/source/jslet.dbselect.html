@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js"><span id='jslet-ui-DBSelect'>/**
+</span> * @class 
+ * @extend jslet.ui.DBFieldControl
+ * 
+ * DBSelect. Example:
+ * 
+ *     @example
+ *      var jsletParam = {type:&quot;DBSelect&quot;,dataset:&quot;employee&quot;,field:&quot;department&quot;};
+ * 
+ *     //1. Declaring:
+ *      &lt;select data-jslet='type:&quot;DBSelect&quot;,dataset:&quot;employee&quot;,field:&quot;department&quot;' /&gt;
+ *      or
+ *      &lt;select data-jslet='jsletParam' /&gt;
+ *
+ *     //2. Binding
+ *      &lt;select id=&quot;ctrlId&quot;  /&gt;
+ *      //Js snippet
+ *      var el = document.getElementById('ctrlId');
+ *      jslet.ui.bindControl(el, jsletParam);
+ *
+ *     //3. Create dynamically
+ *      jslet.ui.createControl(jsletParam, document.body);
+ */
+jslet.ui.DBSelect = jslet.Class.create(jslet.ui.DBFieldControl, {
+<span id='jslet-ui-DBSelect-method-initialize'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	initialize: function($super, el, params) {
+		var Z = this;
+		Z.allProperties = 'styleClass,dataset,field,groupField,lookupDataset';
+
+		Z._groupField = null;
+		
+		Z._lookupDataset = null;
+		
+		Z._enableInvalidTip = true;
+		
+		Z._innerEditFilterExpr = null;
+		
+		Z._isRendering = false;
+		
+		$super(el, params);
+	},
+
+<span id='jslet-ui-DBSelect-property-groupField'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get group field name, you can use this to group options. &lt;br /&gt;
+	 * Detail to see HTML &quot;OptGroup&quot; element.
+	 * 
+	 * @param {String | undefined} groupField Group field name.
+	 * 
+	 * @return {this | String}
+	 */
+	groupField: function(groupField) {
+		if(groupField === undefined) {
+			return this._groupField;
+		}
+		groupField = jQuery.trim(groupField);
+		jslet.Checker.test('DBSelect.groupField', groupField).isString();
+		this._groupField = groupField;
+		return this;
+	},
+	
+<span id='jslet-ui-DBSelect-property-lookupDataset'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get the lookup dataset to render &quot;Select Options&quot;.
+	 * 
+	 * @param {String | undefined} lookupDataset Lookup dataset name.
+	 * 
+	 * @return {this | String}
+	 */
+	lookupDataset: function(lookupDataset) {
+		if(lookupDataset === undefined) {
+			return this._lookupDataset;
+		}
+
+		if (jslet.isString(lookupDataset)) {
+			lookupDataset = jslet.data.getDataset(jQuery.trim(lookupDataset));
+		}
+		
+		jslet.Checker.test('DBSelect.lookupDataset', lookupDataset).isClass(jslet.data.Dataset.className);
+		this._lookupDataset = lookupDataset;
+		return this;
+	},
+
+<span id='jslet-ui-DBSelect-method-isValidTemplateTag'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	isValidTemplateTag: function(el) {
+		return (el.tagName.toLowerCase() == 'select');
+	},
+
+<span id='jslet-ui-DBSelect-method-bind'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	bind: function() {
+		var Z = this,
+			fldObj = Z._dataset.getField(Z._field),
+			valueStyle = fldObj.valueStyle();
+		
+		if(Z.el.multiple &amp;&amp; valueStyle != jslet.data.FieldValueStyle.MULTIPLE) {
+			fldObj.valueStyle(jslet.data.FieldValueStyle.MULTIPLE);
+		} else if(valueStyle == jslet.data.FieldValueStyle.MULTIPLE &amp;&amp; !Z.el.multiple) {
+			Z.el.multiple = &quot;multiple&quot;;	
+		}
+		Z.renderAll();
+		Z.el.name = Z._field;
+
+		var jqEl = jQuery(Z.el);
+		jqEl.on('change', Z._doChanged);
+		jqEl.focus(function(event) {
+			jslet.ui.globalFocusManager.activeDataset(Z._dataset.name()).activeField(Z._field).activeValueIndex(Z._valueIndex);
+		});
+		jqEl.blur(function(event) {
+			jslet.ui.globalFocusManager.activeDataset(null).activeField(null).activeValueIndex(null);
+		});
+		if(Z.el.multiple) {
+			jqEl.on('click', 'option', Z._doCheckLimitCount);
+		}
+		jqEl.addClass('form-control');//Bootstrap class
+		Z.doMetaChanged('required');
+	}, // end bind
+
+	_doChanged: function(event) {
+		var Z = this.jslet;
+		if(Z.el.multiple) {
+			if(Z.inProcessing) {
+				Z.inProcessing = false;
+			}
+			var fldObj = Z._dataset.getField(Z._field),
+				limitCount = fldObj.valueCountLimit();
+
+			if(limitCount) {
+				var values = Z._dataset.getFieldValue(Z._field),
+					count = 1;
+				if(jslet.isArray(values)) {
+					count = values.length;
+				}
+				if (count &gt;= limitCount) {
+					jslet.showInfo(jslet.formatMessage(jsletlocale.DBCheckBoxGroup.invalidCheckedCount,
+							[''	+ limitCount]));
+					
+					window.setTimeout(function(){
+						if(Z._currOption) {
+							Z.inProcessing = true;
+							Z._currOption.selected = false;
+						}
+					}, 10);
+					return;
+				}
+			}
+		}
+		this.jslet.updateToDataset();
+	},
+	
+	_doCheckLimitCount: function(event) {
+		var Z = event.delegateTarget.jslet;
+		Z._currOption = this;
+	},
+
+	_setDefaultValue: function(fldObj, firstItemValue) {
+		if(!firstItemValue || !fldObj.required()) {
+			return;
+		}
+		var dftValue = fldObj.defaultValue();
+		if(dftValue) {
+			var lkds = fldObj.lookup().dataset();
+			var found = lkds.findByKey(dftValue);
+			if(found) {
+				return;
+			} else {
+				dftValue = null;
+			}
+		}
+		
+		if(!dftValue) {
+			fldObj.defaultValue(firstItemValue);
+		}
+		if(this._dataset.changedStatus() &amp;&amp; !fldObj.getValue()) {
+			fldObj.setValue(firstItemValue);
+		}
+	},
+	
+<span id='jslet-ui-DBSelect-method-doLookupChanged'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	doLookupChanged: function() {
+		var Z = this;
+		if(Z._isRendering) {
+			return;
+		}
+		var	fldObj = Z._dataset.getField(Z._field),
+			lkf = fldObj.lookup();
+		if(Z._lookupDataset) {
+			lkf = new jslet.data.FieldLookup(fldObj, {dataset: Z._lookupDataset});
+		} else {
+			if (!lkf) {
+				return;
+			}
+		}
+		Z._isRendering = true;
+		var lkds = lkf.dataset(),
+			groupIsLookup = false,
+			groupLookup, 
+			groupFldObj, 
+			extraIndex;
+		if (Z._groupField) {
+			groupFldObj = lkds.getField(Z._groupField);
+			if (groupFldObj === null) {
+				throw 'NOT found field: ' + Z._groupField + ' in ' + lkds.name();
+			}
+			lkds.indexFields(Z._groupField);
+		}
+		var preGroupValue = null, groupValue, groupDisplayValue, content = [];
+
+		if (!Z.el.multiple &amp;&amp; !fldObj.required()){
+			content.push('&lt;option value=&quot;_null_&quot;&gt;');
+			content.push(fldObj.nullText());
+			content.push('&lt;/option&gt;');
+		}
+		var oldRecno = lkds.recno(),
+			optValue, optDispValue, 
+			firstItemValue = null,
+			editFilter = lkf.editFilter();
+		Z._innerEditFilterExpr = null;
+		var editItemDisabled = lkf.editItemDisabled();
+		if(editFilter) {
+			Z._innerEditFilterExpr = new jslet.data.Expression(lkds, editFilter);
+		}
+		var disableOption = false, allCnt = 0;
+		try {
+			for (var i = 0, cnt = lkds.recordCount(); i &lt; cnt; i++) {
+				lkds.recnoSilence(i);
+				disableOption = false;
+				if(Z._innerEditFilterExpr &amp;&amp; !Z._innerEditFilterExpr.eval()) {
+					if(!editItemDisabled) {
+						continue;
+					} else {
+						disableOption = true;
+					}
+				}
+				if (Z._groupField) {
+					groupValue = lkds.getFieldValue(Z._groupField);
+					if (groupValue != preGroupValue) {
+						if (preGroupValue !== null) {
+							content.push('&lt;/optgroup&gt;');
+						}
+						if (groupIsLookup) {
+							if (!groupLookup.dataset()
+											.findByField(groupLookup.keyField(), groupValue)) {
+								throw 'Not found: [' + groupValue + '] in Dataset: [' +
+									groupLookup.dataset().name() +
+									']field: [' + groupLookup.keyField() + ']';
+							}
+							groupDisplayValue = groupLookup.getCurrentDisplayValue();
+						} else
+							groupDisplayValue = groupValue;
+
+						content.push('&lt;optgroup label=&quot;');
+						content.push(groupDisplayValue);
+						content.push('&quot;&gt;');
+						preGroupValue = groupValue;
+					}
+				}
+				content.push('&lt;option value=&quot;');
+				optValue = lkds.getFieldValue(lkf.keyField());
+				if(firstItemValue === null) {
+					firstItemValue = optValue;
+				}
+				content.push(optValue);
+				content.push('&quot;'+ (disableOption? ' disabled': '') +  '&gt;');
+				content.push(lkf.getCurrentDisplayValue());
+				content.push('&lt;/option&gt;');
+				allCnt++;
+			} // end for
+			if (preGroupValue !== null) {
+				content.push('&lt;/optgroup&gt;');
+			}
+			if(allCnt &gt; 100) {
+				console.warn(fldObj.label() + '(' + Z._field + '): ' + jsletlocale.DBSelect.moreLookupRecords);
+			}
+
+			jQuery(Z.el).html(content.join(''));
+			Z._setDefaultValue(fldObj, firstItemValue);
+			Z.doValueChanged();
+		} finally {
+			Z._isRendering = false;
+			lkds.recnoSilence(oldRecno);
+		}
+	},
+
+<span id='jslet-ui-DBSelect-method-doMetaChanged'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	doMetaChanged: function($super, metaName){
+		$super(metaName);
+		var Z = this,
+			fldObj = Z._dataset.getField(Z._field);
+		if(!metaName || metaName == &quot;disabled&quot; || metaName == &quot;readOnly&quot;) {
+			var disabled = fldObj.disabled() || fldObj.readOnly();
+			Z.el.disabled = disabled;
+			jslet.ui.setEditableStyle(Z.el, disabled, disabled, true, fldObj.required());
+		}
+		if(metaName &amp;&amp; metaName == 'required') {
+			var jqEl = jQuery(Z.el);
+			if (fldObj.required()) {
+				jqEl.addClass('jl-ctrl-required');
+			} else {
+				jqEl.removeClass('jl-ctrl-required');
+			}
+		}
+		if(!metaName || metaName == 'tabIndex') {
+			Z.setTabIndex();
+		}
+	},
+	
+<span id='jslet-ui-DBSelect-method-doValueChanged'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	doValueChanged: function() {
+		var Z = this;
+		if (Z._skipRefresh) {
+			return;
+		}
+		var errObj = Z.getFieldError();
+		if(errObj &amp;&amp; errObj.message) {
+			Z.el.value = errObj.inputText;
+			Z.renderInvalid(errObj);
+			return;
+		} else {
+			Z.renderInvalid(null);
+		}
+		var value = Z.getValue();
+		if(!Z.el.multiple &amp;&amp; value === Z.el.value) {
+			return;
+		}
+		var i, optCnt = Z.el.options.length, 
+			opt;
+		for (i = 0; i &lt; optCnt; i++) {
+			opt = Z.el.options[i];
+			if (opt) {
+				opt.selected = false;
+			}
+		}
+		
+		var fldObj = Z._dataset.getField(Z._field);
+		if (!Z.el.multiple) {
+			if(!Z._checkOptionEditable(fldObj, value)) {
+				value = null;
+			}
+			if (value === null){
+				if (!fldObj.required()) {
+					value = '_null_';
+				}
+			}
+			Z.el.value = value;
+		} else {
+			var arrValue = value;
+			if(arrValue === null || arrValue.length === 0) {
+				return;
+			}
+				
+			var vcnt = arrValue.length - 1, selected;
+			Z._skipRefresh = true;
+			try {
+				for (i = 0; i &lt; optCnt; i++) {
+					opt = Z.el.options[i];
+
+					for (var j = vcnt; j &gt;= 0; j--) {
+						selected = (arrValue[j] == opt.value);
+						if (selected) {
+							opt.selected = selected;
+						}
+					} // end for j
+				} // end for i
+			} finally {
+				Z._skipRefresh = false;
+			}
+		}
+	},
+ 
+	_checkOptionEditable: function(fldObj, fldValue) {
+		var Z = this;
+		if(!Z._innerEditFilterExpr || fldValue === null || fldValue === undefined || fldValue === '') {
+			return true;
+		}
+		var lkDs = fldObj.lookup().dataset(); 
+		if(lkDs.findByKey(fldValue) &amp;&amp; !Z._innerEditFilterExpr.eval()) {
+			return false;
+		} else {
+			return true;
+		}
+	},
+	
+<span id='jslet-ui-DBSelect-method-renderAll'>	/**
+</span>	 * @override
+	 */
+	renderAll: function() {
+		this.refreshControl(jslet.data.RefreshEvent.updateAllEvent(), true);
+		return this;
+	},
+
+	updateToDataset: function() {
+		var Z = this;
+		if (Z._skipRefresh) {
+			return;
+		}
+		var opt, value,
+			isMulti = Z.el.multiple;
+		if (!isMulti) {
+			value = Z.el.value;
+			if (!value) {
+				opt = Z.el.options[Z.el.selectedIndex];
+				value = opt.innerHTML;
+			}
+		} else {
+			var opts = jQuery(Z.el).find('option'),
+				optCnt = opts.length - 1;
+			value = [];
+			for (var i = 0; i &lt;= optCnt; i++) {
+				opt = opts[i];
+				if (opt.selected) {
+					value.push(opt.value ? opt.value : opt.innerHTML);
+				}
+			}
+		}
+
+		Z._skipRefresh = true;
+		try {
+			Z._dataset.editRecord();
+			var valueChanged = false;
+			if (!isMulti) {
+				var fldObj = Z._dataset.getField(Z._field);
+				if (value == '_null_' &amp;&amp; !fldObj.required()) {
+					value = null;
+				}
+				Z._dataset.setFieldValue(Z._field, value, Z._valueIndex);
+				if(value != Z._dataset.getFieldValue(Z._field, Z._valueIndex)) {
+					valueChanged = true;
+				}
+			} else {
+				Z._dataset.setFieldValue(Z._field, value);
+				if(value != Z._dataset.getFieldValue(Z._field)) {
+					valueChanged = true;
+				}
+			}
+			if(valueChanged) {
+				Z._skipRefresh = false;
+				Z.doValueChanged();
+			}
+		} finally {
+			Z._skipRefresh = false;
+		}
+	}, // end updateToDataset
+	
+<span id='jslet-ui-DBSelect-method-destroy'>	/**
+</span>	 * @override
+	 */
+	destroy: function($super){
+		this._currOption = null;
+		jQuery(this.el).off();
+		$super();
+	}
+});
+
+jslet.ui.register('DBSelect', jslet.ui.DBSelect);
+jslet.ui.DBSelect.htmlTemplate = '&lt;select&gt;&lt;/select&gt;';
+</pre>
+</body>
+</html>

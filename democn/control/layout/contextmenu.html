@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="../../css/demo.css" />
+    
+    <title>Jslet - 弹出式菜单控件</title>
+    <script type="text/javascript" data-main="../../config.js" src="../../lib/requirejs/require.min.js"></script>
+    <script type="text/javascript">
+	    require(['control/layout/contextmenu']);
+    </script>
+</head>
+<body>
+    <div class="demo-header">
+    <h4 id="top">Jslet - 弹出式菜单控件
+    </h4>
+	<hr />
+	</div>
+    <div id="popMenu"></div>
+	<div class="container-fluid">
+	<div class="form-horizontal">
+	<div class="col-sm-4">
+    <div id="popContainer" style="border: 1px solid green;height: 300px; overflow: auto;
+        background-color: #eee; vertical-align: middle; position: relative">
+        <span style="position: absolute; top: 40%;margin-left:40px">Right click on this area!</span>
+    </div>
+    </div>
+    
+	<div class="col-sm-3">
+	<h4>Drop Down Button</h4>
+	<p>
+		<button id="btnDropdown" class="btn btn-default btn-sm dropdown-toggle"> Dropdown Button 
+		  <span class="caret"></span>
+		</button>
+	</p>
+	</div>
+	</div>
+	</div>
+	<hr />
+	<h4>源码</h4>
+    <pre class="prettyprint linenums"><code>
+	//菜单的全局处理函数
+    function globalMenuItemClick(menuObj) {
+    	var msg = '你点击了菜单：' + menuObj.name;
+    	if(menuObj.itemType == 'check' || menuObj.itemType == 'radio') {
+    		msg += menuObj.checked? '，菜单项已勾选': '，菜单项已取消勾选';
+    	}
+        jslet.ui.info(msg);
+    }
+
+    var menuItems = [
+		{id: 'back', name: 'Backward', iconClass: 'icon1'},
+		{id: 'go', name: 'Forward', disabled: true},
+		{name: '-'},
+		{id: 'saveAs', name: 'Save Background As', disabled: true},
+		{id: 'setBackground', name: 'Set Background', disabled: true},
+		{id: 'copyBackground', name: 'Copy Backgound', disabled: true},
+		{name: '-'},
+		{id: 'selectAll', name: 'Select All'},
+		{id: 'paste', name: 'Paste', disabled: true},
+		{name: '-'},
+		{id: 'encode', name: 'Encode', items: [
+			{id: 'autoSelect', name: 'Auto Select', itemType: 'radio', checked: true},
+			{name: '-'},
+			{id: 'gb2312', name: 'Simplied Chinese(GB2312)', itemType: 'radio'},
+			{id: 'utf8', name: 'Unicode(UTF-8)', itemType: 'radio'},
+		    {id: 'English', name: "English"}
+			]
+		},
+		{name: '-'},
+        {id: 'fullScreen', name: 'Full Screen', itemType: 'check'}
+    ];
+
+    var popupMenuCfg = { type: 'Menu', onItemClick: globalMenuItemClick, items: menuItems};
+
+	jslet.ui.bindControl($('#popMenu')[0], popupMenuCfg);
+	
+	//绑定按钮事件
+	$('#popContainer').on('contextmenu', function(event){
+		//显示右键菜单
+		jslet('#popMenu').showContextMenu(event);
+	});
+	
+	$('#btnDropdown').click(function(event){
+		//点击按钮下拉菜单
+		jslet('#popMenu').showAt(event.currentTarget);
+	});
+	</code></pre>
+
+    <script type="text/javascript">
+		window.LOADER_BASE_URL = "../../lib/prettify";
+    </script>
+    <script type="text/javascript" src="../../lib/prettify/run_prettify.js"></script>
+		
+</body>
+</html>

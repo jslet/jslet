@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="../../css/demo.css" />
+    
+    <title>Jslet - DBCheckBoxGroup</title>
+    <script type="text/javascript" data-main="../../config.js" src="../../lib/requirejs/require.min.js"></script>
+    <script type="text/javascript">
+	    require(['dbcontrol/form/d-dbcheckboxgroup']);
+    </script>
+</head>
+<body>
+    <div class="demo-header">
+    <h4 id="top">Jslet - DBCheckBoxGroup</h4>
+	</div>
+	<hr />
+
+	<div data-jslet="type: 'DBTable', dataset: 'employee'" style="margin-bottom: 10px"></div>
+	
+	<div class="container-fluid">
+	<div class="form-horizontal">
+	
+	<div class="form-group form-group-sm" style="height: 150px">
+	<div class="col-sm-2">
+		<label>1、可设置显示的列数</label>
+	</div>
+	<div class="col-sm-6">
+		<div id="cbgDept" data-jslet="type: 'DBCheckBoxGroup', dataset: 'employee', field: 'department'"></div>
+		<div>
+			<button id="btnSetColumn" class="btn btn-default btn-sm">设置4列显示</button>
+		</div>
+	</div>
+	</div>
+
+	<div class="form-group form-group-sm" style="vertical-align: middle">
+	<div class="col-sm-2">
+		<label>2、有“全部”项</label>
+	</div>
+	<div class="col-sm-4">
+		<div id="cbgDept" data-jslet="type: 'DBCheckBoxGroup', dataset: 'employee', field: 'department', hasSelectAllBox: true"></div>
+	</div>
+	</div>
+
+	<div class="form-group form-group-sm" style="vertical-align: middle">
+	<div class="col-sm-2">
+		<label>3、可设置最多选择个数</label>
+	</div>
+	<div class="col-sm-6">
+		<div id="cbgPosition" data-jslet="type: 'DBCheckBoxGroup', dataset: 'employee', field: 'department'"></div>
+		<div>
+		<button id="btnSetLimitCount" class="btn btn-default btn-sm">设置最多选择3个</button>
+		</div>
+	</div>
+	</div>
+
+	<div class="form-group form-group-sm" style="vertical-align: middle">
+	<div class="col-sm-2">
+		<label>4、单选</label>
+	</div>
+	<div class="col-sm-6">
+		<div data-jslet="type: 'DBCheckBoxGroup', dataset: 'employee', field: 'position'"></div>
+	</div>
+	</div>
+
+
+	</div>
+	</div>
+	
+	
+	<hr />
+	<h4>源码</h4>
+	<h5>HTML</h5>
+    <pre class="prettyprint linenums"><code>
+    //1、可设置显示的列数
+    &lt;div id="cbgDept" data-jslet="type: 'DBCheckBoxGroup', dataset: 'employee', field: 'department'">&lt;/div>
+    
+    //2、有“全部”项
+    &lt;div data-jslet="type: 'DBCheckBoxGroup', dataset: 'employee', field: 'department', hasSelectAllBox: true">&lt;/div>
+	</code></pre>
+    
+	<h5>JavaScript</h5>
+    <pre class="prettyprint linenums"><code>
+	//datasetMetaStore定义在公共js:common/datasetmetastore.js中
+	//将数据集定义信息仓库加到datasetFactory中，创建Dataset时会仓库里去定义信息
+	jslet.data.datasetFactory.addMetaStore(window.datasetMetaStore);
+	//通过工厂方法，可以自动创建主数据集及相关的数据集
+    jslet.data.datasetFactory.createDataset('employee').done(function() {
+    	var dsEmployee = jslet.data.getDataset('employee');
+    	//设置“部门”字段为多选
+    	dsEmployee.getField('department').valueStyle(jslet.data.FieldValueStyle.MULTIPLE);
+    	//设置“职位”字段为单选
+    	dsEmployee.getField('position').valueStyle(jslet.data.FieldValueStyle.NORMAL);
+    	dsEmployee.query();
+    	jslet.ui.install();
+    });
+    
+    //1、可设置显示的列数
+    $('#btnSetColumn').click(function() {
+    	jslet('#cbgDept').columnCount(4).renderAll();
+    });
+    
+    //3、可设置最多选择个数
+    $('#btnSetLimitCount').click(function() {
+    	var dsEmployee = jslet.data.getDataset('employee');
+    	var fldObj = dsEmployee.getField('department');
+    	fldObj.valueCountLimit(3);
+    	jslet.ui.info('已设置，请选择值！');
+    });
+	</code></pre>
+
+    <script type="text/javascript">
+       window.LOADER_BASE_URL = "../../lib/prettify";
+    </script>
+    <script type="text/javascript" src="../../lib/prettify/run_prettify.js"></script>
+		
+</body>
+</html>

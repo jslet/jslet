@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js"><span id='jslet-ui-ResizeEventBus'>/**
+</span> * @class
+ * 
+ * Resize event bus, manage all resize event. Example:
+ * 
+ *     @example
+ *     var myCtrlObj = {
+ *       checkSizeChanged: function(){}
+ *     }
+ *
+ *     //Subcribe a message from MessageBus
+ *     jslet.resizeEventBus.subcribe(myCtrlObj);
+ *
+ *     //Unsubcribe a message from MessageBus
+ *     jslet.resizeEventBus.unsubcribe(myCtrlObj);
+ * 
+ *     //Send a mesasge to MessageBus
+ *     jslet.resizeEventBus.sendMessage('MyMessage', {x: 10, y:10});
+ * 
+ */
+jslet.ui.ResizeEventBus = function () {
+	
+	var handler = null;
+	
+	function getResizableChild(sender, childElements) {
+		if(!sender) {
+			sender = document.body;
+		}
+		var children = sender.children;
+		if(!children) {
+			return;
+		}
+		var child;
+		for(var i = 0, len = children.length; i &lt; len; i++) {
+			child = children[i];
+			if(child.getAttribute(jslet.ui.ResizeEventBus.RESIZABLE)) {
+				childElements.push(child);
+				continue;
+			}
+			if(child.children) {
+				getResizableChild(child, childElements);
+			}
+		}
+	}
+	
+<span id='jslet-ui-ResizeEventBus-method-resize'>	/**
+</span>	 * Fire a &quot;resize&quot; message.
+	 * 
+	 * @param {HtmlElement} sender Sender which sends the &quot;resize&quot; event.
+	 */
+	this.resize = function (sender) {
+		var ctrls = [];
+		getResizableChild(sender, ctrls);
+		var ctrl, jsletCtrl;
+		if(jslet.ui._activePopup) {
+			jslet.ui._activePopup.hide();
+		}
+		for(var i = 0, cnt = ctrls.length; i &lt; cnt; i++){
+			ctrl = ctrls[i];
+			if (ctrl){
+				jsletCtrl = ctrl.jslet;
+				if (jsletCtrl &amp;&amp; jsletCtrl.checkSizeChanged){
+					jsletCtrl.checkSizeChanged();
+				}
+			}
+		}
+	};
+
+	this._bodyResize = jslet.debounce(this.resize, 100);
+	
+<span id='jslet-ui-ResizeEventBus-method-subscribe'>	/**
+</span>	 * Subscribe a control to response a resize event. Example:
+	 * 
+	 *     @example
+	 *     var uiCtrl = {
+	 *       checkSizeChanged: function() {}
+	 *     };
+	 * 
+	 *     jslet.ui.resizeEventBus.subscribe(uiCtrl);
+	 * 
+	 * @param {Object} ctrlObj Control object which need subscribe a message, there must be a function: checkSizeChanged in ctrlObj.
+	 */
+	this.subscribe = function(ctrlObj) {
+		if (!ctrlObj || !ctrlObj.el) {
+			throw new Error(&quot;ctrlObj required!&quot;);
+		}
+		if(!ctrlObj.checkSizeChanged || !jQuery.isFunction(ctrlObj.checkSizeChanged)) {
+			throw new Error('subscribe#ctrlObj must have a method named: &quot;checkSizeChanged&quot;!');
+		}
+		jQuery(ctrlObj.el).attr(jslet.ui.ResizeEventBus.RESIZABLE, true);
+		var p = ctrlObj.el.parentNode;
+		while(p) {
+			if(jQuery(p).attr(jslet.ui.ResizeEventBus.RESIZABLE)) {
+				break;
+			}
+			p = p.parentNode;
+		}
+	};
+	
+<span id='jslet-ui-ResizeEventBus-method-unsubscribe'>	/**
+</span>	 * Unsubscribe a control to response a resize event.
+	 * 
+	 * @param {Object} ctrlObj control object which need subscribe a message.
+	 */
+	this.unsubscribe = function(ctrlObj){
+		if (!ctrlObj || !ctrlObj.el) {
+			throw new Error(&quot;ctrlObj required!&quot;);
+		}
+		jQuery(ctrlObj.el).removeAttr(jslet.ui.ResizeEventBus.RESIZABLE);
+	};
+	
+};
+
+jslet.ui.ResizeEventBus.RESIZABLE = &quot;data-jslet-resizable&quot;;
+
+<span id='jslet-ui-property-resizeEventBus'>/**
+</span> * Global resize event bus object.
+ * 
+ * @member jslet.ui
+ * @type {jslet.ui.ResizeEventBus}
+ */
+jslet.ui.resizeEventBus = new jslet.ui.ResizeEventBus();
+
+jQuery(window).on(&quot;resize&quot;,function(){
+	jslet.ui.resizeEventBus._bodyResize();
+});
+</pre>
+</body>
+</html>

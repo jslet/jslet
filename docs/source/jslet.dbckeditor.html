@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js"><span id='jslet-ui-DBCKEditor'>/**
+</span> * @class
+ * @extend jslet.ui.DBFieldControl
+ * 
+ * DBCKEditor is a data sensitive CKEditor. Example:
+ * 
+ *     @example
+ *      var jsletParam = {type:“DBCKEditor“,field:“name“};
+ *     //1. Declaring:
+ *      &lt;input id=“ctrlId“ type=“text“ data-jslet='jsletParam' /&amp;gt;
+ *      or
+ *      &lt;input id=“ctrlId“ type=“text“ data-jslet='{type:“DBCKEditor“,field:“name“}' /&amp;gt;
+ * 
+ *     //2. Binding
+ *      &lt;input id=“ctrlId“ type=“text“ data-jslet='jsletParam' /&amp;gt;
+ *      //Js snippet
+ *      var el = document.getElementById('ctrlId');
+ *      jslet.ui.bindControl(el, jsletParam);
+ * 
+ *     //3. Create dynamically
+ *      jslet.ui.createControl(jsletParam, document.body);
+ */
+jslet.ui.DBCKEditor = jslet.Class.create(jslet.ui.DBFieldControl, {
+<span id='jslet-ui-DBCKEditor-method-initialize'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	initialize: function ($super, el, params) {
+		var Z = this;
+		Z.allProperties = 'styleClass,dataset,field,height';
+
+		Z._height = 150;
+		
+		Z._oldValue = null;
+		
+		Z._editorId = null;
+		Z._editor = null;
+		
+		$super(el, params);
+	},
+
+<span id='jslet-ui-DBCKEditor-property-height'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get CKEditor initial height.
+	 * 
+	 * @param {Integer | undefined} height CKEditor initial height.
+	 * 
+	 * @return {this | Integer}
+	 */
+	height: function(height) {
+		if(height === undefined) {
+			return this._height;
+		}
+		jslet.Checker.test('DBCKEditor.height', height).isGTZero();
+		this._height = height;
+		return this;
+	},
+
+<span id='jslet-ui-DBCKEditor-method-isValidTemplateTag'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	isValidTemplateTag: function (el) {
+		return el.tagName.toLowerCase() == 'div';
+	},
+
+<span id='jslet-ui-DBCKEditor-method-bind'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	bind: function () {
+		var Z = this;
+		if(!window.CKEDITOR) {
+			throw new Error('Not found CKEDITOR component! Goto for more: http://ckeditor.com/');
+		}
+		var jqEl = jQuery(Z.el);
+		jqEl.addClass('jl-ckeditor');
+		var editorId = jslet.nextId();
+		var html = '&lt;textarea class=&quot;jl-hidden&quot;&gt;&lt;/textarea&gt;';
+		jqEl.html(html);
+		jqEl.children().attr('id', editorId).attr('name', Z._field);
+		
+		var editor = window.CKEDITOR.replace(editorId, {
+			height: Z._height
+		});
+		
+		editor.on('focus', jQuery.proxy(Z._doFocus, Z));
+		editor.on('blur', jQuery.proxy(Z._doBlur, Z));
+		editor.on('change', jQuery.proxy(Z._doChange, Z));
+		Z._editor = editor;
+		Z._editorId = '#cke_' + editorId;
+		Z.renderAll();
+	}, // end bind
+
+<span id='jslet-ui-DBCKEditor-method-_doFocus'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	_doFocus: function () {
+		var Z = this;
+		jslet.ui.globalFocusManager.activeDataset(Z._dataset.name()).activeField(Z._field).activeValueIndex(Z._valueIndex);
+		jQuery(Z._editorId).addClass('jl-focus');
+	},
+
+<span id='jslet-ui-DBCKEditor-method-_doBlur'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	_doBlur: function () {
+		var Z = this;
+		jQuery(Z._editorId).removeClass('jl-focus');
+		jslet.ui.globalFocusManager.activeDataset(null).activeField(null).activeValueIndex(null);
+	},
+	
+	_doChange: function() {
+		this.updateToDataset();
+	},
+	
+<span id='jslet-ui-DBCKEditor-method-doMetaChanged'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	doMetaChanged: function($super, metaName){
+		$super(metaName);
+		var Z = this,
+			fldObj = Z._dataset.getField(Z._field);
+		if(!metaName || metaName == &quot;disabled&quot; || metaName == &quot;readOnly&quot;) {
+			var state = fldObj.disabled() || fldObj.readOnly();
+			window.setTimeout(function() {
+				Z._editor.setReadOnly(state);
+			}, 100);
+		}
+		
+		if(metaName &amp;&amp; metaName == 'required') {
+			var jqEl = jQuery(Z.el);
+			if (fldObj.required()) {
+				jqEl.addClass('jl-ctrl-required');
+			} else {
+				jqEl.removeClass('jl-ctrl-required');
+			}
+		}
+		
+	},
+	
+<span id='jslet-ui-DBCKEditor-method-doValueChanged'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	doValueChanged: function() {
+		var Z = this;
+		if (Z._keep_silence_) {
+			return;
+		}
+		var errObj = Z.getFieldError(), value;
+		if(errObj &amp;&amp; errObj.message) {
+			Z.renderInvalid(errObj);
+			value = errObj.inputText;
+		} else {
+			Z.renderInvalid(null);
+			value = Z.getText();
+		}
+		Z._editor.setData(value);
+		Z._editor.resetDirty();
+		Z._oldValue = Z.el.value;
+	},
+
+<span id='jslet-ui-DBCKEditor-method-renderAll'>	/**
+</span>	 * @override
+	 */
+	renderAll: function () {
+		this.refreshControl(jslet.data.RefreshEvent.updateAllEvent(), true);
+		return this;
+	},
+
+	innerFocus: function($super) {
+		this._editor.focus();
+	},
+	
+	updateToDataset: function () {
+		var Z = this;
+		if (Z._keep_silence_) {
+			return;
+		}
+		if(!Z._editor.checkDirty()) {
+			return;
+		}
+		var value = Z._editor.getData();
+		if(Z._oldValue == value) {
+			return;
+		}
+		Z._dataset.editRecord();
+		Z._keep_silence_ = true;
+		try {
+			Z._dataset.setFieldText(Z._field, value, Z._valueIndex);
+			Z.refreshControl(jslet.data.RefreshEvent.updateRecordEvent(Z._field));
+		} finally {
+			Z._keep_silence_ = false;
+			Z._editor.resetDirty();
+		}
+		var errObj = Z.getFieldError();
+		if(errObj &amp;&amp; errObj.message) {
+			Z.renderInvalid(errObj);
+		} else {
+			Z.renderInvalid(null);
+		}
+	},
+
+<span id='jslet-ui-DBCKEditor-method-destroy'>	/**
+</span>	 * @override
+	 */
+	destroy: function($super){
+		var Z = this;
+		jQuery(Z.el).off();
+		Z._editor = null;
+		$super();
+	}
+});
+jslet.ui.register('DBCKEditor', jslet.ui.DBCKEditor);
+jslet.ui.DBCKEditor.htmlTemplate = '&lt;div&gt;&lt;/div&gt;';
+
+</pre>
+</body>
+</html>

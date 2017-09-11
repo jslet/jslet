@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="../css/demo.css" />
+    
+    <title>Jslet - 上下文自定义规则</title>
+    <script type="text/javascript" data-main="../config.js" src="../lib/requirejs/require.min.js"></script>
+    <script type="text/javascript">
+	    require(['dataset/r-contextcustom']);
+    </script>
+</head>
+<body>
+    <div class="demo-header">
+    <h4 id="top">Jslet - 上下文自定义规则</h4>
+	</div>
+	<hr />
+	<div style="padding-left: 5px;margin-bottom: 10px">
+	    <button class="btn btn-default btn-sm" id="btnQuery"> 查询 </button>
+	    <div class="btn-group">
+	    <button class="btn btn-default btn-sm" id="btnAppend"> 新增 </button>
+	    <button class="btn btn-default btn-sm" id="btnDelete"> 删除 </button>
+	    </div>
+	</div>
+	<div data-jslet="type: 'DBTable', dataset: 'employee',editable: true"></div>
+	<div class="demo-desc">
+	<p>对于复杂的上下文规则，可以通过编程来实现。本示例与“上下文状态”示例一样，但是是通过设置“customized”事件来实现的，请看下面的源码。</p>
+	</div>
+	<hr />
+	<h4>源码</h4>
+    <pre class="prettyprint linenums"><code>
+	//datasetMetaStore定义在公共js:common/datasetmetastore.js中
+	//将数据集定义信息仓库加到datasetFactory中，创建Dataset时会仓库里去定义信息
+	jslet.data.datasetFactory.addMetaStore(window.datasetMetaStore);
+	//通过工厂方法，可以自动创建主数据集及相关的数据集
+    jslet.data.datasetFactory.createDataset('employee').done(function() {
+		var dsEmployee = jslet.data.getDataset('employee');
+		jslet.ui.install();
+
+		//规则：只有新增的数据才可录入“编码”字段.
+		var rule = {status: ['insert'],
+			rules: [
+			    //在本示例中，比较简单，某些比较复杂的场景，需要对字段做其它操作，比如计算的时候用的到。
+				{field: 'id', customized: function(fldObj){
+					fldObj.disabled(false);
+					}
+				}
+			],
+			otherwise: [
+				{field: 'id', meta: {disabled:true}}
+			]
+		};
+		dsEmployee.contextRules([rule]);
+		dsEmployee.enableContextRule();
+		dsEmployee.query();
+    });
+    
+    //绑定按钮事件
+	$('#btnQuery').click(function() {
+		var dsEmployee = jslet.data.getDataset('employee');
+		dsEmployee.query();	
+	});
+	$('#btnAppend').click(function() {
+		var dsEmployee = jslet.data.getDataset('employee');
+		dsEmployee.appendRecord();	
+		dsEmployee.focusEditControl('id');
+	});
+	$('#btnDelete').click(function() {
+		var dsEmployee = jslet.data.getDataset('employee');
+        jslet.ui.confirm('确实要删除吗?', '确认', function(button) {
+        	if(button === 'ok') {
+        		dsEmployee.deleteRecord();	
+        	}
+        });
+	});
+	</code></pre>
+
+    <script type="text/javascript">
+		window.LOADER_BASE_URL = "../lib/prettify";
+    </script>
+    <script type="text/javascript" src="../lib/prettify/run_prettify.js"></script>
+		
+</body>
+</html>

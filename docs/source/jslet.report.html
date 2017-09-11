@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js"><span id='jslet-Report'>/**
+</span> * @class jslet.Report
+ * 
+ * A class to connect to jslet report assistant. It provides the following feature:
+ * design report, preview report, print report.
+ */
+
+(function() {
+	var wsSocket, serverIp, onSavingReport;
+	jslet.Report = function(reportServerIp) {
+		serverIp = reportServerIp;
+	};
+	
+	jslet.Report.prototype = {
+		
+		getWsSocket: function() {
+			if(!wsSocket) {
+				wsSocket = new WsSocket(serverIp);
+				
+				wsSocket.onSavingReport = function(reportBo) {
+					var template = window.decodeURIComponent(window.escape(window.atob(reportBo.template)));
+					reportBo.template = template;
+					if(onSavingReport) {
+						onSavingReport.call(reportBo);
+					}
+				};
+			}
+			return wsSocket;
+		},
+		
+		onSavingReport: function(savingReportFn) {
+			if(savingReportFn === undefined) {
+				return onSavingReport;
+			}
+			onSavingReport = savingReportFn;
+			return this;
+		},
+		
+<span id='jslet-Report-method-design'>		/**
+</span>		 * Design a report template. Example:
+		 * 
+		 *     @example
+		 *     //Design a new report template.
+		 *     jslet.defaultReport.design('employee', 'report1', 'Employee List');
+		 *     
+		 *     var template = '...';
+		 *     //Design an existed report template.
+		 *     jslet.defaultReport.design('employee', 'report1', 'Employee List', template);
+		 *     
+		 *     //Exclude the 'salary' field.
+		 *     jslet.defaultReport.design('employee', 'report1', 'Employee List', null, 
+		 *     		{'employee':{exclude:'salary'}});
+		 * 
+		 * @param {String} datasets (Required)Dataset names, multiple dataset names are separated by comma(,).
+		 * @param {String} reportId (Required)Report id.
+		 * @param {String} reportName (Required)Report name.
+		 * @param {String} templateXml (Required)Report template XML string, the template is designed by jslet.defaultReport.design(..).
+		 * @param {Object} printFields The fields need to be print, the format is:
+		 * 		{dsName: {includeFields: ['f1',...], excludeFields: ['f3',...]}}, 
+		 * 		for example: {'employee', {includeFields: ['code']}, excludeFields: ['birthday']}}.
+		 */
+		design: function(datasets, reportId, reportName, templateXml, printFields) {
+			jslet.Checker.test('Report.design#datasets', datasets).required().isString();
+			jslet.Checker.test('Report.design#reportId', reportId).required().isString();
+			jslet.Checker.test('Report.design#reportName', reportName).required().isString();
+			jslet.Checker.test('Report.design#template', templateXml).isString();
+			jslet.Checker.test('Report.design#printFields', printFields).isPlanObject();
+			var reportBo = this._combineReportBo(reportId, reportName, datasets, templateXml, printFields);
+			this.getWsSocket().designReport(reportBo);
+			return this;
+		},
+		
+<span id='jslet-Report-method-preview'>		/**
+</span>		 * Preview a report. Example:
+		 * 
+		 *     @example
+		 *     var template = '...';
+		 *     //Preview all records.
+		 *     jslet.defaultReport.preview('employee', 'report1', 'Employee List', template);
+		 *     
+		 *     //Exclude the 'salary' field.
+		 *     jslet.defaultReport.preview('employee', 'report1', 'Employee List', template, 
+		 *     		{'employee':{exclude:'salary'}});
+		 * 
+		 *     //Preview the current record.
+		 *     jslet.defaultReport.preview('employee', 'report1', 'Employee List', template, 
+		 *     		{'employee':{exclude:'salary'}}, jslet.data.RecordRange.CURRENT);
+		 * 
+		 * @param {String} datasets (Required)Dataset names, multiple dataset names are separated by comma(,).
+		 * @param {String} reportId (Required)Report id.
+		 * @param {String} reportName (Required)Report name.
+		 * @param {String} templateXml (Required)Report template XML string, the template is designed by jslet.defaultReport.design(..).
+		 * @param {Object} printFields The fields need to be print, the format is:
+		 * 		{dsName: {includeFields: ['f1',...], excludeFields: ['f3',...]}}, 
+		 * 		for example: {'employee', {includeFields: ['code']}, excludeFields: ['birthday']}}.
+		 * @param {jslet.data.RecordRange} printRange Record range to preview, 
+		 * 		the optional values are jslet.data.RecordRange.ALL(default), 
+		 * 		jslet.data.RecordRange.SELECTED, jslet.data.RecordRange.CURRENT.
+		 */
+		preview: function(datasets, reportId, reportName, templateXml, printFields, printRange) {
+			jslet.Checker.test('Report.preview#datasets', datasets).required().isString();
+			jslet.Checker.test('Report.preview#reportId', reportId).required().isString();
+			jslet.Checker.test('Report.preview#reportName', reportName).required().isString();
+			jslet.Checker.test('Report.preview#template', templateXml).required().isString();
+			jslet.Checker.test('Report.preview#printFields', printFields).isPlanObject();
+			var reportBo = this._combineReportBo(reportId, reportName, datasets, templateXml, printFields, printRange);
+			var wsSocket = new WsSocket();
+			this.getWsSocket().previewReport(reportBo);
+			return this;
+		},
+		
+<span id='jslet-Report-method-print'>		/**
+</span>		 * Print a report. Example:
+		 * 
+		 *     @example
+		 *     var template = '...';
+		 *     //Print all records.
+		 *     jslet.defaultReport.print('employee', 'report1', 'Employee List', template);
+		 *     
+		 *     //Exclude the 'salary' field.
+		 *     jslet.defaultReport.print('employee', 'report1', 'Employee List', template, 
+		 *     		{'employee':{exclude:'salary'}});
+		 * 
+		 *     //Print the current record.
+		 *     jslet.defaultReport.print('employee', 'report1', 'Employee List', template, 
+		 *     		{'employee':{exclude:'salary'}}, jslet.data.RecordRange.CURRENT);
+		 * 
+		 * @param {String} datasets (Required)Dataset names, multiple dataset names are separated by comma(,).
+		 * @param {String} reportId (Required)Report id.
+		 * @param {String} reportName (Required)Report name.
+		 * @param {String} templateXml (Required)Report template XML string, the template is designed by jslet.defaultReport.design(..).
+		 * @param {Object} printFields The fields need to be print, the format is:
+		 * 		{dsName: {includeFields: ['f1',...], excludeFields: ['f3',...]}}, 
+		 * 		for example: {'employee', {includeFields: ['code']}, excludeFields: ['birthday']}}.
+		 * @param {jslet.data.RecordRange} printRange Record range to print, 
+		 * 		the optional values are jslet.data.RecordRange.ALL(default), 
+		 * 		jslet.data.RecordRange.SELECTED, jslet.data.RecordRange.CURRENT.
+		 */
+		print: function(datasets, reportId, reportName, templateXml, printFields, printRange) {
+			jslet.Checker.test('Report.print#datasets', datasets).required().isString();
+			jslet.Checker.test('Report.print#reportId', reportId).required().isString();
+			jslet.Checker.test('Report.print#reportName', reportName).required().isString();
+			jslet.Checker.test('Report.print#template', templateXml).required().isString();
+			jslet.Checker.test('Report.print#printFields', printFields).isPlanObject();
+			var reportBo = this._combineReportBo(reportId, reportName, datasets, templateXml, printFields, printRange);
+			var wsSocket = new WsSocket();
+			this.getWsSocket().printReport(reportBo);
+			return this;
+		},
+		
+		_combineReportBo: function(reportId, reportName, datasets, templateXml, printFields, printRange, inDesign) {
+			var reportBO = {reportId: reportId, reportName: reportName};
+			var template = templateXml? window.btoa(window.unescape(window.encodeURIComponent(templateXml))): null;
+			reportBO.template = template;
+
+			var rptDatasets = [];
+			reportBO.datasets = rptDatasets;
+			var dsCodes = datasets.split(','), dsCode, rtnCfg, 
+				recordRange = null, dsPrintFields;
+			for(var i = 0, len = dsCodes.length; i &lt; len; i++) {
+				dsCode = dsCodes[i];
+				rtnCfg = this._createRptDataset(rptDatasets, dsCode, null, printFields);
+				if(inDesign) {
+					continue;
+				}
+				if(printRange) {
+					recordRange = printRange[dsCode] || null;
+				}
+				rtnCfg.rptDataset.data = rtnCfg.dataset.exportTextArray({exportHeader: false, recordRange: recordRange, includeFields: rtnCfg.fieldNames});
+			}
+			
+			return reportBO;
+		},
+		
+		_createRptDataset: function(rptDatasets, dsCode, dsName, printFields) {
+			var dsObj = jslet.data.getDataset(dsCode);
+			if(!dsObj) {
+				throw new Error(jslet.formatMessage(jsletlocale.Report.notFoundDs, dsCode));
+			}
+			if(!dsName) {
+				dsName = dsObj.description();
+			}
+			var rptDataset = {name: dsName};
+			rptDatasets.push(rptDataset);
+			var rptFields = [];
+			rptDataset.fields = rptFields;
+			var dsPrintFields = printFields &amp;&amp; printFields[dsCode], includeFields, excludeFields;
+			if(dsPrintFields) {
+				includeFields = dsPrintFields &amp;&amp; dsPrintFields.includeFields;
+				excludeFields = dsPrintFields &amp;&amp; dsPrintFields.excludeFields;
+			}
+
+			var fields = dsObj.getNormalFields(), fldObj, dataType, fldName,
+				arrFldNames = [];
+			for(var i = 0 , len = fields.length; i &lt; len; i++) {
+				fldObj = fields[i];
+				fldName = fldObj.name();
+				if(includeFields &amp;&amp; includeFields.indexOf(fldName) &lt; 0 || 
+					excludeFields &amp;&amp; excludeFields.indexOf(fldName) &gt;= 0) {
+					continue;
+				}
+				dataType = fldObj.getType();
+				if(fldObj.lookup()) { //有查找数据集的，固定是字符串
+					dataType = 'S';
+				}
+				if(dataType == 'V') { //子数据集
+					this._createRptDataset(rptDatasets, fldObj.detailDataset(), fldObj.label(), printFields);
+				} else {
+					if(!fldObj.visible()) {
+						if(!includeFields || includeFields.indexOf(fldName) &lt; 0) {
+							continue;
+						}
+					}
+				}
+				rptFields.push(jslet.trim(fldObj.label()) + '|' + dataType);
+				arrFldNames.push(fldName);
+			}
+			return {dataset: dsObj, fieldNames: arrFldNames, rptDataset: rptDataset};
+		}
+	};
+
+	jslet.defaultReport = new jslet.Report();
+/*
+**************************************************************************
+ sgcWebSocket component
+
+ written by eSeGeCe
+ 
+            copyright ?2016
+            Email : info@esegece.com
+            Web : http://www.esegece.com
+**************************************************************************
+*/
+/* jshint ignore:start */
+function GUID(){var a=function(){return Math.floor(Math.random()*65536).toString(16)};return(a()+a()+a()+a()+a()+a()+a()+a())}function event(a){this.name=a;this.eventAction=null;this.subscribe=function(b){this.eventAction=b};this.fire=function(c,b){if(this.eventAction!=null){this.eventAction(c,b)}}}function sgcStreamToString(b,c){var a=new FileReader();a.readAsText(b);a.onload=function(){vResult=a.result;c(vResult)}}function sgcWSStreamRead(b,c){var a=b.slice(0,10);sgcStreamToString(a,function(f){var e=parseInt(f);var d=b.slice(10,10+e);sgcStreamToString(d,function(h){var g=h;var i=b.slice(10+e,b.size);c(g,i)})})}function sgcWebSocket(){if(arguments.length==0){return}if(typeof arguments[0]==&quot;object&quot;){this.host=arguments[0][&quot;host&quot;];this.subprotocol=arguments[0][&quot;subprotocol&quot;];this.user=arguments[0][&quot;user&quot;];this.password=arguments[0][&quot;password&quot;];this.transport=arguments[0][&quot;transport&quot;]}else{if(typeof arguments[0]==&quot;string&quot;){this.host=arguments[0];this.subprotocol=arguments[1];this.transport=arguments[2]}else{return}}if(this.host==undefined){this.host=&quot;127.0.0.1&quot;}if(this.subprotocol==undefined){this.subprotocol=&quot;&quot;}if(this.transport==undefined){this.transport=[&quot;websocket&quot;,&quot;sse&quot;]}var a=new event(&quot;onopen&quot;);var c=new event(&quot;onclose&quot;);var f=new event(&quot;onmessage&quot;);var e=new event(&quot;onerror&quot;);if((window.WebSocket)&amp;&amp;(this.transport.indexOf(&quot;websocket&quot;)&gt;-1)){var d=new event(&quot;onstream&quot;);this.open=function(){if((this.host!==&quot;&quot;)&amp;&amp;(this.user!==&quot;&quot;)&amp;&amp;(this.user!==undefined)){if(this.password==undefined){this.password==&quot;&quot;}if((this.subprotocol!==&quot;&quot;)&amp;&amp;(this.subprotocol!==undefined)){this.websocket=new WebSocket(this.host+&quot;/sgc/auth/url/&quot;+this.user+&quot;/&quot;+this.password,this.subprotocol)}else{this.websocket=new WebSocket(this.host+&quot;/sgc/auth/url/&quot;+this.user+&quot;/&quot;+this.password)}}else{if((this.host!==&quot;&quot;)&amp;&amp;(this.subprotocol!==&quot;&quot;)&amp;&amp;(this.subprotocol!==undefined)){this.websocket=new WebSocket(this.host,this.subprotocol)}else{if(this.host!==&quot;&quot;){this.websocket=new WebSocket(this.host)}}}this.websocket.onopen=function(){a.fire({name:&quot;onopen&quot;,message:&quot;&quot;})};this.websocket.onmessage=function(g){if(typeof g.data===&quot;object&quot;){d.fire({name:&quot;onstream&quot;,stream:g.data})}else{f.fire({name:&quot;onmessage&quot;,message:g.data})}};this.websocket.onclose=function(g){c.fire({name:&quot;onclose&quot;,message:&quot;&quot;,code:g.code,reason:g.reason,clean:g.wasClean})};this.websocket.onerror=function(g){e.fire({name:&quot;onerror&quot;,message:g.data})}};if(this.websocket==undefined){this.open()}this.send=function(g){this.websocket.send(g)};this.close=function(){this.websocket.close()};this.state=function(){switch(this.websocket.readyState){case 0:return&quot;connecting&quot;;break;case 1:return&quot;open&quot;;break;case 2:return&quot;closing&quot;;break;case 3:return&quot;closed&quot;;break;default:return&quot;undefined&quot;;break}};this.on=function(g,h){if(g==&quot;open&quot;){a.subscribe(h)}else{if(g==&quot;close&quot;){c.subscribe(h)}else{if(g==&quot;message&quot;){f.subscribe(h)}else{if(g==&quot;stream&quot;){d.subscribe(h)}else{if(g==&quot;error&quot;){e.subscribe(h)}}}}}}}else{if((window.EventSource)&amp;&amp;(this.transport.indexOf(&quot;sse&quot;)&gt;-1)){var b=&quot;&quot;;this.open=function(){if((this.host!==&quot;&quot;)&amp;&amp;(this.user!==&quot;&quot;)&amp;&amp;(this.user!==undefined)){if(this.password==undefined){this.password==&quot;&quot;}if((this.subprotocol!==&quot;&quot;)&amp;&amp;(this.subprotocol!==undefined)){this.EventSource=new EventSource(this.host.replace(/^[a-z]{2,3}\:\/{2}[a-z,0-9,.]{1,}\:[0-9]{1,4}.(.*)/,&quot;$1&quot;)+&quot;/sgc/auth/url/&quot;+this.user+&quot;/&quot;+this.password+&quot;/&quot;+this.subprotocol)}else{this.EventSource=new EventSource(this.host.replace(/^[a-z]{2,3}\:\/{2}[a-z,0-9,.]{1,}\:[0-9]{1,4}.(.*)/,&quot;$1&quot;)+&quot;/sgc/auth/url/&quot;+this.user+&quot;/&quot;+this.password)}}else{if((this.host!==&quot;&quot;)&amp;&amp;(this.subprotocol!==&quot;&quot;)&amp;&amp;(this.subprotocol!==undefined)){this.EventSource=new EventSource(this.subprotocol)}else{if(this.host!==&quot;&quot;){this.EventSource=new EventSource(&quot;/&quot;)}}}this.EventSource.onopen=function(){a.fire({name:&quot;onopen&quot;,message:&quot;&quot;})};this.EventSource.onmessage=function(g){if(b==&quot;&quot;){b=g.data}else{f.fire({name:&quot;onmessage&quot;,message:g.data})}};this.EventSource.onerror=function(g){e.fire({name:&quot;onerror&quot;,message:g.data})}};if(this.EventSource==undefined){this.open()}this.send=function(g){if(b!==&quot;&quot;){if(window.XMLHttpRequest){xhr=new XMLHttpRequest()}else{if(window.ActiveXObject){xhr=new ActiveXObject(&quot;Microsoft.XMLHTTP&quot;)}else{return}}xhr.open(&quot;POST&quot;,&quot;/sgc/xhr/&quot;+b,true);xhr.send(g)}};this.close=function(){this.EventSource.close();c.fire({name:&quot;onclose&quot;,message:&quot;&quot;,code:1000,reason:&quot;&quot;,clean:true})};this.state=function(){switch(this.EventSource.readyState){case 0:return&quot;connecting&quot;;break;case 1:return&quot;open&quot;;break;case 2:return&quot;closed&quot;;break;default:return&quot;undefined&quot;;break}};this.on=function(g,h){if(g==&quot;open&quot;){a.subscribe(h)}else{if(g==&quot;close&quot;){c.subscribe(h)}else{if(g==&quot;message&quot;){f.subscribe(h)}else{if(g==&quot;error&quot;){e.subscribe(h)}}}}}}else{alert(&quot;WebSockets not supported by your Browser.&quot;)}}};
+/* jshint ignore:end */
+var assistantURL, authURL;
+var WsSocket = function(serverIp) {
+	serverIp = serverIp || '127.0.0.1';
+	assistantURL = 'wss://' + serverIp + ':20169';
+	authURL = 'https://' + serverIp + ':20169';
+	
+	this.ws = null;
+	
+	this.connected = false;
+	
+	this.onSavingReport = null;
+	
+	this.needAlert = true;
+	
+	this.version = null;
+};
+
+WsSocket.prototype = {
+	open: function(openCallBackFn) {
+        this.connected = false;
+		var self = this;
+		/* jshint ignore:start */
+        this.ws = new sgcWebSocket(assistantURL);
+        /* jshint ignore:end */
+        this.ws.on('open', function(evt){
+            self.connected = true;
+			if(openCallBackFn) {
+				openCallBackFn();
+			}
+		});
+
+        this.ws.on('message', function(event) {
+        	var messageText = event.message;
+        	var message = JSON.parse(messageText);
+        	
+			var msgName = message.name;
+			var msgBody = message.body;
+			if(msgName == 'save' &amp;&amp; self.onSavingReport) {
+				self.onSavingReport(msgBody);
+			}
+        
+			if(msgName == 'version') {
+				self.version = msgBody;
+			}
+			
+			if(self.onMessage) {
+				self.onMessage(message);
+			}
+			
+        });
+        
+        this.ws.on('close', function() {
+        	self.connected = false;
+        });
+        
+        this.ws.on('error', function(event, msg) {
+        	var tips = jsletlocale.Report.tips;
+			if(self.needAlert) {
+				tips += '&lt;br /&gt;&lt;br /&gt;' + jsletlocale.Report.tips1;
+	            jslet.ui.confirm(tips, null, function(button){
+					if(button == 'ok') {
+						jslet.ui.info(jsletlocale.Report.ignoreWarning);
+						window.open(authURL);
+					}
+                });
+			} else {
+				console.error(tips);
+			}
+        	this.connected = false;
+        });
+	},
+	
+	send: function(msgText) {
+		var self = this;
+		if(!this.ws || !this.connected) {
+			this.open(function() {
+				self._innerSend(msgText);
+			});
+		} else {
+			self._innerSend(msgText);
+		}
+	},
+	
+	_innerSend: function(msgText) {
+		if(!this.ws || !this.connected) {
+			if(this.needAlert) {
+				console.log(jsletlocale.tips);
+			}
+			return;
+		}
+		if(!msgText) {
+			return;
+		}
+		var state = this.ws.state();
+		if(state == 'open') {
+			var self = this;
+			try {
+				self.ws.send(JSON.stringify(msgText));
+			} catch(e) {
+				console.error(jsletlocale.tips);
+			}
+		}
+	},
+	
+	designReport: function(report) {
+		this.needAlert = true;
+		var msg = {&quot;name&quot;:&quot;design&quot;, &quot;body&quot;: report}; 
+		this.send(msg);
+	},
+	
+	previewReport: function(report) {
+		this.needAlert = true;
+		var msg = {&quot;name&quot;:&quot;preview&quot;, &quot;body&quot;: report}; 
+		this.send(msg);
+	},
+	
+	printReport: function(report) {
+		this.needAlert = true;
+		var msg = {&quot;name&quot;:&quot;print&quot;, &quot;body&quot;: report}; 
+		this.send(msg);
+	},
+	
+	upgrade: function(upgradeUrl) {
+		this.needAlert = false;
+		this.send({&quot;name&quot;: &quot;upgrade&quot;, &quot;body&quot;: upgradeUrl});
+	},
+	
+	getVersion: function() {
+		var msg = {&quot;name&quot;: &quot;version&quot;};
+		this.needAlert = false;
+		this.send(msg);
+	}
+};
+})();
+</pre>
+</body>
+</html>

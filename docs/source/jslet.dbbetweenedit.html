@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js"><span id='jslet-ui-DBBetweenEdit'>/**
+</span> * @class
+ * @extend jslet.ui.DBFieldControl
+ * 
+ * DBBetweenEdit. &lt;br /&gt; 
+ * It implements &quot;From ... To ...&quot; style editor. This editor usually use in query parameter editor. &lt;br /&gt;
+ * Example:
+ * 
+ *     @example
+ *       var jsletParam = {type:&quot;DBBetweenEdit&quot;,&quot;field&quot;:&quot;dateFld&quot;};
+ *
+ *     //1. Declaring:
+ *       &lt;div data-jslet='jsletParam' /&gt;
+ *
+ *     //2. Binding
+ *       &lt;div id=&quot;ctrlId&quot;  /&gt;
+ *     //Js snippet
+ *      var el = document.getElementById('ctrlId');
+ *      jslet.ui.bindControl(el, jsletParam);
+ *
+ *     //3. Create dynamically
+ *      jslet.ui.createControl(jsletParam, document.body);
+ */
+jslet.ui.DBBetweenEdit = jslet.Class.create(jslet.ui.DBFieldControl, {
+<span id='jslet-ui-DBBetweenEdit-method-initialize'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	initialize: function ($super, el, params) {
+		this.allProperties = 'styleClass,dataset,field';
+		this._minEleId = null;
+		this._maxEleId = null;
+
+		$super(el, params);
+	},
+
+<span id='jslet-ui-DBBetweenEdit-method-isValidTemplateTag'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	isValidTemplateTag: function (el) {
+		var tagName = el.tagName.toLowerCase();
+		return tagName == 'div';
+	},
+
+<span id='jslet-ui-DBBetweenEdit-method-bind'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	bind: function () {
+		var Z = this;
+		Z.renderAll();
+	},
+
+<span id='jslet-ui-DBBetweenEdit-method-refreshControl'>	/**
+</span>	 * @hide
+	 */
+	refreshControl: function (evt) {
+		return;
+	},
+
+<span id='jslet-ui-DBBetweenEdit-method-renderAll'>	/**
+</span>	 * @override
+	 */
+	renderAll: function () {
+		var Z = this;
+		Z.removeAllChildControls();
+		jslet.ui.textMeasurer.setElement(Z.el);
+		var lbl = jsletlocale.Dataset.betweenLabel;
+		if (!lbl) {
+			lbl = '-';
+		}
+		lbl = '&amp;nbsp;' + lbl + '&amp;nbsp;';
+
+		var fldObj = Z._dataset.getField(Z._field);
+		var ctrlCfg = {};
+		ctrlCfg.dataset = Z._dataset.name();
+		ctrlCfg.field = Z._field;
+		ctrlCfg.type = 'DBPlace';
+		ctrlCfg.valueIndex = 0;
+		
+		var template = 
+			'&lt;div class=&quot;input-group&quot;&gt;' + 
+			'&lt;div class=&quot;jl-btw-min&quot; data-jslet=\'' + JSON.stringify(ctrlCfg) + '\'&gt;&lt;/div&gt;' + 
+			'&lt;span class=&quot;input-group-addon jl-btw-separator&quot;&gt;' + lbl + '&lt;/span&gt;';
+		ctrlCfg.valueIndex = 1;
+		template += 
+			'&lt;div class=&quot;jl-btw-max&quot; data-jslet=\'' + JSON.stringify(ctrlCfg) + '\'&gt;&lt;/div&gt;' + 
+			'&lt;/div&gt;';
+
+		Z.el.innerHTML = template;
+		jslet.ui.install(Z.el);
+		var jqEl = jQuery(Z.el);
+		Z._minEleId = jqEl.find('.jl-btw-min')[0].id;
+		Z._maxEleId = jqEl.find('.jl-btw-max')[0].id;
+		
+		return this;
+	},
+	
+<span id='jslet-ui-DBBetweenEdit-method-tableId'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	tableId: function($super, tableId){
+		$super(tableId);
+		jslet('#'+ this._minEleId).tableId(tableId);
+		jslet('#'+ this._maxEleId).tableId(tableId);
+	},
+	
+<span id='jslet-ui-DBBetweenEdit-method-innerFocus'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	innerFocus: function() {
+		jslet('#'+ this._minEleId).focus();
+	}
+	
+});
+
+jslet.ui.register('DBBetweenEdit', jslet.ui.DBBetweenEdit);
+jslet.ui.DBBetweenEdit.htmlTemplate = '&lt;div&gt;&lt;/div&gt;';
+</pre>
+</body>
+</html>

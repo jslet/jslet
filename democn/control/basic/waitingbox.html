@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="../../css/demo.css" />
+    
+    <title>Jslet - 等待框（WaitingBox）</title>
+    <script type="text/javascript" data-main="../../config.js" src="../../lib/requirejs/require.min.js"></script>
+    <script type="text/javascript">
+	    require(['control/basic/waitingbox']);
+    </script>
+</head>
+<body>
+    <div class="demo-header">
+    <h4 id="top">Jslet - 等待框（WaitingBox）</h4>
+	</div>
+	<hr />
+    <p><button id="btnShowInBody" class="btn btn-default btn-sm"> 在Body中显示 </button>2s后关闭</p>
+    <div><button id="btnShowInDiv" class="btn btn-default btn-sm"> 在DIV在显示 </button>
+    <button id="btnHideInDiv" class="btn btn-default btn-sm"> 关闭DIV中的等待框 </button></div>
+    <div id="container" style="border: 1px solid red; position: relative; top: 0px; left: 200px;
+        width: 400px; height: 200px; vertical-align:middle; text-align:center">
+        Test Panel<br />
+        <input type="button" value="button" />
+    </div>
+	<hr />
+	<h4>源码</h4>
+    <pre class="prettyprint linenums"><code>
+	//绑定按钮事件
+	$('#btnShowInBody').click(function(){
+		//在Body中显示
+		var waitingbox = new jslet.ui.WaitingBox(document.body);
+		waitingbox.show("Please wait a moment...");
+
+		//延时2秒后关闭
+		setTimeout(function(){
+			waitingbox.destroy(); 
+			waitingbox = null;
+		}, 2000);
+	});
+	
+	var waitingbox1 = null;
+	
+	$('#btnShowInDiv').click(function(){
+		//在DIV中显示
+		if (!waitingbox1) {
+			waitingbox1 = new jslet.ui.WaitingBox(document.getElementById("container"), "Gray", true);
+		}
+		waitingbox1.show("Please wait a moment...");
+	});
+	
+	$('#btnHideInDiv').click(function(){
+		//关闭DIV中的等待框
+		if (waitingbox1) {
+			waitingbox1.hide();
+		}
+	});
+	</code></pre>
+
+    <script type="text/javascript">
+		window.LOADER_BASE_URL = "../../lib/prettify";
+    </script>
+    <script type="text/javascript" src="../../lib/prettify/run_prettify.js"></script>
+		
+</body>
+</html>

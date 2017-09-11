@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Demeostrate how to use UI widget: Menu and Context Menu">
+    <title>Jslet - Demo</title>
+    <link rel="shortcut icon" href="jl.ico" />
+    <link rel="stylesheet" type="text/css" href="css/demo.css" />
+    <script type="text/javascript" data-main="config.js" src="lib/requirejs/require.min.js"></script>
+    <script type="text/javascript">
+	    requirejs(['config'], function (common) {
+		    requirejs(['index']);
+	    });
+    </script>
+</head>
+<body style="padding-top: 0;margin:0">
+    <div id='header' style="height: 70px">
+    <h3 id="top">Jslet - Demo</h3>
+    <div>
+    <h4>Jslet是基于数据处理的高性能，高配置性，低开发量的企业级的JavaScript开发框架，详细请移步<a href="http://www.jslet.com" target="_blank">www.jslet.com</a>
+    <div style="float: right;margin-right: 30px"><span>样式：</span><select id="jsletTheme" value="default"><option value="default">Default</option><option value="blue">Blue</option></select></div>
+    </h4>
+    </div>
+	</div>
+	<!--[if lt IE 10]>
+	<p class="chromeframe">Jslet framework only supports IE 10+. <a href="http://browsehappy.com/">Upgrade your browser today</a> or <a href="http://www.google.com/chromeframe/?redirect=true">install Google Chrome Frame</a> to better experience this site.</p>
+	<![endif]-->
+	<div id="desktop" data-jslet="type: 'Desktop', onLoadMenu: doLoadMenu, header: 'Jslet演示内容'" style="height: 800px"></div>
+	
+</body>
+</html>

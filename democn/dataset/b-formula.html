@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="../css/demo.css" />
+    
+    <title>Jslet - 公式字段</title>
+    <script type="text/javascript" data-main="../config.js" src="../lib/requirejs/require.min.js"></script>
+    <script type="text/javascript">
+	    require(['dataset/b-formula']);
+    </script>
+</head>
+<body>
+    <div class="demo-header">
+    <h4 id="top">Jslet - 公式字段</h4>
+	</div>
+	<hr />
+	<div class="demo-desc">
+	<p>公式字段的定义很简单，定义字段时，只需增加一个“formula”属性即可。此属性为 JavaScript 表达式，公式返回的值类型必须与字段类型一致。字段值需用“[]”括起来，如：[price] * 0.8</p>
+	<p>公式字段缺省是只读的，但也可设置为非只读，这个时候，用户可以修改计算后的值。有些业务场景中，根据业务规则计算一个数值出来，用户还可以手工修改，比如去掉尾数之类的。</p>
+	</div>
+	<div id="tblDetail" data-jslet="type: 'DBTable', dataset: 'salesDetail', editable: true" style="height: 150px;margin-bottom: 10px"></div>
+	<button id="btnSetEditable" class="btn btn-default btn-sm">设置“金额”字段可编辑</button>
+	<h4>源码</h4>
+    <pre class="prettyprint linenums"><code>
+	var detailFldCfg = [
+	{name: 'qty', type: 'N', label: '数量', length: 11, defaultValue: 2},
+	{name: 'price', type: 'N', label: '价格', length: 11, scale: 2},
+	//定义“金额”为公式字段，计算公式为：数量 * 价格
+	{name: 'amount', type: 'N', label: '金额', length: 11, scale: 2, 
+    	formula: '[qty]*[price]', aggraded: true, displayFormat: '#,##0.00'}
+	];
+        
+	//datasetMetaStore定义在公共js:common/datasetmetastore.js中
+	var getMeta = datasetMetaStore.getDatasetMeta;
+	//创建销售明细数据集
+    var dsDetail = new jslet.data.Dataset(getMeta('salesDetail'));
+    dsDetail.records([{seqno: 1, product: 'Phone', qty: 8, price: 500}]);
+    
+    jslet.ui.install();
+    
+    function setEditable() {
+    	var dsObj = jslet.data.getDataset('salesDetail');
+    	dsObj.getField('amount').readOnly(false);
+    	jslet('#tblDetail').renderAll();
+    	jslet.ui.info('“金额”字段已经可编辑，请用鼠标点击“金额”列，然后修改金额。');
+    }
+    
+	jQuery('#btnSetEditable').on('click', setEditable);
+	</code></pre>
+
+    <script type="text/javascript">
+		window.LOADER_BASE_URL = "../lib/prettify";
+    </script>
+    <script type="text/javascript" src="../lib/prettify/run_prettify.js"></script>
+		
+</body>
+</html>

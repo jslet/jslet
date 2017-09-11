@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="../../css/demo.css" />
+    <link rel="stylesheet" type="text/css" href="tree.css" />
+    
+    <title>Jslet - 树控件样式</title>
+    <script type="text/javascript" data-main="../../config.js" src="../../lib/requirejs/require.min.js"></script>
+    <script type="text/javascript">
+	    require(['dbcontrol/tree/appearance']);
+    </script>
+</head>
+<body >
+    <div class="demo-header">
+    <h4 id="top">Jslet - 树控件样式</h4>
+	</div>
+	<hr />
+	<div class="container-fluid">
+	<div class="form-horizontal">
+	<div class="col-sm-3">
+	<p>缺省样式树（适用树节点等高的场景）</p>
+	<div id="trAgency" data-jslet="type: 'DBTreeView', dataset: 'agency',expandLevel: 0, iconClassField: 'iconcls'" style="height: 200px"></div>
+	</div>
+	<div class="col-sm-3">
+	<p>无连接线的树（适合树节点不等高的场景）</p>
+	<div data-jslet="type: 'DBTreeView', dataset: 'agency1',expandLevel: 0, hasLine: false" style="height: 200px"></div>
+	</div>
+
+	<div class="col-sm-3">
+	<p>箭头样式的树（适合做树形菜单等）</p>
+	<div data-jslet="type: 'DBTreeView', dataset: 'agency2',expandLevel: 0, useArrow: true" style="height: 200px"></div>
+	</div>
+	</div>
+	</div>
+	
+	<div class="demo-desc">
+	<p>演示内容：</p>
+	<p>演示树形控件用于各种场景。</p>
+	</div>
+	<hr />
+	<h4>源码</h4>
+	<h5>HTML</h5>
+    <pre class="prettyprint linenums"><code>
+    //缺省样式树（适用树节点等高的场景）
+    &lt;div data-jslet="type: 'DBTreeView', dataset: 'agency',expandLevel: 0" style="height: 200px">&lt;/div>
+
+    //无连接线的树（适合树节点不等高的场景）
+    &lt;div data-jslet="type: 'DBTreeView', dataset: 'agency1',expandLevel: 0, hasLine: false" style="height: 200px">&lt;/div>
+
+    //箭头样式的树（适合做树形菜单等）
+    &lt;div data-jslet="type: 'DBTreeView', dataset: 'agency2',expandLevel: 0, useArrow: true" style="height: 200px">&lt;/div>
+    
+	</code></pre>
+	<h4>JavaScript</h4>
+    <pre class="prettyprint linenums"><code>
+	var dsAgency = jslet.data.getDataset('agency');
+	
+	//创建第二个数据集
+	var dsAgency1 = dsAgency.clone('agency1');
+	dsAgency1.records(dsAgency.records());
+	
+	//创建第三个数据集
+	var dsAgency2 = dsAgency.clone('agency2');
+	dsAgency2.records(dsAgency.records());
+
+	jslet.ui.install();
+	</code></pre>
+
+    <script type="text/javascript">
+       window.LOADER_BASE_URL = "../../lib/prettify";
+    </script>
+    <script type="text/javascript" src="../../lib/prettify/run_prettify.js"></script>
+		
+</body>
+</html>

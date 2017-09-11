@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="../../css/demo.css" />
+    <link rel="stylesheet" type="text/css" href="tree.css" />
+    
+    <title>Jslet - 树控件基础功能</title>
+    <script type="text/javascript" data-main="../../config.js" src="../../lib/requirejs/require.min.js"></script>
+    <script type="text/javascript">
+	    require(['dbcontrol/tree/basic']);
+    </script>
+</head>
+<body >
+    <div class="demo-header">
+    <h4 id="top">Jslet - 树控件基础功能</h4>
+	</div>
+	<hr />
+	<div class="container-fluid">
+	<div class="form-horizontal">
+	<div class="col-sm-12" style="margin-bottom: 10px">
+		<button id="btnInsertChild"> 新增下级 </button>
+		<button id="btnInsertSibling"> 新增同级 </button>
+		<button id="btnDeleteRecord"> 删除  </button>
+	</div>
+	<div class="col-sm-3">
+	<div id="trAgency" data-jslet="type: 'DBTreeView', dataset: 'agency',expandLevel: 0, iconClassField: 'iconcls'" style="height: 200px"></div>
+	</div>
+	
+	<div class="col-sm-3">
+	<div data-jslet="type: 'DBEditPanel', dataset: 'agency', columnCount: 1, labelCols: 3"></div>
+	</div>
+	</div>
+	
+	</div>
+	
+	</div>
+	<div class="demo-desc">
+	<p>演示内容：</p>
+	<ol class="content-list">
+    <li>基本的增删改，其中增加有两种：增加下级，增加本级，删除会检测下级，有下级的节点不允许删除；</li>
+    <li>支持键盘上的“方向键”操作；</li>
+	<li>支持鼠标右键；</li>	
+	<li>通过设置属性：expandLevel可以在初始显示时展开节点到第几级，expandLevel的值是从0开始；</li>
+	<li>节点显示内容可以通过属性displayFields设置<button id="btnDisplayFields" class="btn btn-default btn-sm"> 改为:名称(编码) </button>
+		<button id="btnRestore" class="btn btn-default btn-sm"> 复原 </button>
+	</li>
+	<li>设置树节点的点击事件 <button id="btnRowClick" class="btn btn-default btn-sm"> 设置 </button>（设置后点击树节点）
+		<button id="btnClearRowClick" class="btn btn-default btn-sm"> 清除 </button>
+	</li>
+	
+	</ol>
+	</div>
+	<hr />
+	<h4>源码</h4>
+	<h5>按钮事件</h5>
+    <pre class="prettyprint linenums"><code>
+	//创建机构数据集用于显示树控件
+	var dsAgency = new jslet.data.Dataset({name: "agency", fields: [
+	   {name: 'id', label: 'ID', dataType: 'N', required: true},
+	   {name: 'parentid', label: 'ParentID', dataType: 'N', readOnly: true},
+	   {name: 'code', label: 'Code', dataType: 'S', required: true},
+	   {name: 'name', label: 'Name', dataType: 'S', required: true},
+	   {name: 'iconcls', label: 'Icon Class', dataType: 'S', length: 30, displayWidth: 10, required: true}
+	   ],
+	   //所有的树控件必须配置以下属性
+	   keyField: 'id', codeField: 'code', nameField: 'name', parentField: 'parentid'
+	});
+	
+	//创建5000条随机数据
+	function getRandomChar(){
+		return String.fromCharCode(65 + Math.round(Math.random()*25));// + 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+	}
+	
+	function generateLargeData(){
+		var data = [], rec, code1, code2, m=1, id1, id2;
+		for(var i = 1; i < 11; i++){
+			code1 = i;
+			if(i < 10)
+				code1 ='00' + i;
+			else
+			if(i < 100)
+				code1 = '0' + i;
+			else
+				code1 = i;
+			
+			id1 = m++;
+			rec = {id: id1, code: code1, name: getRandomChar() + code1, iconcls: 'folderIcon'};
+			data.push(rec);
+			for(var j = 1; j < 6; j++){
+				code2 = code1+ (j < 10 ? '0': '')+j;
+				id2 = m++;
+				rec = {id: id2, code: code2, name: getRandomChar() + code2, parentid: id1, iconcls: 'folderIcon'};
+				data.push(rec);
+				for(var k = 1; k < 11; k++){
+					code3 = code2+(k < 10 ? '0': '') + k;
+					rec = {id: m++, code: code3, name: getRandomChar() + code3, parentid: id2, iconcls: 'fileIcon'};
+					data.push(rec);
+				}
+			}
+		}
+		return data;
+	}
+	
+	dsAgency.records(generateLargeData());
+    </code></pre>
+    
+	<h5>按钮事件</h5>
+    <pre class="prettyprint linenums"><code>
+	jslet.ui.install();
+    //绑定按钮事件
+	$('#chkShowSeqenceCol').click(function() {
+		var checked = $('#chkShowSeqenceCol')[0].checked;
+		//设置表格是否有序号列
+		jslet('#tblEmployee').hasSeqCol(checked).renderAll();
+	});
+	
+    //绑定按钮事件
+	$('#btnInsertChild').click(function() {
+		var dsAgency = jslet.data.getDataset('agency');
+		//为当前记录插入一条子节点
+		dsAgency.insertChild();
+		dsAgency.focusEditControl('id');
+	});
+	
+	$('#btnInsertSibling').click(function() {
+		var dsAgency = jslet.data.getDataset('agency');
+		//为当前记录插入一条同级节点
+		dsAgency.insertSibling();
+		dsAgency.focusEditControl('id');
+	});
+	
+	$('#btnDeleteRecord').click(function() {
+		var dsAgency = jslet.data.getDataset('agency');
+		//删除当前记录
+		dsAgency.deleteRecord();
+	});
+	
+	$('#btnDisplayFields').click(function() {
+		//显示：名称（编码）
+		jslet('#trAgency').displayFields('[name]+" ("+[code]+")"').renderAll();
+	});
+	
+	$('#btnRestore').click(function() {
+		//显示：名称
+		jslet('#trAgency').displayFields('name').renderAll();
+	});
+	
+	$('#btnRowClick').click(function() {
+		var dsAgency = jslet.data.getDataset('agency');
+		//设置树节点的点击事件
+		jslet('#trAgency').onItemClick(function() {
+			jslet.ui.info('点击了第：' + dsAgency.recno() + ' 行！');
+		});
+	});
+	
+	$('#btnClearRowClick').click(function() {
+		//清除树节点的点击事件
+		jslet('#trAgency').onItemClick(null);
+	});
+	</code></pre>
+
+    <script type="text/javascript">
+       window.LOADER_BASE_URL = "../../lib/prettify";
+    </script>
+    <script type="text/javascript" src="../../lib/prettify/run_prettify.js"></script>
+		
+</body>
+</html>

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="../../css/demo.css" />
+    
+    <title>Jslet - DBRangeSelect</title>
+    <script type="text/javascript" data-main="../../config.js" src="../../lib/requirejs/require.min.js"></script>
+    <script type="text/javascript">
+	    require(['dbcontrol/form/b-dbrangeselect']);
+    </script>
+</head>
+<body>
+    <div class="demo-header">
+    <h4 id="top">Jslet - DBRangeSelect</h4>
+	</div>
+	<hr />
+	<div class="demo-desc">
+	<p>DBSelect可用于带lookup的字段，也可用于非lookup字段（需自行设置option元素），DBSelect在显示大数据时有性能问题，可用DBComboSelect或者DBAutoComplete代替。</p>
+	</div>
+
+	<div data-jslet="type: 'DBTable', dataset: 'employee'" style="margin-bottom: 10px"></div>
+	
+	<div class="container-fluid">
+	<div class="form-horizontal">
+	<div class="form-group form-group-sm" style="vertical-align: middle">
+	<div class="col-sm-2">
+		<label>从1000到10000，步长：1000</label>
+	</div>
+	<div class="col-sm-2">
+		<select data-jslet="type: 'DBRangeSelect', dataset: 'employee', field: 'salary', beginItem: 1000, endItem: 10000, step: 1000" ></select>
+	</div>
+	</div>
+	
+	</div>
+	</div>
+	
+	
+	<hr />
+	<h4>源码</h4>
+	<h5>HTML</h5>
+    <pre class="prettyprint linenums"><code>
+    //从1000到10000，步长：1000
+    &lt;select data-jslet="type: 'DBRangeSelect', dataset: 'employee', field: 'salary', beginItem: 1000, endItem: 10000, step: 1000">&lt;/select>
+    
+	</code></pre>
+    
+	<h5>JavaScript</h5>
+    <pre class="prettyprint linenums"><code>
+	//datasetMetaStore定义在公共js:common/datasetmetastore.js中
+	//将数据集定义信息仓库加到datasetFactory中，创建Dataset时会仓库里去定义信息
+	jslet.data.datasetFactory.addMetaStore(window.datasetMetaStore);
+	//通过工厂方法，可以自动创建主数据集及相关的数据集
+    jslet.data.datasetFactory.createDataset('employee').done(function() {
+    	jslet.data.getDataset('employee').query();
+    	jslet.ui.install();
+    });
+    
+	</code></pre>
+
+    <script type="text/javascript">
+       window.LOADER_BASE_URL = "../../lib/prettify";
+    </script>
+    <script type="text/javascript" src="../../lib/prettify/run_prettify.js"></script>
+		
+</body>
+</html>

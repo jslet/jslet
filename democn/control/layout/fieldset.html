@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="../../css/demo.css" />
+    
+    <title>Jslet - Field Set</title>
+    <script type="text/javascript" data-main="../../config.js" src="../../lib/requirejs/require.min.js"></script>
+    <script type="text/javascript">
+	    require(['control/layout/fieldset']);
+    </script>
+</head>
+<body>
+    <div class="demo-header">
+    <h4 id="top">Jslet - Field Set</h4>
+	</div>
+	<hr />
+    <fieldset data-jslet='type: "FieldSet", caption: " 分组头 "'
+        style="width: 300px; margin-left: 20px">
+        <div style="height: 200px">
+        <p>The quick brown fox jumps over the lazy dog</p>
+        </div>
+   </fieldset>
+   <h5>点击分组头可收缩或者展开。</h5>
+	<hr />
+	<h4>源码</h4>
+    <pre class="prettyprint linenums"><code>
+	jslet.ui.install();
+	</code></pre>
+
+    <script type="text/javascript">
+		window.LOADER_BASE_URL = "../../lib/prettify";
+    </script>
+    <script type="text/javascript" src="../../lib/prettify/run_prettify.js"></script>
+		
+</body>
+</html>

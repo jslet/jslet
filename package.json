@@ -1,0 +1,48 @@
+{
+  "name": "jslet",
+  "version": "4.0.0",
+  "description": "A flexible javascript framework.",
+  "main": "gulpfile.js",
+  "directories": {
+    "doc": "doc",
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jslet/jslet.git"
+  },
+  "keywords": [
+    "Javascript",
+    "data",
+    "bind"
+  ],
+  "author": "Jslset Team",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/jslet/jslet/issues"
+  },
+  "homepage": "https://github.com/jslet/jslet#readme",
+  "devDependencies": {
+    "gulp": "^3.9.1",
+    "gulp-clean": "^0.3.2",
+    "gulp-concat": "^2.6.0",
+    "gulp-csso": "^1.1.0",
+    "gulp-define-module": "^0.1.4",
+    "gulp-filter": "^4.0.0",
+    "gulp-jasmine": "^2.4.0",
+    "gulp-jasmine-browser": "^1.7.1",
+    "gulp-jsdoc3": "^1.0.0",
+    "gulp-jsduck": "^1.0.0",
+    "gulp-jshint": "^2.0.0",
+    "gulp-rename": "^1.2.2",
+    "gulp-rev-all": "^0.8.24",
+    "gulp-sourcemaps": "^1.6.0",
+    "gulp-uglify": "^1.5.3",
+    "gulp-useref": "^3.0.8",
+    "gulp-watch": "^4.3.11",
+    "jshint": "^2.9.2"
+  }
+}

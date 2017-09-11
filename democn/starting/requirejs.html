@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="../css/demo.css" />
+    
+    <title>Jslet - 通过Requiejs加载Jslet</title>
+</head>
+<body>
+	<div class="">
+    <div class="demo-header">
+    <h4 id="top">Jslet - 通过Requiejs加载Jslet</h4>
+	</div>
+	<div class="demo-desc">
+	<p>实际产品开发时，都是需要分离HTML和JavaScript文件，而Js文件都是需要使用某种模块加载工具的，比如：<a href="http://www.requirejs.org/">RequireJS</a>，Jslet的演示程序就是使用RequireJS来加载的。</p>
+	<p>下面开始就以Jslet演示程序来讲解如何通过Requiejs加载Jslet，步骤：</p>
+	<p><a href="#step1">1、编写config.js</a> --> <a href="#step2">2、编写业务Js文件</a> --> <a href="#step3">3、编写业务HTML文件</a></p>
+	</div>
+	<hr />
+	<h4 id="step1">1、编写config.js，此文件为公共文件，一般放在整个项目的根目录，以便所有的业务模块调用。</h4>
+    <pre class="prettyprint linenums lang-html"><code>
+requirejs.config({
+    paths: {
+        requirejs: 'requirejs',
+        jslet: '../dist',
+        jquery: '../dist/lib/jquery-2.2.3',
+        //Jslet
+        "jslet-locale": '../dist/locale/zh-cn/jslet-locale',
+        "jslet-data": '../dist/jslet-data',
+        "jslet-ui": '../dist/jslet-ui',
+        datasetmetastore: 'common/datasetmetastore',
+        //jqplot（用于做图表）
+        'jqplotjs': '../dist/lib/jqplot/jquery.jqplot.min',
+        'jqplot-categoryaxisrenderer': '../dist/lib/jqplot/plugins/jqplot.categoryaxisrenderer.min',
+        'jqplot-barrenderer': '../dist/lib/jqplot/plugins/jqplot.barrenderer.min',
+        'jqplot-pierenderer': '../dist/lib/jqplot/plugins/jqplot.pierenderer.min',
+        
+        //xlxs（用于做导入导出用的）
+        'jszip': '../dist/lib/xlsx/jszip',
+        'xlsx': '../dist/lib/xlsx/xlsx',
+        'filesaver': '../dist/lib/xlsx/FileSaver.min'
+    },
+    map: {
+        '*': {
+            'css': 'lib/requirejs/css',
+        }
+    },
+    shim: {
+        'jslet-data': ['jquery', 'xlsx'],
+        'jslet-ui': ['jslet-data', 'bootstrapcss', 'fontawesome', 'css!jslet/asset/default/jslet-css.css'],
+        
+        'xlsx': ['filesaver', 'jszip-wrap'],
+
+        "jqplotjs": ['css!jslet/lib/jqplot/jquery.jqplot.css'],
+        'jqplot-categoryaxisrenderer': ['jqplotjs'],
+        'jqplot-barrenderer': ['jqplotjs'],
+        'jqplot-pierenderer': ['jqplotjs']
+    }
+});
+
+define('jszip-wrap', ['jszip'], function(jszip) {
+    window.JSZip = jszip;
+});
+
+define('bootstrapcss', ['css!jslet/lib/bootstrap-3.2.0-dist/css/bootstrap.min.css', 
+                     'css!jslet/lib/bootstrap-3.2.0-dist/css/bootstrap-theme.min.css']);
+
+define('fontawesome', ['css!jslet/lib/fontawesome/css/font-awesome.min.css']);
+
+define('jqplot', ['jqplotjs', 'jqplot-categoryaxisrenderer', 'jqplot-barrenderer','jqplot-pierenderer']);
+
+define('jslet', ['jslet-data', 'jslet-ui']);
+
+require(['bootstrapcss', 'fontawesome', 'css!jslet/asset/default/jslet-css.css', 'jslet', 'jqplot', 'lib/mock/jquery.mockjax']);
+    </code></pre>
+
+	<h4 id="step2">2、编写业务JS文件，一般业务JS文件需与业务HTML同名</h4>
+    <pre class="prettyprint linenums lang-html"><code>
+(function (factory) {
+    if (typeof define === 'function') {
+    	if(define.amd) {
+    		//加载依赖js文件，其中'jslet'就是定义在config.js文件中
+	        define(['common/metastore', 'jslet'], factory);
+	    } else {
+	    	define(function(require, exports, module) {
+	    		module.exports = factory();
+	    	});
+	    }
+    } else {
+    	factory();
+    }
+})(function () {
+	/********************************** 业务代码 ************************************************/
+	<i>
+	//datasetMetaStore定义在公共js:common/datasetmetastore.js中
+	var getMeta = datasetMetaStore.getDatasetMeta;
+	
+	jslet.data.datasetFactory.addMetaStore(window.datasetMetaStore);
+	//通过工厂方法，可以自动创建主数据集及相关的数据集
+    jslet.data.datasetFactory.createDataset('employee').done(function() {
+    	jslet.ui.install(function() {
+    		var dsEmployee = jslet.data.getDataset('employee');
+    		dsEmployee.query();
+    		//jslet.ui.desktopUtil.registerEditableDataset('employee');
+    		//jslet.ui.desktopUtil.showTabPanel();
+    	});
+    	
+    });
+    </i>
+});
+	</code></pre>
+		
+	<h4 id="step3">3、编写业务HTML文件</h4>
+    <pre class="prettyprint linenums lang-html"><code>
+&lt;!DOCTYPE html>
+&lt;html>
+&lt;head>
+    &lt;meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    &lt;meta name="viewport" content="width=device-width, initial-scale=1">
+    &lt;!-- 加载RequireJS和Config.js文件 -->
+    &lt;script type="text/javascript" data-main="../config.js" src="../lib/requirejs/require.min.js">&lt;/script>
+    &lt;script type="text/javascript">
+    	//加载业务同名JS文件和其它的页面所需的JS文件
+	    require(['dataset/a-datasetfactory']);
+    &lt;/script>
+&lt;/head>
+&lt;body>
+&lt;!-- 业务HTML -->
+&lt;/body>
+&lt;/html>
+	</code></pre>
+	
+    <script type="text/javascript">
+       window.LOADER_BASE_URL = "../lib/prettify";
+    </script>
+    <script type="text/javascript" src="../lib/prettify/run_prettify.js"></script>
+		
+</body>
+</html>

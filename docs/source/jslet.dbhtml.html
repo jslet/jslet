@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js"><span id='jslet-ui-DBHtml'>/**
+</span> * @class
+ * @extend jslet.ui.DBFieldControl
+ * 
+ * DBHtml. Display html text from one field. Example:
+ * 
+ *     @example
+ *      var jsletParam = {type:&quot;DBHtml&quot;,dataset:&quot;employee&quot;,field:&quot;comment&quot;};
+ * 
+ *     //1. Declaring:
+ *      &lt;div data-jslet='type:&quot;DBHtml&quot;,dataset:&quot;employee&quot;,field:&quot;comment&quot;' /&gt;
+ *      or
+ *      &lt;div data-jslet='jsletParam' /&gt;
+ * 
+ *     //2. Binding
+ *      &lt;div id=&quot;ctrlId&quot;  /&gt;
+ *      //Js snippet
+ *      var el = document.getElementById('ctrlId');
+ *      jslet.ui.bindControl(el, jsletParam);
+ *
+ *     //3. Create dynamically
+ *      jslet.ui.createControl(jsletParam, document.body);
+ */
+jslet.ui.DBHtml = jslet.Class.create(jslet.ui.DBFieldControl, {
+<span id='jslet-ui-DBHtml-method-initialize'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	initialize: function ($super, el, params) {
+		this.allProperties = 'styleClass,dataset,field';
+		$super(el, params);
+	},
+
+<span id='jslet-ui-DBHtml-method-bind'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	bind: function () {
+		this.renderAll();
+		jQuery(this.el).addClass('form-control');
+	},
+
+<span id='jslet-ui-DBHtml-method-isValidTemplateTag'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	isValidTemplateTag: function (el) {
+		return el.tagName.toLowerCase() == 'div';
+	},
+
+<span id='jslet-ui-DBHtml-method-doValueChanged'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	doValueChanged: function() {
+		var content = this.getText();
+		this.el.innerHTML = content;
+	},
+	
+<span id='jslet-ui-DBHtml-method-renderAll'>	/**
+</span>	 * @override
+	 */
+	renderAll: function () {
+		this.refreshControl(jslet.data.RefreshEvent.updateAllEvent(), true);
+		return this;
+	},
+	
+<span id='jslet-ui-DBHtml-method-canFocus'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	canFocus: function() {
+		return false;
+	}
+
+});
+
+jslet.ui.register('DBHtml', jslet.ui.DBHtml);
+jslet.ui.DBHtml.htmlTemplate = '&lt;div style=&quot;width:200px;height:200px&quot;&gt;&lt;/div&gt;';
+</pre>
+</body>
+</html>

@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js"><span id='jslet-ui-DBLabel'>/**
+</span> * @class 
+ * @extend jslet.ui.DBFieldControl
+ * 
+ * DBLabel. Display field name, use this control to void hard-coding field name, and you can change field name dynamically. Example:
+ * 
+ *     @example
+ *      var jsletParam = {type:&quot;DBLabel&quot;,dataset:&quot;employee&quot;,field:&quot;department&quot;};
+ * 
+ *      //1. Declaring:
+ *      &lt;label data-jslet='type:&quot;DBLabel&quot;,dataset:&quot;employee&quot;,field:&quot;department&quot;' /&gt;
+ *      or
+ *      &lt;label data-jslet='jsletParam' /&gt;
+ *
+ *     //2. Binding
+ *      &lt;label id=&quot;ctrlId&quot;  /&gt;
+ *      //Js snippet
+ *      var el = document.getElementById('ctrlId');
+ *      jslet.ui.bindControl(el, jsletParam);
+ *
+ *     //3. Create dynamically
+ *      jslet.ui.createControl(jsletParam, document.body);
+ */
+jslet.ui.DBLabel = jslet.Class.create(jslet.ui.DBFieldControl, {
+<span id='jslet-ui-DBLabel-method-initialize'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	initialize: function ($super, el, params) {
+		this.allProperties = 'styleClass,dataset,field';
+		this.isLabel = true;
+		$super(el, params);
+	},
+
+<span id='jslet-ui-DBLabel-method-bind'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	bind: function () {
+		jQuery(this.el).addClass('control-label');
+		this.renderAll();
+	},
+
+<span id='jslet-ui-DBLabel-method-isValidTemplateTag'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	isValidTemplateTag: function (el) {
+		return el.tagName.toLowerCase() == 'label';
+	},
+
+<span id='jslet-ui-DBLabel-method-doMetaChanged'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	doMetaChanged: function(metaName) {
+		if(metaName &amp;&amp; jslet.ui.DBLabel.METANAMES.indexOf(metaName) &lt; 0) {
+			return;
+		}
+		var Z = this, subType = Z._fieldMeta,
+			fldObj = Z._dataset.getField(Z._field),
+			content = '';
+		if(!fldObj) {
+			throw new Error('Field: ' + this._field + ' NOT exist!');
+		}
+		var jqEl = jQuery(Z.el);
+		if((!subType || subType == 'label') &amp;&amp; (!metaName || metaName == 'label' || metaName == 'required')) {
+			if (fldObj.required()) {
+				content += '&lt;span class=&quot;jl-lbl-required&quot;&gt;' + 
+					jslet.ui.DBLabel.REQUIREDCHAR + '&lt;/span&gt;';
+			}
+			content += fldObj.displayLabel() || '';
+			jqEl.html(content);
+			Z.el.title = jqEl.text();
+			return;
+		}
+		if(subType &amp;&amp; subType == 'tip' &amp;&amp; 
+			(!metaName || metaName == subType)) {
+			content = fldObj.tip() || '';
+			jqEl.html(content);
+			Z.el.title = jqEl.text();
+			return;
+		}
+		if(subType  &amp;&amp; subType == 'error' &amp;&amp; 
+			(metaName &amp;&amp; metaName == subType)) {
+			var errObj = Z.getFieldError();
+			content = errObj &amp;&amp; errObj.message || '';
+			jqEl.html(content);
+			Z.el.title = jqEl.text();
+			return;
+		}
+	},
+	
+<span id='jslet-ui-DBLabel-method-renderAll'>	/**
+</span>	 * @override
+	 */
+	renderAll: function () {
+		var jqEl = jQuery(this.el),
+			subType = this.fieldMeta();
+		
+		this.refreshControl(jslet.data.RefreshEvent.updateAllEvent());
+		if(subType == 'error') {
+			if(!jqEl.hasClass('jl-lbl-error')) {
+				jqEl.addClass('jl-lbl-error');
+			}
+		} else 
+		if(subType == 'tip') {
+			if(!jqEl.hasClass('jl-lbl-tip')) {
+				jqEl.addClass('jl-lbl-tip');
+			}
+		} else {
+			if(!jqEl.hasClass('jl-lbl')) {
+				jqEl.addClass('jl-lbl');
+			}
+		}
+		return this;
+	}
+});
+
+jslet.ui.DBLabel.REQUIREDCHAR = '*';
+jslet.ui.DBLabel.METANAMES = ['label', 'required', 'tip', 'error'];
+jslet.ui.register('DBLabel', jslet.ui.DBLabel);
+jslet.ui.DBLabel.htmlTemplate = '&lt;label&gt;&lt;/label&gt;';
+
+</pre>
+</body>
+</html>

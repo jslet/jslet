@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js"><span id='jslet-ui-DBEditPanel'>/**
+</span> * @class
+ * @extend jslet.ui.DBControl
+ * 
+ * DBEditPanel is a container control used for user to input data. 
+ * Example:
+ * 
+ *     @example
+ *     var jsletParam = {type:&quot;DBEditPanel&quot;,dataset:&quot;employee&quot;,columnCount:3};
+ * 
+ *     //1. Declaring:
+ *       &lt;div id='ctrlId' data-jslet='type:&quot;DBEditPanel&quot;,dataset:&quot;employee&quot;,columnCount:3' /&gt;
+ *       or
+ *       &lt;div data-jslet='jsletParam' /&gt;
+ * 
+ *     //2. Binding
+ *       &lt;div id=&quot;ctrlId&quot;  /&gt;
+ *       //Js snippet
+ *       var el = document.getElementById('ctrlId');
+ *       jslet.ui.bindControl(el, jsletParam);
+ *
+ *     //3. Create dynamically
+ *       jslet.ui.createControl(jsletParam, document.body);
+ */
+
+jslet.ui.DBEditPanel = jslet.Class.create(jslet.ui.DBControl, {
+	
+	_totalColumns: 12, //Bootstrap column count 
+	
+<span id='jslet-ui-DBEditPanel-method-initialize'>	/**
+</span>	 * @protected
+	 * @override
+	*/
+	initialize: function ($super, el, params) {
+		var Z = this;
+		Z.allProperties = 'styleClass,dataset,columnCount,labelCols,onlySpecifiedFields,fields,hasLabel,includeFields,excludeFields,layout';
+		
+		Z._columnCount = 3;
+
+		Z._labelCols = 1;
+
+		Z._onlySpecifiedFields = false;
+		
+		Z._includeFields = null;
+		
+		Z._excludeFields = null;
+		
+		Z._layout = null;
+		
+		Z._hasLabel = true;
+		
+		Z._metaChangedDebounce = jslet.debounce(Z.renderAll, 10);
+
+		$super(el, params);
+	},
+	
+<span id='jslet-ui-DBEditPanel-property-columnCount'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get column count.
+	 * 
+	 * @param {Integer | undefined} columnCount Column count.
+	 * 
+	 * @return {this | undefined}
+	 */
+	columnCount: function(columnCount) {
+		if(columnCount === undefined) {
+			return this._columnCount;
+		}
+		jslet.Checker.test('DBEditPanel.columnCount', columnCount).isGTZero();
+		this._columnCount = parseInt(columnCount);
+		return this;
+	},
+	
+<span id='jslet-ui-DBEditPanel-property-labelCols'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get display column count of field label. According to Bootstrap document, this property is in range: [1,11].
+	 * 
+	 * @param {Integer | undefined} labelCols The display column count of field label.
+	 * 
+	 * @return {this | undefined}
+	 */
+	labelCols: function(labelCols) {
+		if(labelCols === undefined) {
+			return this._labelCols;
+		}
+		jslet.Checker.test('DBEditPanel.labelCols', labelCols).isNumber().between(1,10);
+		this._labelCols = parseInt(labelCols);
+		return this;
+	},
+	
+<span id='jslet-ui-DBEditPanel-property-onlySpecifiedFields'>	/**
+</span>	 * @property
+	 * 
+	 * Identify whether it only displays the fields which specified by &quot;fields&quot; property.
+	 * 
+	 * @param {Boolean | undefined} onlySpecifiedFields True - only display the specified fields, false - otherwise.
+	 * 
+	 * @return {this | Boolean}
+	 */
+	onlySpecifiedFields: function(onlySpecifiedFields) {
+		if(onlySpecifiedFields === undefined) {
+			return this._onlySpecifiedFields;
+		}
+		this._onlySpecifiedFields = onlySpecifiedFields ? true: false;
+		return this;
+	},
+	
+<span id='jslet-ui-DBEditPanel-property-hasLabel'>	/**
+</span>	 * @property
+	 * 
+	 * Identify whether it exists the field label part.
+	 * 
+	 * @param {Boolean | undefined} hasLabel True - exists field label part, false - otherwise.
+	 * 
+	 * @return {this | Boolean}
+	 */
+	hasLabel: function(hasLabel) {
+		if(hasLabel === undefined) {
+			return this._hasLabel;
+		}
+		this._hasLabel = hasLabel ? true: false;
+		return this;
+	},
+	
+	/*
+	 * @deprecated
+	 * Use 'layout' instead.
+	 */
+	fields: function(fields) {
+		return this.layout(fields);
+	},
+	
+<span id='jslet-ui-DBEditPanel-property-layout'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get editing field's layout.
+	 * 
+	 * @param {Object[] | undefined} layout Editing fields setting.
+	 * @param {String} layout.field Field name.
+	 * @param {Integer} layout.labelCols Label display column, range: [1, 3].
+	 * @param {Integer} layout.dataCols Edit control display column, range: [1, 11].
+	 * @param {Boolean} layout.inFirstCol Display field at first column.
+	 * @param {Boolean} layout.showLine Display line separator.
+	 * @param {Boolean} layout.visible The field is visible or not.
+	 * @param {String | Number} layout.height The height of the edit field, if the value is numberic, the unit is 'px'.
+	 * @param {jslet.ui.FieldControlAddon[]} layout.prefix The prefix part of the field.
+	 * @param {jslet.ui.FieldControlAddon[]} layout.suffix The suffix part of the field.
+	 * 
+	 * @return {this | Object[]}
+	 */
+	layout: function(layout) {
+		if(layout === undefined) {
+			return this._layout;
+		}
+		jslet.Checker.test('DBEditPanel.layout', layout).isArray();
+		var fldCfg;
+		for(var i = 0, len = layout.length; i &lt; len; i++) {
+			fldCfg = layout[i];
+			jslet.Checker.test('DBEditPanel.layout.field', fldCfg.field).isString().required();
+			jslet.Checker.test('DBEditPanel.layout.labelCols', fldCfg.labelCols).isNumber().between(1,3);
+			jslet.Checker.test('DBEditPanel.layout.dataCols', fldCfg.dataCols).isNumber().between(1,11);
+			jslet.Checker.test('DBEditPanel.layout.prefix', fldCfg.prefix).isArray();
+			jslet.Checker.test('DBEditPanel.layout.suffix', fldCfg.suffix).isArray();
+			jslet.Checker.test('DBEditPanel.layout.height', fldCfg.height).isGTZero();
+			fldCfg.inFirstCol = fldCfg.inFirstCol ? true: false;
+			fldCfg.showLine = fldCfg.showLine ? true: false;
+			fldCfg.visible = (fldCfg.visible || fldCfg.visible === undefined) ? true: false;
+		}
+		this._layout = layout;
+		return this;
+	},
+	
+<span id='jslet-ui-DBEditPanel-property-includeFields'>	/**
+</span>	 * @property
+	 * 
+	 * Specify which fields are displayed in edit panel.
+	 * 
+	 * @param {String[] | undefined} includeFields Field names which are displayed in edit panel.
+	 * 
+	 * @return {this | String[]}
+	 */
+	includeFields: function(includeFields) {
+		if(includeFields === undefined) {
+			return this._includeFields;
+		}
+		jslet.Checker.test('DBEditPanel.includeFields', includeFields).isArray();
+		this._includeFields = includeFields;
+		return this;
+	},
+	
+<span id='jslet-ui-DBEditPanel-property-excludeFields'>	/**
+</span>	 * @property
+	 * 
+	 * Specify which fields are not displayed in edit panel.
+	 * 
+	 * @param {String[] | undefined} includeFields Field names which are not displayed in edit panel.
+	 * 
+	 * @return {this | String[]}
+	 */
+	excludeFields: function(excludeFields) {
+		if(excludeFields === undefined) {
+			return this._excludeFields;
+		}
+		jslet.Checker.test('DBEditPanel.excludeFields', excludeFields).isArray();
+		this._excludeFields = excludeFields;
+		return this;
+	},
+	
+<span id='jslet-ui-DBEditPanel-method-isValidTemplateTag'>	/**
+</span>	 * @protected
+	 * @override
+	*/
+	isValidTemplateTag: function (el) {
+		return el.tagName.toLowerCase() == 'div';
+	},
+	
+<span id='jslet-ui-DBEditPanel-method-bind'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	bind: function () {
+		this.renderAll();
+	},
+	
+	_calcLayout: function () {
+		var Z = this,
+			allFlds = Z._dataset.getNormalFields(), 
+			fldLayout,  fldObj, i, fldName, found, 
+			fcnt = allFlds.length,
+			fldLayouts = [], 
+			layoutCnt = Z._layout ? Z._layout.length : 0;
+		
+		if(Z._onlySpecifiedFields &amp;&amp; Z._layout) {
+			
+			for(i = 0; i &lt; layoutCnt; i++) {
+				fldLayout = Z._layout[i];
+				if(fldLayout.visible || fldLayout.visible === undefined) {
+					fldLayouts.push(fldLayout);
+				}
+			}
+		} else {
+			var exFields = Z._excludeFields,
+				inFields = Z._includeFields;
+			for(i = 0; i &lt; fcnt; i++) {
+				fldObj = allFlds[i];
+				fldName = fldObj.name();
+				if(exFields &amp;&amp; exFields.indexOf(fldName) &gt;= 0) {
+					continue;
+				}
+				found = false;
+				if(inFields &amp;&amp; inFields.indexOf(fldName) &lt; 0) {
+					continue;
+				}
+				if(!fldObj.visible()) {
+					continue;
+				}
+				found = false;
+				for(var j = 0; j &lt; layoutCnt; j++) {
+					fldLayout = Z._layout[j];
+					if(fldLayout.field !== fldName) {
+						continue;
+					}
+					found = true;
+					if(fldLayout.visible || fldLayout.visible === undefined) {
+						fldLayouts.push(fldLayout);
+					}
+					break;
+				}
+				if(!found) {
+					fldLayouts.push({field: fldName});
+				}
+			}
+		}
+		var dftDataCols = Math.floor((Z._totalColumns - Z._labelCols * Z._columnCount) / Z._columnCount);
+		if(dftDataCols &lt;= 0) {
+			dftDataCols = 1;
+		}
+
+		//calc row, col
+		var layout, r = 0, c = 0, colsInRow = 0, itemCnt;
+		for (i = 0, layoutCnt = fldLayouts.length; i &lt; layoutCnt; i++) {
+			layout = fldLayouts[i];
+			if(!layout.labelCols) {
+				layout._innerLabelCols = Z._labelCols;
+			}
+			if(!layout.dataCols) {
+				layout._innerDataCols = dftDataCols;
+			} else {
+				layout._innerDataCols = layout.dataCols;	
+			}
+			itemCnt = layout._innerLabelCols + layout._innerDataCols;
+			if (layout.inFirstCol || layout.showLine || colsInRow + itemCnt &gt; Z._totalColumns) {
+				r++;
+				colsInRow = 0;
+			}
+			layout.row = r;
+			colsInRow += itemCnt;
+		}
+		return fldLayouts;
+	},
+	
+	getEditField: function (fieldName) {
+		var Z = this;
+		if (!Z._layout) {
+			Z._layout = [];
+		}
+		var editFld;
+		for (var i = 0, cnt = Z._layout.length; i &lt; cnt; i++) {
+			editFld = Z._layout[i];
+			if (editFld.field == fieldName) {
+				return editFld;
+			}
+		}
+		var fldObj = Z._dataset.getField(fieldName);
+		if (!fldObj) {
+			return null;
+		}
+		editFld = {
+			field: fieldName
+		};
+		Z._layout.push(editFld);
+		return editFld;
+	},
+	
+<span id='jslet-ui-DBEditPanel-method-renderAll'>	/**
+</span>	 * @override
+	 */
+	renderAll: function () {
+		var Z = this;
+		Z.removeAllChildControls();
+		var jqEl = jQuery(Z.el);
+		if (!jqEl.hasClass('jl-editpanel')) {
+			jqEl.addClass('jl-editpanel form-horizontal');
+		}
+		jqEl.html('');
+		var allFlds = Z._dataset.getNormalFields(),
+			fcnt = allFlds.length;
+		var layouts = Z._calcLayout();
+		//calc max label width
+			
+		var layout, editor, r = -1, oLabel, editorCfg, fldName, fldObj, ohr, octrlDiv, opanel, ctrlId, dbCtrl;
+		for (var i = 0, cnt = layouts.length; i &lt; cnt; i++) {
+			layout = layouts[i];
+			if (layout.showLine) {
+				ohr = document.createElement('hr');
+				Z.el.appendChild(ohr);
+			}
+			if (layout.row != r) {
+				opanel = document.createElement('div');
+				opanel.className = 'form-group form-group-sm';
+				//jQuery(opanel).css('width','100%').css('margin', '0px');
+				Z.el.appendChild(opanel);
+				r = layout.row;
+			}
+			fldName = layout.field;
+			fldObj = Z._dataset.getField(fldName);
+			if (!fldObj) {
+				throw new Error(jslet.formatMessage(jsletlocale.Dataset.fieldNotFound, [fldName]));
+			}
+			editorCfg = fldObj.editControl();
+			var isCheckBox = editorCfg.type.toLowerCase() == 'dbcheckbox';
+			if(isCheckBox) {
+				if(Z._hasLabel) {
+					oLabel = document.createElement('div');
+					opanel.appendChild(oLabel);
+					oLabel.className = 'col-sm-' + layout._innerLabelCols;
+				}
+				octrlDiv = document.createElement('div');
+				opanel.appendChild(octrlDiv);
+				octrlDiv.className = 'col-sm-' + (Z._hasLabel? layout._innerDataCols: 12);
+				
+				editorCfg.dataset = Z._dataset;
+				editorCfg.field = fldName;
+				editor = jslet.ui.createControl(editorCfg, null);
+				octrlDiv.appendChild(editor.el);
+				Z.addChildControl(editor);
+				if(Z._hasLabel) {
+					oLabel = document.createElement('label');
+					octrlDiv.appendChild(oLabel);
+					dbCtrl = new jslet.ui.DBLabel(oLabel, {
+						type: 'DBLabel',
+						dataset: Z._dataset,
+						field: fldName
+					});
+				}
+				ctrlId = jslet.nextId();
+				editor.el.id = ctrlId;
+				jQuery(oLabel).attr('for', ctrlId);
+				Z.addChildControl(dbCtrl);
+			} else {
+				if(Z._hasLabel) {
+					oLabel = document.createElement('label');
+					opanel.appendChild(oLabel);
+					oLabel.className = 'col-sm-' + layout._innerLabelCols;
+					dbCtrl = new jslet.ui.DBLabel(oLabel, {
+						type: 'DBLabel',
+						dataset: Z._dataset,
+						field: fldName
+					});
+					Z.addChildControl(dbCtrl);
+				}
+				
+				octrlDiv = document.createElement('div');
+				opanel.appendChild(octrlDiv);
+				octrlDiv.className = 'col-sm-' + (Z._hasLabel? layout._innerDataCols: 12);
+				
+				editor = jslet.ui.createControl({type: 'DBPlace', dataset: this._dataset, field: fldName, 
+					prefix: layout.prefix, suffix: layout.suffix}, octrlDiv);
+				ctrlId = jslet.nextId();
+				editor.el.id = ctrlId;
+				var layoutHeight = layout.height;
+				if(layoutHeight) {
+					if(jslet.isNumber(layoutHeight)) {
+						layoutHeight = layoutHeight + 'px'; 
+					}
+					jQuery(editor.el).css('height', layoutHeight);
+					jQuery(editor.el.firstChild).css('height', '100%');
+				}
+				jQuery(oLabel).attr('for', ctrlId);
+				Z.addChildControl(editor);
+			}
+		}
+		return this;
+	},
+	
+<span id='jslet-ui-DBEditPanel-method-doMetaChanged'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	doMetaChanged: function($super, metaName){
+		if(metaName &amp;&amp; (metaName == 'visible' || metaName == 'editControl')) {
+			this._metaChangedDebounce.call(this);
+		}
+	}
+});
+
+jslet.ui.register('DBEditPanel', jslet.ui.DBEditPanel);
+jslet.ui.DBEditPanel.htmlTemplate = '&lt;div&gt;&lt;/div&gt;';
+</pre>
+</body>
+</html>

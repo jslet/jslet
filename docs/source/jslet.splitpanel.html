@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js"><span id='jslet-ui-SplitPanel'>/**
+</span> * @class 
+ * @extend jslet.ui.Control
+ * 
+ * Split Panel. Example:
+ * 
+ *     @example
+ *     var jsletParam = {type:&quot;SplitPanel&quot;,direction:&quot;hori&quot;,floatIndex: 1};
+ *     //1. Binding:
+ *       &lt;div data-jslet='jsletParam' style=&quot;width: 300px; height: 400px;&quot;&gt;
+ *         &lt;div&gt;content1&lt;/div&gt;
+ *         &lt;div&gt;content2&lt;/div&gt;
+ *       &lt;/div&gt;
+ *     
+ *     //2. Binding on fly
+ *       &lt;div id='ctrlId'&gt;
+ *         &lt;div&gt;content1&lt;/div&gt;
+ *         &lt;div&gt;content2&lt;/div&gt;
+ *       &lt;/div&gt;
+ *     //Js snippet
+ *       var el = document.getElementById('ctrlId');
+ *       jslet.ui.bindControl(el, jsletParam);
+ *	
+ *     //3. Create dynamically
+ *       jslet.ui.createControl(jsletParam, document.body);
+ *
+ */
+jslet.ui.SplitPanel = jslet.Class.create(jslet.ui.Control, {
+	directions: ['hori', 'vert'],
+	
+<span id='jslet-ui-SplitPanel-method-initialize'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	initialize: function ($super, el, params) {
+		var Z = this;
+		Z.el = el;
+		Z.allProperties = 'styleClass,direction,floatIndex,onExpanded,onResize';
+
+		Z._direction = 'hori';
+
+		Z._floatIndex = 1;
+		
+		Z._onExpanded = null;
+		
+		Z._onResize = null;
+		
+		Z.panels = null; //Array, panel configuration, {size:100, maxSize: 100, minSize:10}
+
+		Z._oldSize = 0;
+		
+		Z._oldHeight = 0;
+		
+		Z._oldWidth = 0;
+		
+		Z._changeFloatSizeDebounce = jslet.debounce(Z._changeFloatSize, 110);
+
+		$super(el, params);
+	},
+
+<span id='jslet-ui-SplitPanel-property-floatIndex'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get float panel index, only one panel can be a floating panel.
+	 * 
+	 * @param {Integer | undefined} index float panel index.
+	 * 
+	 * @return {this | Integer}
+	 */
+	floatIndex: function(index) {
+		if(index === undefined) {
+			return this._floatIndex;
+		}
+		jslet.Checker.test('SplitPanel.floatIndex', index).isGTEZero();
+		this._floatIndex = index;
+		return this;
+	},
+	
+<span id='jslet-ui-SplitPanel-property-direction'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get Split direction, optional value: 'hori', 'vert'. Default value is 'hori'
+	 * 
+	 * @param {String | undefined} direction optional value: 'hori', 'vert'.
+	 * 
+	 * @return {this | String}
+	 */
+	direction: function(direction) {
+		if(direction === undefined) {
+			return this._direction;
+		}
+		direction = jQuery.trim(direction);
+		var checker = jslet.Checker.test('SplitPanel.direction', direction).required().isString();
+		direction = direction.toLowerCase();
+		checker.inArray(this.directions);
+		this._direction = direction;
+		return this;
+	},
+	
+<span id='jslet-ui-SplitPanel-event-onExpanded'>	/**
+</span>	 * @event
+	 * 
+	 * Fired when user expand/collapse one panel.. Example:
+	 * 
+	 *     @example
+	 *     splitter.onExpanded(function(panelIndex){}); 
+	 *
+	 * @param {Function | undefined} onExpanded Expanded event handler.
+	 * @param {Integer} onExpanded.panelIndex The changing panel index.
+	 * 
+	 * @return {this | Function}
+	 */
+	onExpanded: function(onExpanded) {
+		if(onExpanded === undefined) {
+			return this._onExpanded;
+		}
+		jslet.Checker.test('SplitPanel.onExpanded', onExpanded).isFunction();
+		this._onExpanded = onExpanded;
+		return this;
+	},
+	
+<span id='jslet-ui-SplitPanel-event-onResize'>	/**
+</span>	 * @event
+	 * 
+	 * Fired after user change size of one panel. Example:
+	 * 
+	 *     @example
+	 *     splitter.onResize(function(panelIndex, newSize){}); 
+	 *
+	 * @param {Function | undefined} onResize Resize event handler.
+	 * @param {Integer} onResize.panelElement The changing panel element.
+	 * 
+	 * @return {this | Function}
+	 */
+	onResize: function(onResize) {
+		if(onResize === undefined) {
+			return this._onResize;
+		}
+		jslet.Checker.test('SplitPanel.onResize', onResize).isFunction();
+		this._onResize = onResize;
+		return this;
+	},
+   
+<span id='jslet-ui-SplitPanel-method-bind'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	bind: function () {
+		var Z = this, 
+			jqEl = jQuery(Z.el);
+		if (!jqEl.hasClass('jl-splitpanel')) {
+			jqEl.addClass('jl-splitpanel jl-border-box jl-round5');
+		}
+		this.renderAll();
+		jslet.ui.resizeEventBus.subscribe(Z);
+	},
+
+<span id='jslet-ui-SplitPanel-method-renderAll'>	/**
+</span>	 * @override
+	 */
+	renderAll: function () {
+		var Z = this, jqEl = jQuery(Z.el);
+		Z._isHori = (Z._direction == 'hori');
+		Z._splitterClsName = Z._isHori ? 'jl-sp-splitter-hori': 'jl-sp-splitter-vert';
+		jqEl.off();
+		jqEl.on('mousedown', '.' + Z._splitterClsName, Z._splitterMouseDown);
+		jqEl.on('click', '.jl-sp-button', function(event){
+			var jqBtn = jQuery(event.currentTarget),
+				jqSplitter = jqBtn.parent(),
+				index = parseInt(jqSplitter.attr('jsletindex'));
+			Z.expand(index);
+			event.stopPropagation();
+		});
+		
+		var panelDivs = jqEl.find('&gt;div'),
+			lastIndex = panelDivs.length - 1;
+		if (!Z._floatIndex &amp;&amp; Z._floatIndex !== 0 || Z._floatIndex &gt; lastIndex) {
+			Z._floatIndex = lastIndex;
+		}
+		if (Z._floatIndex &gt; lastIndex) {
+			Z._floatIndex = lastIndex;
+		}
+		if (!Z.panels) {
+			Z.panels = [];
+		}
+
+		panelDivs.each(function(k){
+			var jqPanel = jQuery(panelDivs[k]),
+				oPanel = Z.panels[k];
+			if (!oPanel){
+				oPanel = {};
+				Z.panels[k] = oPanel;
+			}
+
+			var minSize = parseInt(jqPanel.css(Z._isHori ?'min-width': 'min-height'));
+			oPanel.minSize = minSize ? minSize : 5;
+			
+			var maxSize = parseInt(jqPanel.css(Z._isHori ?'max-width': 'max-height'));
+			oPanel.maxSize = maxSize ? maxSize : Infinity;
+			oPanel.expanded = jqPanel.css('display') != 'none';
+			
+			var size = oPanel.size;
+			if (size !== null &amp;&amp; size !== undefined) {
+				if (Z._isHori) {
+					jqPanel.outerWidth(size - 5);
+				} else {
+					jqPanel.outerHeight(size - 5);
+				}
+			}
+		});
+		Z.width = jqEl.innerWidth();
+		Z.height = jqEl.innerHeight();
+		
+		Z._splitterTracker = document.createElement('div');
+		var jqTracker = jQuery(Z._splitterTracker);
+		jqTracker.addClass('jl-sp-splitter-tracker');
+		var fixedSize = 0,
+			clsName = Z._isHori ? 'jl-sp-panel-hori': 'jl-sp-panel-vert';
+		Z.el.appendChild(Z._splitterTracker);
+		if (Z._isHori) {
+			Z._splitterTracker.style.height = '100%';
+		} else {
+			Z._splitterTracker.style.width = '100%';
+		}
+		var splitterSize = parseInt(jslet.ui.getCssValue(Z._splitterClsName, Z._isHori? 'width' : 'height'));
+		panelDivs.after(function(k){
+			var panel = panelDivs[k],
+				jqPanel = jQuery(panel),
+				expanded = Z.panels[k].expanded;
+			if (Z._isHori) {
+				jqPanel.outerHeight(Z.height);
+			}
+			jqPanel.addClass(clsName);
+
+			if (k === Z._floatIndex) {
+				Z.floatPanel = panel;
+			} else {
+				if (expanded) {
+					fixedSize += splitterSize + Z.panels[k].size;
+				} else {
+					jqPanel.css('display', 'none');
+					fixedSize += splitterSize;
+				}
+			}
+			if (k === lastIndex){
+				if (Z._isHori) {
+					return '&lt;div style=&quot;clear:both;width:0px&quot;&gt;&lt;/div&gt;';
+				}
+				return '';
+			}
+			var id = jslet.nextId(),
+				minBtnCls = Z._isHori ? 'fa-caret-left' : 'fa-caret-up';
+				
+			if (Z._floatIndex &lt;= k || !expanded) {
+				minBtnCls += Z._isHori ? ' fa-caret-right' : ' fa-caret-down';
+			}
+			return '&lt;div class=&quot;'+ Z._splitterClsName + ' jl-unselectable&quot; id = &quot;' + id + 
+			'&quot; jsletindex=&quot;'+ (k &gt;= Z._floatIndex ? k+1: k)+ '&quot;&gt;&lt;div class=&quot;jl-sp-button ' +  
+			(Z._isHori? 'jl-sp-button-hori': 'jl-sp-button-vert')+ '&quot;' + 
+			(expanded ? '': ' jsletcollapsed=&quot;1&quot;') +'&gt;&lt;i class=&quot;fa ' + 
+			minBtnCls  + '&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;/div&gt;&lt;/div&gt;';
+		});
+		var splitters = jqEl.find('.' + Z._splitterClsName);
+		if (Z._isHori) {
+			splitters.outerHeight(Z.height);
+		}
+
+		var oSplitter;
+		for(var i = 0, cnt = splitters.length; i &lt; cnt; i++){
+			oSplitter = splitters[i];
+			oSplitter._doDragStart = Z._splitterDragStart;
+			oSplitter._doDragging = Z._splitterDragging;
+			oSplitter._doDragEnd = Z._splitterDragEnd;
+			oSplitter._doDragCancel = Z._splitterDragCancel;
+		}
+		Z._changeFloatSize();
+	},
+	
+	_changeFloatSize: function(visiblePanel) {
+		var Z = this,
+			jqEl = jQuery(Z.el),
+			panelDivs = jqEl.find('&gt;div'),
+			fixedSize = 0,
+			panelCnt = Z.panels.length * 2;
+		
+		panelDivs.each(function(k){
+			if(k &gt;= panelCnt) {
+				return;
+			}
+			var jqPanel = jQuery(this);
+			if(this !== Z.floatPanel &amp;&amp; (visiblePanel === this || jqPanel.css('display') != 'none')) {
+				fixedSize += Z._isHori ? jqPanel.outerWidth(true) : jqPanel.outerHeight(true);
+			}
+		});
+		var floatSize, floatMinSize = 5;
+		var panelCfg = Z.panels[Z._floatIndex];
+		if(panelCfg) {
+			floatMinSize = panelCfg.minSize? panelCfg.minSize: 5;
+		}
+		if(Z._isHori) {
+			floatSize = jqEl.innerWidth() - fixedSize - 6;
+			if(floatSize &lt; floatMinSize) {
+				floatSize = floatMinSize;
+			}
+			jQuery(Z.floatPanel).outerWidth(floatSize);
+		} else {
+			floatSize = jqEl.innerHeight() - fixedSize - 6;
+			if(floatSize &lt; floatMinSize) {
+				floatSize = floatMinSize;
+			}
+			jQuery(Z.floatPanel).outerHeight(floatSize);
+		}
+	},
+	
+<span id='jslet-ui-SplitPanel-method-expand'>	/**
+</span>	 * Expand or collapse the specified panel. Example:
+	 * 
+	 *     @example
+	 *     splitter.expand(1, true); //Expand the second panel.
+	 *     splitter.expand(0, false); //Collapse the first panel.
+	 * 
+	 * 
+	 * @param {Integer} index Panel index.
+	 * @param {Boolean} expanded True for expanded, false otherwise.
+	 */
+	expand: function(index, expanded, notChangeSize){
+		var Z = this, jqPanel, jqEl = jQuery(Z.el),
+			splitters = jqEl.find('.'+Z._splitterClsName);
+		if (index &lt; 0 || index &gt; splitters.length) {
+			return;
+		}
+		var	jqSplitter = jQuery(splitters[(index &gt;= Z._floatIndex ? index - 1: index)]),
+			jqBtn = jqSplitter.find(':first-child');
+			
+		if (expanded === undefined) {
+			expanded  = jqBtn.attr('jsletcollapsed')=='1';
+		}
+		if (index &lt; Z._floatIndex) {
+			jqPanel = jqSplitter.prev();
+		} else {
+			jqPanel = jqSplitter.next();
+		}
+		var jqIcon = jqBtn.find(':first-child');
+		if (Z._isHori){
+			if (jqIcon.hasClass('fa-caret-right')) {
+				jqIcon.removeClass('fa-caret-right');
+				jqIcon.addClass('fa-caret-left');
+			} else {
+				jqIcon.removeClass('fa-caret-left');
+				jqIcon.addClass('fa-caret-right');
+			}
+		} else {
+			if (jqIcon.hasClass('fa-caret-down')) {
+				jqIcon.removeClass('fa-caret-down');
+				jqIcon.addClass('fa-caret-up');
+			} else {
+				jqIcon.removeClass('fa-caret-up');
+				jqIcon.addClass('fa-caret-down');
+			}
+		}
+
+		if (expanded){
+			Z._changeFloatSize(jqPanel[0]);
+			jqPanel.css('display', 'block');
+			jqBtn.attr('jsletcollapsed', '0');
+		}else{
+			jqPanel.css('display','none');
+			jqBtn.attr('jsletcollapsed', '1');
+			Z._changeFloatSize();
+		}
+		if(notChangeSize) {
+			return;
+		}
+		Z.panels[index].expanded = expanded;
+		if (Z._onExpanded) {
+			Z._onExpanded.call(Z, index);
+		}
+		jslet.ui.resizeEventBus.resize(Z.el);
+	},
+	
+	_splitterMouseDown: function(event){
+		var pos = jQuery(this).position(),
+			Z = this.parentNode.jslet;
+		Z._splitterTracker.style.top = pos.top + 'px';
+		Z._splitterTracker.style.left = pos.left + 'px';
+		Z._draggingId = this.id;
+		var jqSplitter = jQuery('#'+Z._draggingId),
+			jqBtn = jqSplitter.find(':first-child');
+		if(jqBtn.attr('jsletcollapsed')=='1') { //Collapsed
+			jqBtn.click();
+			return;
+		}
+		
+		jslet.ui.dnd.bindControl(this);
+	},
+		
+	_splitterDragStart: function (oldX, oldY, x, y, deltaX, deltaY){
+		var Z = this.parentNode.jslet,
+			jqTracker = jQuery(Z._splitterTracker),
+			jqSplitter = jQuery('#'+Z._draggingId),
+			index = parseInt(jqSplitter.attr('jsletindex')),
+			jqPanel = index &lt; Z._floatIndex ? jqSplitter.prev(): jqSplitter.next(),
+			cfg = Z.panels[index],
+			jqFp = jQuery(Z.floatPanel);
+		
+		var panelSize = Z._isHori ? jqPanel.outerWidth(true) : jqPanel.outerHeight(true);
+		Z._dragRangeMin = panelSize  - cfg.minSize;
+		Z._dragRangeMax = cfg.maxSize - panelSize;
+		var fpMax = (Z._isHori ? jqFp.outerWidth(true) : jqFp.outerHeight(true)) - Z.panels[Z._floatIndex].minSize;
+		if (Z._dragRangeMax &gt; fpMax) {
+			Z._dragRangeMax = fpMax;
+		}
+		jqTracker.show();
+	},
+	
+	_splitterDragging: function (oldX, oldY, x, y, deltaX, deltaY){
+		var Z = this.parentNode.jslet,
+			jqTracker = jQuery(Z._splitterTracker),
+			jqSplitter = jQuery('#'+Z._draggingId),
+			index = parseInt(jqSplitter.attr('jsletindex')),
+			delta = Math.abs(Z._isHori ? deltaX : deltaY),
+			expanded;
+			
+		if (Z._isHori) {
+			expanded = index &lt; Z._floatIndex &amp;&amp; deltaX &gt;= 0 || index &gt; Z._floatIndex &amp;&amp; deltaX &lt; 0;
+		} else {
+			expanded = index &lt; Z._floatIndex &amp;&amp; deltaY &gt;= 0 || index &gt; Z._floatIndex &amp;&amp; deltaY &lt; 0;
+		}
+		if (expanded &amp;&amp; delta &gt; Z._dragRangeMax){
+			Z.endDelta = Z._dragRangeMax;
+			return;
+		}
+		
+		if (!expanded &amp;&amp; delta &gt; Z._dragRangeMin){
+			Z.endDelta = Z._dragRangeMin;
+			return;
+		}
+		
+		Z.endDelta = Math.abs(Z._isHori ? deltaX : deltaY);
+		var pos = jqTracker.offset();
+		if (Z._isHori) {
+			pos.left = x;
+		} else {
+			pos.top = y;
+		}
+		jqTracker.offset(pos);
+	},
+	
+	_splitterDragEnd: function (oldX, oldY, x, y, deltaX, deltaY){
+		var Z = this.parentNode.jslet,
+			jqTracker = jQuery(Z._splitterTracker),
+			jqSplitter = jQuery('#'+Z._draggingId),
+			index = parseInt(jqSplitter.attr('jsletindex')),
+			jqPanel = index &lt; Z._floatIndex ? jqSplitter.prev(): jqSplitter.next(),
+			expanded,
+			jqFp = jQuery(Z.floatPanel);
+
+		if (Z._isHori) {
+			expanded = index &lt; Z._floatIndex &amp;&amp; deltaX &gt;= 0 || index &gt; Z._floatIndex &amp;&amp; deltaX &lt; 0;
+		} else {
+			expanded = index &lt; Z._floatIndex &amp;&amp; deltaY &gt;= 0 || index &gt; Z._floatIndex &amp;&amp; deltaY &lt; 0;
+		}
+		var delta = Z.endDelta * (expanded ? 1: -1);
+		
+		if (Z._isHori) {
+			if(delta &lt; 0) {
+				jqPanel.outerWidth(jqPanel.outerWidth() + delta);
+				jqFp.outerWidth(jqFp.outerWidth() - delta);
+			} else {
+				jqFp.outerWidth(jqFp.outerWidth() - delta);
+				jqPanel.outerWidth(jqPanel.outerWidth() + delta);
+			}
+		} else {
+			if(delta &lt; 0) { 
+				jqPanel.outerHeight(jqPanel.outerHeight() + delta);
+				jqFp.outerHeight(jqFp.outerHeight() - delta);
+			} else {
+				jqFp.outerHeight(jqFp.outerHeight() - delta);
+				jqPanel.outerHeight(jqPanel.outerHeight() + delta);
+			}
+		}
+		if (Z._onResize) {
+			Z._onResize.call(Z, jqPanel[0]);
+		}
+		jslet.ui.resizeEventBus.resize(Z.el);
+		jqTracker.hide();
+	},
+	
+	_splitterDragCancel: function (oldX, oldY, x, y, deltaX, deltaY){
+		var Z = this.parentNode.jslet,
+			jqTracker = jQuery(Z._splitterTracker);
+		jqTracker.hide();
+	},
+	
+<span id='jslet-ui-SplitPanel-method-checkSizeChanged'>	/**
+</span>	 * Run when container size changed, it's revoked by jslet.ui.resizeEventBus.
+	 * 
+	 */
+	checkSizeChanged: function(){
+		var Z = this,
+			jqEl = jQuery(Z.el),
+			currWidth = jqEl.innerWidth(),
+			currHeight = jqEl.innerHeight();
+		if (Z._isHori &amp;&amp; currWidth !== Z._oldWidth ||
+			!Z._isHori &amp;&amp; currHeight !== Z._oldHeight) {
+			Z._changeFloatSizeDebounce();
+		}
+		if(Z._oldWidth != currWidth || Z._oldHeight != currHeight) {
+			jslet.ui.resizeEventBus.resize(Z.el);
+		}
+		Z._oldWidth = currWidth;
+		Z._oldHeight = currHeight;
+	},
+	
+<span id='jslet-ui-SplitPanel-method-destroy'>	/**
+</span>	 * @override
+	 */
+	destroy: function($super){
+		var Z = this,
+		jqEl = jQuery(Z.el);
+		Z._splitterTracker = null;
+		Z._draggingId = null;
+		Z.floatPanel = null;
+		var splitters = jqEl.find('.'+Z._splitterClsName);
+		splitters.off('mousedown', Z._splitterMouseDown);
+		Z._splitterMouseDown = null;
+		var item;
+		for(var i = 0, cnt = splitters.length; i &lt; cnt; i++){
+			item = splitters[i];
+			jslet.ui.dnd.unbindControl(item);
+			item._doDragStart = null;
+			item._doDragging = null;
+			item._doDragEnd = null;
+			item._doDragCancel = null;
+		}
+		jslet.ui.resizeEventBus.unsubscribe(Z);
+		$super();
+	}
+});
+
+jslet.ui.register('SplitPanel', jslet.ui.SplitPanel);
+jslet.ui.SplitPanel.htmlTemplate = '&lt;div&gt;&lt;/div&gt;';
+</pre>
+</body>
+</html>

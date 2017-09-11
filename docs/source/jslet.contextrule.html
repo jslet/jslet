@@ -1,0 +1,1022 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js"><span id='jslet-data-ContextRule'>/**
+</span> * @class
+ * @private
+ * 
+ * Dataset context rule.
+ */
+jslet.data.ContextRule = function(contextRuleCfg) {
+	var Z = this;
+	Z._name = '';
+	Z._description = '';
+	Z._status = undefined;
+	Z._selected = undefined;
+	Z._condition = undefined;
+	Z._rules = null;
+	Z._otherwise = null;
+	Z._create(contextRuleCfg);
+};
+
+jslet.data.ContextRule.className = 'jslet.data.ContextRule';
+
+jslet.data.ContextRule.prototype = {
+	className: jslet.data.ContextRule.className,
+	
+	dataStatus: ['insert', 'update', 'other'],
+	
+	_create: function(cxtRuleCfg) {
+		jslet.Checker.test('ContextRule.contextRuleConfig', cxtRuleCfg).required().isPlanObject();
+		var Z = this;
+		if(cxtRuleCfg.status !== undefined) {
+			Z.status(cxtRuleCfg.status);
+		}
+		if(cxtRuleCfg.selected !== undefined) {
+			Z.selected(cxtRuleCfg.selected);
+		} 
+		if(cxtRuleCfg.condition !== undefined) {
+			Z.condition(cxtRuleCfg.condition);
+		}
+		var rulesCfg = cxtRuleCfg.rules, i, len, rules;
+		if(rulesCfg !== undefined) {
+			jslet.Checker.test('ContextRule.rules', rulesCfg).isArray();
+			rules = [];
+			Z.rules(rules);
+			for(i = 0, len = rulesCfg.length; i &lt; len; i++) {
+				rules.push(createContextRuleItem(rulesCfg[i]));
+			}
+		}
+		
+		var otherwiseCfg = cxtRuleCfg.otherwise;
+		if(otherwiseCfg !== undefined) {
+			jslet.Checker.test('ContextRule.otherwise', otherwiseCfg).isArray();
+			rules = [];
+			Z.otherwise(rules);
+			for(i = 0, len = otherwiseCfg.length; i &lt; len; i++) {
+				rules.push(createContextRuleItem(otherwiseCfg[i]));
+			}
+		}
+		
+		function createContextRuleItem(itemCfg) {
+			var item = new jslet.data.ContextRuleItem(itemCfg.field);
+			if(itemCfg.meta !== undefined) {
+				item.meta(createContextRuleMeta(itemCfg.meta));
+			}
+			
+			if(itemCfg.value !== undefined) {
+				item.value(itemCfg.value);
+			}
+			
+			if(itemCfg.lookup !== undefined) {
+				item.lookup(createContextRuleLookup(itemCfg.lookup));
+			}
+			
+			if(itemCfg.customized !== undefined) {
+				item.customized(itemCfg.customized);
+			}
+			return item;
+		}
+		
+		function createContextRuleMeta(metaCfg) {
+			var meta = new jslet.data.ContextRuleMeta();
+			if(metaCfg.label !== undefined) {
+				meta.label(metaCfg.label);
+			}
+			
+			if(metaCfg.tip !== undefined) {
+				meta.tip(metaCfg.tip);
+			}
+			
+			if(metaCfg.nullText !== undefined) {
+				meta.nullText(metaCfg.nullText);
+			}
+			
+			if(metaCfg.required !== undefined) {
+				meta.required(metaCfg.required);
+			}
+			
+			if(metaCfg.disabled !== undefined) {
+				meta.disabled(metaCfg.disabled);
+			}
+			
+			if(metaCfg.readOnly !== undefined) {
+				meta.readOnly(metaCfg.readOnly);
+			}
+			
+			if(metaCfg.visible !== undefined) {
+				meta.visible(metaCfg.visible);
+			}
+			
+			if(metaCfg.formula !== undefined) {
+				meta.formula(metaCfg.formula);
+			}
+			
+			if(metaCfg.scale !== undefined) {
+				meta.scale(metaCfg.scale);
+			}
+			
+			if(metaCfg.required !== undefined) {
+				meta.required(metaCfg.required);
+			}
+			
+			if(metaCfg.displayFormat !== undefined) {
+				meta.displayFormat(metaCfg.displayFormat);
+			}
+			
+			if(metaCfg.editMask !== undefined) {
+				meta.editMask(metaCfg.editMask);
+			}
+			
+			if(metaCfg.editControl !== undefined) {
+				meta.editControl(metaCfg.editControl);
+			}
+			
+			if(metaCfg.range !== undefined) {
+				meta.range(metaCfg.range);
+			}
+			
+			if(metaCfg.regularExpr !== undefined) {
+				meta.regularExpr(metaCfg.regularExpr);
+			}
+			
+			if(metaCfg.valueCountLimit !== undefined) {
+				meta.valueCountLimit(metaCfg.valueCountLimit);
+			}
+			
+			if(metaCfg.validChars !== undefined) {
+				meta.validChars(metaCfg.validChars);
+			}
+			
+			if(metaCfg.customValidator !== undefined) {
+				meta.customValidator(metaCfg.customValidator);
+			}
+			
+			return meta;
+		}
+
+		function createContextRuleLookup(lookupCfg) {
+			var lookup = new jslet.data.ContextRuleLookup();
+			if(lookupCfg.dataset !== undefined) {
+				lookup.dataset(lookupCfg.dataset);
+			}
+			
+			if(lookupCfg.filter !== undefined) {
+				lookup.filter(lookupCfg.filter);
+			}
+			
+			if(lookupCfg.fixedFilter !== undefined) {
+				lookup.fixedFilter(lookupCfg.fixedFilter);
+			}
+			
+			if(lookupCfg.criteria !== undefined) {
+				lookup.criteria(lookupCfg.criteria);
+			}
+			
+			if(lookupCfg.displayFields !== undefined) {
+				lookup.displayFields(lookupCfg.displayFields);
+			}
+			
+			if(lookupCfg.onlyLeafLevel !== undefined) {
+				lookup.onlyLeafLevel(lookupCfg.onlyLeafLevel);
+			}
+			
+			return lookup;
+		}
+	},
+	
+	name: function(name) {
+		if(name === undefined) {
+			return this._name;
+		}
+		
+		jslet.Checker.test('ContextRule.name', name).isString();
+		this._name = jQuery.trim(name);
+		return this;
+	},
+
+	status: function(status) {
+		if(status === undefined) {
+			return this._status;
+		}
+		
+		jslet.Checker.test('ContextRule.status', status).isArray();
+		if(status) {
+			var item, checker;
+			for(var i = 0, len = status.length; i &lt; len; i++) {
+				item = jQuery.trim(status[i]);
+				checker = jslet.Checker.test('ContextRule.status' + i, item).isString().required();
+				item = item.toLowerCase();
+				checker.testValue(item).inArray(this.dataStatus);
+				status[i] = item;
+			}
+		}
+		this._status = status;
+		return this;
+	},
+
+	selected: function(selected) {
+		if(selected === undefined) {
+			return this._selected;
+		}
+		
+		this._selected = selected? true: false;
+	},
+	
+	condition: function(condition) {
+		if(condition === undefined) {
+			return this._condition;
+		}
+		
+		jslet.Checker.test('ContextRule.condition', condition).isString();
+		this._condition = jQuery.trim(condition);
+		return this;
+	},
+	
+	rules: function(rules) {
+		if(rules === undefined) {
+			return this._rules;
+		}
+
+		jslet.Checker.test('ContextRule.rules', rules).isArray();
+		this._rules = rules;
+		return this;
+	},
+	
+	otherwise: function(otherwise) {
+		if(otherwise === undefined) {
+			return this._otherwise;
+		}
+
+		jslet.Checker.test('ContextRule.otherwise', otherwise).isArray();
+		this._otherwise = otherwise;
+		return this;
+	}
+
+};
+
+jslet.data.ContextRuleItem = function(fldName) {
+	var Z = this;
+	jslet.Checker.test('ContextRule.field', fldName).isString();
+	fldName = jQuery.trim(fldName);
+	jslet.Checker.test('ContextRule.field', fldName).required();
+	Z._field = fldName;
+	
+	Z._meta = undefined;
+	Z._value = undefined;
+	Z._lookup = undefined;
+	Z._customized = undefined;
+};
+
+jslet.data.ContextRuleItem.className = 'jslet.data.ContextRuleItem';
+
+jslet.data.ContextRuleItem.prototype = {
+	className: jslet.data.ContextRuleItem.className,
+	
+	field: function() {
+		return this._field;
+	},
+	
+	meta: function(meta) {
+		if(meta === undefined) {
+			return this._meta;
+		}
+		
+		jslet.Checker.test('ContextRuleItem.meta', meta).isClass(jslet.data.ContextRuleMeta.className);
+		this._meta = meta;
+		return this;
+	},
+
+	lookup: function(lookup) {
+		if(lookup === undefined) {
+			return this._lookup;
+		}
+		
+		jslet.Checker.test('ContextRuleItem.lookup', lookup).isClass(jslet.data.ContextRuleLookup.className);
+		this._lookup = lookup;
+		return this;
+	},
+
+	value: function(value) {
+		if(value === undefined) {
+			return this._value;
+		}
+		
+		this._value = value;
+		return this;
+	},
+	
+	customized: function(customizedFn) {
+		if(customizedFn === undefined) {
+			return this._customized;
+		}
+		jslet.Checker.test('ContextRuleItem.customized', customizedFn).isFunction();
+		this._customized = customizedFn;
+		return this;
+	}
+};
+
+jslet.data.ContextRuleMeta = function() {
+	var Z = this;
+	Z._label = undefined;
+	Z._tip = undefined;
+	Z._nullText = undefined;
+	
+	Z._required = undefined;
+	Z._disabled = undefined;
+	Z._readOnly = undefined;
+	Z._visible = undefined;
+	Z._formula = undefined;
+	Z._scale = undefined;
+	Z._defaultValue = undefined;
+	Z._displayFormat = undefined;
+	Z._editMask = undefined;
+	Z._editControl = undefined;
+	
+	Z._range = undefined;
+	Z._regularExpr = undefined;
+	Z._valueCountLimit = undefined;
+	Z._validChars = undefined;
+	Z._customValidator = undefined;
+};
+
+jslet.data.ContextRuleMeta.className = 'jslet.data.ContextRuleMeta';
+
+jslet.data.ContextRuleMeta.prototype = {
+	className: jslet.data.ContextRuleMeta.className,
+	
+	properties: ['label', 'tip','nullText', 'required','disabled','readOnly','visible',
+	             'formula','scale','defaultValue','displayFormat','editMask','editControl',
+	             'range','regularExpr','valueCountLimit','validChars','customValidator'],
+<span id='jslet-data-ContextRule-method-label'>	/**
+</span>	 * Set or get field label.
+	 * 
+	 * @param {String | undefined} label Field label.
+	 * @return {this | String}
+	 */
+	label: function (label) {
+		if (label === undefined) {
+			return this._label;
+		}
+		jslet.Checker.test('ContextRuleMeta.label', label).isString();
+		this._label = label;
+		return this;
+	},
+
+<span id='jslet-data-ContextRule-method-tip'>	/**
+</span>	 * Set or get field tip.
+	 * 
+	 * @param {String | undefined} tip Field tip.
+	 * @return {this | String}
+	 */
+	tip: function(tip) {
+		if (tip === undefined) {
+			return this._tip;
+		}
+		jslet.Checker.test('ContextRuleMeta.tip', tip).isString();
+		this._tip = tip;
+		return this;
+	},
+
+<span id='jslet-data-ContextRule-method-nullText'>	/**
+</span>	 * Set or get the display text if the field value is null.
+	 * 
+	 * @param {String | undefined} nullText Field null text.
+	 * @return {this | String}
+	 */
+	nullText: function (nullText) {
+		if (nullText === undefined) {
+			return this._nullText;
+		}
+		
+		jslet.Checker.test('ContextRuleMeta.nullText', nullText).isString();
+		this._nullText = jQuery.trim(nullText);
+		return this;
+	},
+	
+<span id='jslet-data-ContextRule-method-required'>	/**
+</span>	 * Set or get flag required.
+	 * 
+	 * @param {Boolean | undefined} required Field is required or not.
+	 * @return {this | Boolean}
+	 */
+	required: function (required) {
+		var Z = this;
+		if (required === undefined) {
+			return Z._required;
+		}
+		Z._required = required ? true: false;
+		return this;
+	},
+	
+<span id='jslet-data-ContextRule-method-visible'>	/**
+</span>	 * Set or get field is visible or not.
+	 * 
+	 * @param {Boolean | undefined} visible Field is visible or not.
+	 * @return {this | Boolean}
+	 */
+	visible: function (visible) {
+		var Z = this;
+		if (visible === undefined){
+			return Z._visible;
+		}
+		Z._visible = visible ? true: false;
+		return this;
+	},
+
+<span id='jslet-data-ContextRule-method-disabled'>	/**
+</span>	 * Set or get field is disabled or not.
+	 * 
+	 * @param {Boolean | undefined} disabled Field is disabled or not.
+	 * @return {this | Boolean}
+	 */
+	disabled: function (disabled) {
+		var Z = this;
+		if (disabled === undefined) {
+			return Z._disabled;
+		}
+		Z._disabled = disabled ? true: false;
+		return this;
+	},
+
+<span id='jslet-data-ContextRule-method-readOnly'>	/**
+</span>	 * Set or get field is readOnly or not.
+	 * 
+	 * @param {Boolean | undefined} readOnly Field is readOnly or not.
+	 * @return {this | Boolean}
+	 */
+	readOnly: function (readOnly) {
+		var Z = this;
+		if (readOnly === undefined){
+			return Z._readOnly;
+		}
+		
+		Z._readOnly = readOnly? true: false;
+		return this;
+	},
+
+<span id='jslet-data-ContextRule-method-editMask'>	/**
+</span>	 * Set or get field edit mask.
+	 * 
+	 * @param {String | undefined} mask Field edit mask.
+	 * @return {this | String}
+	 */
+	editMask: function (mask) {
+		var Z = this;
+		if (mask === undefined) {
+			return Z._editMask;
+		}
+		Z._editMask = mask;
+		return this;
+	},
+	
+<span id='jslet-data-ContextRule-method-scale'>	/**
+</span>	 * Set or get field decimal length.
+	 * 
+	 * @param {Integer | undefined} scale Field decimal length.
+	 * @return {this | Integer}
+	 */
+	scale: function (scale) {
+		var Z = this;
+		if (scale === undefined) {
+			return Z._scale;
+		}
+		jslet.Checker.test('ContextRuleMeta.scale', scale).isNumber();
+		Z._scale = parseInt(scale);
+		return this;
+	},
+	
+<span id='jslet-data-ContextRule-method-formula'>	/**
+</span>	 * Set or get field formula. Example: 
+	 * 
+	 *     contextRuleMetaObj.formula('[price]*[num]');
+	 * 
+	 * @param {String | undefined} formula Field formula.
+	 * @return {this | String}
+	 */
+	formula: function (formula) {
+		var Z = this;
+		if (formula === undefined) {
+			return Z._formula;
+		}
+		
+		jslet.Checker.test('ContextRuleMeta.formula', formula).isString();
+		Z._formula = jQuery.trim(formula);
+		return this;
+	},
+
+<span id='jslet-data-ContextRule-method-displayFormat'>	/**
+</span>	 * Set or get field display format. &lt;br /&gt;
+	 * For number field like: #,##0.00 &lt;br /&gt;
+	 * For date field like: yyyy/MM/dd
+	 * 
+	 * @param {String | undefined} format Field display format.
+	 * @return {this | String}
+	 */
+	displayFormat: function (format) {
+		var Z = this;
+		if (format === undefined) {
+			return Z._displayFormat;
+		}
+		
+		jslet.Checker.test('ContextRuleMeta.format', format).isString();
+		Z._displayFormat = jQuery.trim(format);
+		return this;
+	},
+
+<span id='jslet-data-ContextRule-method-editControl'>	/**
+</span>	 * Set or get field edit control. It is similar as DBControl configuration.
+	 * Here you need not set 'dataset' and 'field' property. Example:
+	 * 
+	 *     var editCtrlCfg = {type:&quot;DBSpinEdit&quot;,minValue:10,maxValue:100,step:5};
+	 *     contextRuleMetaObj.editControl(editCtrlCfg);
+	 * 
+	 * @param {String | Object | undefined} editCtrl If String, it will convert to DBControl setting.
+	 * @return {this | Object}
+	 */
+	editControl: function (editCtrl) {
+		var Z = this;
+		if (editCtrl=== undefined){
+			return Z._editControl;
+		}
+
+		Z._editControl = (typeof (editCtrl) === 'string') ? { type: editCtrl } : editCtrl;
+	},
+
+<span id='jslet-data-ContextRule-method-defaultValue'>	/**
+</span>	 * Set or get field default value.
+	 * The data type of default value must be same as Field's.
+	 * Example:
+	 *   Number field: fldObj.defauleValue(100);
+	 *   Date field: fldObj.defaultValue(new Date());
+	 *   String field: fldObj.defaultValue('test');
+	 * 
+	 * @param {Object | undefined} dftValue Field default value.
+	 * @return {this | Object}
+	 */
+	defaultValue: function (dftValue) {
+		var Z = this;
+		if (dftValue === undefined) {
+			return Z._defaultValue;
+		}
+		Z._defaultValue = dftValue;
+		return this;
+	},
+	
+<span id='jslet-data-ContextRule-method-range'>	/**
+</span>	 * Set or get field rang.
+	 * Range is an object as: {min: x, max: y}. Example:
+	 * 
+	 *     contextRuleMetaObj.range(range);
+	 * 
+	 * @param {Object | undefined} range Field range;
+	 * @return {this | Object}
+	 */
+	range: function (range) {
+		var Z = this;
+		if (range === undefined) {
+			return Z._range;
+		}
+		if (jslet.isString(range)) {
+			/* jshint ignore:start */
+			Z._range = new Function('return ' + range);
+			/* jshint ignore:end */
+		} else {
+			Z._range = range;
+		}
+		return this;
+	},
+
+<span id='jslet-data-ContextRule-method-regularExpr'>	/**
+</span>	 * Set or get regular expression.
+	 * You can specify your own validator with regular expression. If regular expression not specified, 
+	 * The default regular expression for Date and Number field will be used. Example:
+	 * 
+	 *     contextRuleMetaObj.regularExpr(/(\(\d{3,4}\)|\d{3,4}-|\s)?\d{8}/ig, 'Invalid phone number!');//like: 0755-12345678
+	 * 
+	 * @param {Object | undefined} expr Regular expression, format: {expr: xxx, message: yyy};
+	 * @return {this | Object} An object like: { expr: expr, message: message }
+	 */
+	regularExpr: function (regularExpr) {
+		var Z = this;
+		if (regularExpr === undefined){
+			return Z._regularExpr;
+		}
+		
+		if (jslet.isString(regularExpr)) {
+			/* jshint ignore:start */
+			Z._regularExpr = new Function('return ' + regularExpr);
+			/* jshint ignore:end */
+		} else {
+			Z._regularExpr = regularExpr;
+		}
+		return this;
+	},
+	
+<span id='jslet-data-ContextRule-method-valueCountLimit'>	/**
+</span>	 * Set or get allowed count when valueStyle is multiple.
+	 * 
+	 * @param {String | undefined} count.
+	 * @return {this | String}
+	 */
+	valueCountLimit: function (count) {
+		var Z = this;
+		if (count === undefined) {
+			return Z._valueCountLimit;
+		}
+		jslet.Checker.test('ContextRuleMeta.valueCountLimit', count).isNumber();
+		Z._valueCountLimit = parseInt(count);
+		return this;
+	},
+
+<span id='jslet-data-ContextRule-method-customValidator'>	/**
+</span>	 * Set or get customized validator.
+	 * 
+	 * @param {Function} validator Validator function.
+	 * Pattern:
+	 *   function(fieldObj, fldValue){}
+	 *   //fieldObj: jslet.data.Field, Field object
+	 *   //fldValue: Object, Field value
+	 *   //return: String, if validate failed, return error message, otherwise return null; 
+	 */
+	customValidator: function (validator) {
+		var Z = this;
+		if (validator === undefined) {
+			return Z._customValidator;
+		}
+		jslet.Checker.test('ContextRuleMeta.customValidator', validator).isFunction();
+		Z._customValidator = validator;
+		return this;
+	},
+	
+<span id='jslet-data-ContextRule-method-validChars'>	/**
+</span>	 * Valid characters for this field.
+	 */
+	validChars: function(chars){
+		var Z = this;
+		if (chars === undefined){
+			return Z._validChars;
+		}
+		
+		jslet.Checker.test('ContextRuleMeta.validChars', chars).isString();
+		Z._validChars = jQuery.trim(chars);
+	},
+	
+};
+
+jslet.data.ContextRuleLookup = function() {
+	var Z = this;
+	Z._dataset = undefined;
+	Z._filter = undefined;
+	Z._fixedFilter = undefined;
+	Z._criteria = undefined;
+	Z._displayFields = undefined;
+	Z._onlyLeafLevel = undefined;
+};
+
+jslet.data.ContextRuleLookup.className = 'jslet.data.ContextRuleLookup';
+
+jslet.data.ContextRuleLookup.prototype ={
+	className: jslet.data.ContextRuleLookup.className,
+	
+	properties: ['dataset', 'filter', 'fixedFilter', 'criteria', 'displayFields', 'onlyLeafLevel'],
+	
+	dataset: function(datasetName){
+		var Z = this;
+		if (datasetName === undefined){
+			return Z._dataset;
+		}
+		jslet.Checker.test('ContextRuleLookup.dataset', datasetName).isString();
+		Z._dataset = jQuery.trim(datasetName);
+	},
+
+	filter: function(filter){
+		var Z = this;
+		if (filter === undefined){
+			return Z._filter;
+		}
+		jslet.Checker.test('ContextRuleLookup.filter', filter).isString();
+		Z._filter = jQuery.trim(filter);
+	},
+
+	fixedFilter: function(fixedFilter){
+		var Z = this;
+		if (fixedFilter === undefined){
+			return Z._fixedFilter;
+		}
+		jslet.Checker.test('ContextRuleLookup.fixedFilter', fixedFilter).isString();
+		Z._fixedFilter = jQuery.trim(fixedFilter);
+	},
+
+	criteria: function(criteria){
+		var Z = this;
+		if (criteria === undefined){
+			return Z._criteria;
+		}
+		jslet.Checker.test('ContextRuleLookup.criteria', criteria).isString();
+		Z._criteria = jQuery.trim(criteria);
+	},
+
+	displayFields: function(displayFields){
+		var Z = this;
+		if (displayFields === undefined){
+			return Z._displayFields;
+		}
+		jslet.Checker.test('ContextRuleLookup.displayFields', displayFields).isString();
+		Z._displayFields = jQuery.trim(displayFields);
+	},
+
+	onlyLeafLevel: function(onlyLeafLevel){
+		var Z = this;
+		if (onlyLeafLevel === undefined){
+			return Z._onlyLeafLevel;
+		}
+		Z._onlyLeafLevel = onlyLeafLevel ? true: false;
+	}
+};
+
+jslet.data.ContextRuleEngine = function(dataset) {
+	this._dataset = dataset;
+	this._matchedRules = [];
+	this._ruleEnv = {};
+};
+
+jslet.data.ContextRuleEngine.prototype = {
+
+	compile: function() {
+		var contextRules = this._dataset.contextRules();
+		for(var i = 0, len = contextRules.length; i &lt; len; i++) {
+			this._compileOneRule(contextRules[i]);
+		}
+	},
+
+	evalRule: function(changingFldName){
+		var contextRules = this._dataset.contextRules();
+		var ruleObj;
+		this._matchedRules = [];
+		this._ruleEnv = {};
+		for(var i = 0, len = contextRules.length; i &lt; len; i++) {
+			ruleObj = contextRules[i];
+			this._evalOneRule(ruleObj, changingFldName);
+		}
+		this._syncMatchedRules(changingFldName);
+	},
+	
+	_compileOneRule: function(ruleObj) {
+		var condition = ruleObj.condition;
+		this._compileExpr(ruleObj, 'condition', true);
+		var rules = ruleObj.rules();
+		for(var i = 0, len = rules.length; i &lt; len; i++) {
+			this._compileRuleItem(rules[i]);
+		}
+	},
+	
+	_compileRuleItem: function(ruleItem) {
+		this._compileExpr(ruleItem, 'value');
+		var metaObj = ruleItem.meta();
+		var props, propName, i, len;
+		if(metaObj) {
+			props = metaObj.properties;
+			len = props.length;
+			for(i = 0; i &lt; len; i++) {
+				propName = props[i];
+				this._compileExpr(metaObj, propName);
+			}
+		}
+		var lookupObj = ruleItem.lookup();
+		if(lookupObj) {
+			props = lookupObj.properties;
+			len = props.length;
+			for(i = 0; i &lt; len; i++) {
+				propName = props[i];
+				this._compileExpr(lookupObj, propName);
+			}
+		}
+	},
+	
+	_compileExpr: function(itemObj, propName, isExpr) {
+		var setting = itemObj[propName].call(itemObj),
+			exprName = propName +'Expr';
+		
+		if(setting !== null &amp;&amp; setting !== undefined &amp;&amp; jslet.isString(setting)) {
+			if(setting.indexOf('expr:') === 0) {
+				setting = setting.substring(5);
+				isExpr = true;
+			}
+			if(isExpr) {
+				itemObj[exprName] = new jslet.data.Expression(this._dataset, setting);
+			}
+		}
+	},
+	
+	_evalOneRule: function(ruleObj, changingFldName) {
+		var matched = false;
+		var exprObj = ruleObj.conditionExpr;
+		var mainFields = null;
+		var hasRule = false;
+		//Check if the rule matched or not
+		if(exprObj) {
+			mainFields = exprObj.mainFields();
+			if(changingFldName) {
+				if(mainFields &amp;&amp; mainFields.indexOf(changingFldName) &lt; 0) {
+					return;
+				}
+			}
+			matched = exprObj.eval();
+			hasRule = true;
+		}
+		if(!hasRule || matched) {
+			//if exists 'status' condition
+			var ruleStatus = ruleObj.status();
+			if(ruleStatus !== undefined) {
+				var dsStatus = 'other', 
+					changedStatus = this._dataset.changedStatus();
+				if(changedStatus == jslet.data.DataSetStatus.INSERT) {
+					dsStatus = 'insert';
+				} else if(changedStatus == jslet.data.DataSetStatus.UPDATE) {
+					dsStatus = 'update';
+				}
+				if(!hasRule) {
+					matched = true;
+				}
+				matched = (matched &amp;&amp; ruleStatus.indexOf(dsStatus) &gt;= 0);
+				hasRule = true;
+			}
+			//if exists 'selected' condition
+			var ruleSelected = ruleObj.selected();
+			if(ruleSelected !== undefined) {
+				if(!hasRule) {
+					matched = true;
+				}
+				matched = (matched &amp;&amp; ruleSelected === (this._dataset.selected()? true: false));
+			}
+		}
+		var ruleEnv = null;
+		if(mainFields) {
+			var fldName;
+			for(var i = 0, len = mainFields.length; i &lt; len; i++) {
+				fldName = mainFields[i];
+				if(this._ruleEnv[fldName] === undefined) {
+					this._ruleEnv[fldName] = this._dataset.getFieldValue(fldName);
+				}
+			}
+		}
+		this._evalRuleItems(matched? ruleObj.rules(): ruleObj.otherwise(), changingFldName? true: false);
+	},
+	
+	_evalRuleItems: function(rules, isValueChanged) {
+		if(!rules) {
+			return;
+		}
+		var fldName, ruleItem, matchedRule;
+		for(var i = 0, len = rules.length; i &lt; len; i++) {
+			ruleItem = rules[i];
+			fldName = ruleItem.field();
+			matchedRule = new jslet.data.ContextRuleItem(fldName);
+			
+			var meta = ruleItem.meta(); 
+			if(meta) {
+				matchedRule.meta(new jslet.data.ContextRuleMeta());
+				this._copyProperties(meta, matchedRule.meta());
+			}
+			
+			var lookup = ruleItem.lookup(); 
+			if(lookup) {
+				matchedRule.lookup(new jslet.data.ContextRuleLookup());
+				this._copyProperties(lookup, matchedRule.lookup());
+			}
+
+			if(isValueChanged &amp;&amp; ruleItem.value() !== undefined) {
+				matchedRule.value(this._evalExpr(ruleItem, 'value'));
+			}
+			
+			var customized = ruleItem.customized();
+			if(customized) {
+				matchedRule.customized(customized);
+			}
+			this._matchedRules.push(matchedRule);
+		}
+	},
+	
+	_copyProperties: function(srcObject, descObject) {
+		var props = srcObject.properties, propName, propValue;
+		for(var i = 0, len = props.length; i &lt; len; i++) {
+			propName = props[i];
+			propValue = this._evalExpr(srcObject, propName);
+			if(propValue !== undefined) {
+				descObject[propName].call(descObject, propValue);
+			}
+		}
+	},
+	
+	_evalExpr: function(evalObj, propName) {
+		var exprObj = evalObj[propName + 'Expr'];
+		if(exprObj) {
+			return exprObj.eval();
+		} else {
+			return evalObj[propName].call(evalObj);
+		}
+	},
+	
+	_syncMatchedRules: function(changingFldName) {
+		var matchedRules = this._matchedRules,
+			ruleObj, fldName, fldObj;
+		
+		for(var i = 0, len = matchedRules.length; i &lt; len; i++) {
+			ruleObj = matchedRules[i];
+			fldName = ruleObj.field();
+			fldObj = this._dataset.getField(fldName);
+			if(fldObj) {
+				this._syncMatchedRuleMeta(fldObj, ruleObj.meta());
+				this._syncMatchedRuleLookup(fldObj, ruleObj.lookup());
+				this._syncMatchedRuleValue(fldObj, ruleObj.value());
+				var customizedFn = ruleObj.customized();
+				if(customizedFn) {
+					customizedFn(fldObj, changingFldName);
+				}
+			}
+		}
+	},
+	
+	_syncMatchedRuleMeta: function(fldObj, ruleMeta) {
+		if(!ruleMeta) {
+			return;
+		}
+		var props = ruleMeta.properties, 
+			propName, propValue;
+		for(var i = 0, len = props.length; i &lt; len; i++) {
+			propName = props[i];
+			propValue = ruleMeta[propName].call(ruleMeta);
+			if(propValue !== undefined) {
+				fldObj[propName].call(fldObj, propValue);
+			}
+		}
+	},
+	
+	_syncMatchedRuleLookup: function(fldObj, ruleLookup) {
+		if(!ruleLookup) {
+			return;
+		}
+		var fieldLookup = fldObj.lookup();
+		if(!fieldLookup) {
+			return;
+		}
+		var ruleDs = ruleLookup.dataset();
+		if(ruleDs) {
+			fieldLookup.dataset(ruleDs);
+		}
+		var lkDsObj = fieldLookup.dataset();
+		lkDsObj.autoRefreshHostDataset(true);
+		var ruleFilter = ruleLookup.filter();
+		var fldName;
+		if(ruleFilter !== undefined) {
+			for(fldName in this._ruleEnv) {
+				ruleFilter = ruleFilter.replace('${' + fldName + '}', this._ruleEnv[fldName]);
+			}
+			lkDsObj.filter(ruleFilter);
+			lkDsObj.filtered(true);
+		}
+		ruleFilter = ruleLookup.fixedFilter();
+		if(ruleFilter !== undefined) {
+			for(fldName in this._ruleEnv) {
+				ruleFilter = ruleFilter.replace('${' + fldName + '}', this._ruleEnv[fldName]);
+			}
+			lkDsObj.fixedFilter(ruleFilter);
+			lkDsObj.filtered(true);
+		}
+		var ruleCriteria = ruleLookup.criteria();
+		if(ruleCriteria !== undefined) {
+			lkDsObj.query(ruleCriteria);
+		}
+		var ruleDisplayFields = ruleLookup.displayFields();
+		if(ruleDisplayFields !== undefined) {
+			fieldLookup.displayFields(ruleDisplayFields);
+		}
+		var ruleOnlyLeafLevel = ruleLookup.onlyLeafLevel();
+		if(ruleOnlyLeafLevel !== undefined) {
+			fieldLookup.onlyLeafLevel(ruleOnlyLeafLevel);
+		}
+	},
+	
+	_syncMatchedRuleValue: function(fldObj, value) {
+		if(value !== undefined) {
+			fldObj.setValue(value);
+		}
+	}
+};</pre>
+</body>
+</html>

@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js"><span id='jslet-ui-Accordion'>/**
+</span> * @class
+ * @extend jslet.ui.Control
+ * 
+ * Accordion. Example:
+ * 
+ *     @example
+ *     var jsletParam = {type:&quot;Accordion&quot;,selectedIndex:1,items:[{caption:&quot;Caption1&quot;},{caption:&quot;Caption2&quot;}]};
+ * 
+ *     //1. Declaring:
+ *       &lt;div data-jslet='jsletParam' style=&quot;width: 300px; height: 400px;&quot;&gt;
+ *         &lt;div&gt;content1&lt;/div&gt;
+ *         &lt;div&gt;content2&lt;/div&gt;
+ *       &lt;/div&gt;
+ *  
+ *     //2. Binding
+ *       &lt;div id='ctrlId'&gt;
+ *         &lt;div&gt;content1&lt;/div&gt;
+ *         &lt;div&gt;content2&lt;/div&gt;
+ *       &lt;/div&gt;
+ *       //Js snippet
+ *       var el = document.getElementById('ctrlId');
+ *       jslet.ui.bindControl(el, jsletParam);
+ *
+ *     //3. Create dynamically
+ *       jslet.ui.createControl(jsletParam, document.body);
+ */
+jslet.ui.Accordion = jslet.Class.create(jslet.ui.Control, {
+<span id='jslet-ui-Accordion-method-initialize'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	initialize: function ($super, el, params) {
+		var Z = this;
+		Z.el = el;
+		Z.allProperties = 'styleClass,selectedIndex,onChanged,items';
+
+		Z._selectedIndex = 0;
+		
+		Z._onChanged = null;
+		
+		Z._items = null;
+		
+		$super(el, params);
+	},
+
+<span id='jslet-ui-Accordion-property-selectedIndex'>	/**
+</span>	 * @property
+	 * 
+	 * Selected index.
+	 * 
+	 * @param {Integer | undefined} index selected index.
+	 * 
+	 * @return {this | Integer}
+	 */
+	selectedIndex: function(index) {
+		if(index === undefined) {
+			return this._selectedIndex;
+		}
+		jslet.Checker.test('Accordion.selectedIndex', index).isGTEZero();
+		this._selectedIndex = index;
+		return this;
+	},
+	
+<span id='jslet-ui-Accordion-event-onChanged'>	/**
+</span>	 * @event
+	 * 
+	 * Fired when user changes accordion panel. Example:
+	 * 
+	 *     @example 
+	 *	   accordionObj.onChanged(function(index){
+	 *     });
+	 *
+	 * @param {Function | undefined} onChanged Accordion panel changed event.
+	 * @param {Integer} onChanged.index Accordion panel index.
+	 * 
+	 * @return {this | Function}
+	 */
+	onChanged: function(onChanged) {
+		if(onChanged === undefined) {
+			return this._onChanged;
+		}
+		jslet.Checker.test('Accordion.onChanged', onChanged).isFunction();
+		this._onChanged = onChanged;
+		return this;
+	},
+	
+<span id='jslet-ui-Accordion-property-items'>	/**
+</span>	 * @property
+	 * 
+	 * Accordion item settings. Example:
+	 * 
+	 *     @example
+	 *     accordObj.items([caption: 'caption1'}, {caption: 'caption2'},...]);
+	 *     
+	 * @param {Object[] | undefined} items Items settings.
+	 * @param {String} items.caption Item caption.
+	 * 
+	 * @return {this | Object[]} 
+	 */
+	items: function(items) {
+		if(items === undefined) {
+			return this._items;
+		}
+		jslet.Checker.test('Accordion.items', items).isArray();
+		var item;
+		for(var i = 0, len = items.length; i &lt; len; i++) {
+			item = items[i];
+			jslet.Checker.test('Accordion.items.caption', item.caption).isString().required();
+		}
+		this._items = items;
+		return this;
+	},
+	
+<span id='jslet-ui-Accordion-method-bind'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	bind: function () {
+		this.renderAll();
+	},
+
+<span id='jslet-ui-Accordion-method-renderAll'>	/**
+</span>	 * @override
+	 */
+	renderAll: function () {
+		var Z = this;
+		var jqEl = jQuery(Z.el);
+		if (!jqEl.hasClass('jl-accordion')) {
+			jqEl.addClass('jl-accordion jl-border-box jl-round5');
+		}
+		var panels = jqEl.find('&gt;div'), jqCaption, headHeight = 0, item;
+
+		var captionCnt = Z._items ? Z._items.length - 1: -1, caption;
+		panels.before(function(index) {
+			if (index &lt;= captionCnt) {
+				caption = Z._items[index].caption;
+			} else {
+				caption = 'caption' + index;
+			}
+			return '&lt;button class=&quot;btn btn-default jl-accordion-head btn-sm&quot; jsletindex = &quot;' + index + '&quot;&gt;' + caption + '&lt;/button&gt;';
+		});
+
+		var jqCaptions = jqEl.find('&gt;.jl-accordion-head');
+		jqCaptions.click(Z._doCaptionClick);
+		
+		headHeight = jqCaptions.outerHeight() * panels.length;
+		var contentHeight = jqEl.innerHeight() - headHeight-1;
+		
+		panels.wrap('&lt;div class=&quot;jl-accordion-body&quot; style=&quot;height:'+contentHeight+'px;display:none&quot;&gt;&lt;/div&gt;');
+		var index = Z._selectedIndex;
+		if(index &gt; 0) {
+			Z._selectedIndex = 0;
+		}
+        Z.setSelectedIndex(index, true);
+	},
+	
+	_doCaptionClick: function(event){
+		var jqCaption = jQuery(event.currentTarget),
+			Z = jslet.ui.findJsletParent(jqCaption[0]).jslet,
+			k = parseInt(jqCaption.attr('jsletindex'));
+		Z.setSelectedIndex(k);
+	},
+	
+<span id='jslet-ui-Accordion-method-setSelectedIndex'>	/**
+</span>	 * Set selected index
+	 * 
+	 * @param {Integer} index Panel index, start at 0.
+	 */
+	setSelectedIndex: function(index, isRenderAll){
+		if (!index) {
+			index = 0;
+		}
+		var Z = this;
+		var jqBodies = jQuery(Z.el).find('&gt;.jl-accordion-body');
+		var pnlCnt = jqBodies.length - 1;
+		if (index &gt; pnlCnt) {
+			return;
+		}
+
+		if (Z._selectedIndex == index &amp;&amp; index &lt; pnlCnt){
+			jQuery(jqBodies[index]).hide();
+			if(!isRenderAll || isRenderAll &amp;&amp; index &gt; 0) {
+				index++;
+			}
+			jQuery(jqBodies[index]).show();
+			Z._selectedIndex = index;
+			if (Z._onChanged){
+				Z._onChanged.call(this, index);
+			}
+			return;
+		}
+		if (Z._selectedIndex &gt;= 0 &amp;&amp; Z._selectedIndex != index) {
+			jQuery(jqBodies[Z._selectedIndex]).hide();
+		}
+		jQuery(jqBodies[index]).show();
+		Z._selectedIndex = index;
+		if (Z._onChanged) {
+			Z._onChanged.call(this, index);
+		}
+	},
+	
+<span id='jslet-ui-Accordion-method-destroy'>	/**
+</span>	 * @override
+	 */
+	destroy: function($super){
+		var jqEl = jQuery(this.el);
+		jqEl.find('&gt;.jl-accordion-head').off();
+		$super();
+	}
+});
+jslet.ui.register('Accordion', jslet.ui.Accordion);
+jslet.ui.Accordion.htmlTemplate = '&lt;div&gt;&lt;/div&gt;';
+</pre>
+</body>
+</html>

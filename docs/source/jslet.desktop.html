@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js"><span id='jslet-ui-Desktop'>/**
+</span> * @class 
+ * @extend jslet.ui.Control
+ * 
+ * Jslet Desktop, this control is used to a desktop with a main menu and a workbench.&lt;br /&gt;  
+ * Example:
+ * 
+ *     @example
+ *     var jsletParam = {type:&quot;Desktop&quot;};
+ * 
+ *     //1. Declaring:
+ *     &lt;div id=&quot;chartId&quot; data-jslet='type:&quot;Desktop&quot;' /&gt;
+ *     or
+ *     &lt;div data-jslet='jsletParam' /&gt;
+ *
+ *     //2. Binding
+ *     &lt;div id=&quot;ctrlId&quot;  /&gt;
+ *     //Js snippet
+ *     var el = document.getElementById('ctrlId');
+ *     jslet.ui.bindControl(el, jsletParam);
+ *
+ *     //3. Create dynamically
+ *     jslet.ui.createControl(jsletParam, document.body);
+ *
+ */
+jslet.ui.Desktop = jslet.Class.create(jslet.ui.Control, {
+	
+<span id='jslet-ui-Desktop-method-initialize'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	initialize: function ($super, el, params) {
+		var Z = this;
+		Z.allProperties = 'header,onLoadMenu,menuType,menuWidth';
+		Z.requiredProperties = 'onLoadMenu';
+		
+		Z._header = null;
+		Z._onLoadMenu = null;
+		Z._menuType = 'side';
+		
+		Z._menuWidth = 160;
+		Z._expanded = true;
+		
+		$super(el, params);
+	},
+	
+<span id='jslet-ui-Desktop-property-header'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get menu header.
+	 * 
+	 * @param {String | undefined} header Menu header.
+	 * 
+	 * @return {this | String}
+	 */
+	header: function(header) {
+		if(header === undefined) {
+			return this._header;
+		}
+		this._header = header;
+		return this;
+	},
+		
+<span id='jslet-ui-Desktop-event-onLoadMenu'>	/**
+</span>	 * @event
+	 * 
+	 * Loading menu event. It can be a Function or a global function name.&lt;br /&gt;
+	 * Loaded menu configuration is used for jslet.ui.Menu or jslet.ui.SideMenu control.
+	 * 
+	 * @param {Function | String} onLoadMenu Menu loading event handler.
+	 * @param {Object[] | Promise} onLoadMenu.return Menu loading event handler.
+	 * 
+	 * @return {this}
+	 */
+	onLoadMenu: function(onLoadMenu) {
+		jslet.Checker.test('DeskTop.onLoadMenu', onLoadMenu).required();
+		this._onLoadMenu = onLoadMenu;
+		return this;
+	},
+	
+<span id='jslet-ui-Desktop-property-menuType'>	/**
+</span>	 * @property
+	 * 
+	 * Menu position. The optional values: left or top.
+	 * 
+	 * @param {String | undefined} menuType Menu type. The optional values: 'side', 'top', 'tree', default is 'side'.
+	 * 
+	 * @return {this | String}
+	 */
+	menuType: function(menuType) {
+		if(menuType === undefined) {
+			return this._menuType;
+		}
+		jslet.Checker.test('Desktop.menuType', menuType).inArray(['side', 'top', 'tree']);
+		this._menuType = menuType;
+		return this;
+	},
+	
+<span id='jslet-ui-Desktop-property-menuWidth'>	/**
+</span>	 * @property
+	 * 
+	 * Menu width for side menu. It's valid when 'menuType' is 'side'.
+	 * 
+	 * @param {Integer | undefined} menuWidth Menu width for side menu.
+	 * 
+	 * @return {this | Integer}
+	 */
+	menuWidth: function(menuWidth) {
+		if(menuWidth === undefined) {
+			return this._menuWidth;
+		}
+		this._menuWidth = menuWidth;
+		return this;
+	},
+		
+<span id='jslet-ui-Desktop-method-isValidTemplateTag'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	isValidTemplateTag: function (el) {
+		return el.tagName.toLowerCase() == 'div';
+	},
+
+<span id='jslet-ui-Desktop-method-bind'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	bind: function () {
+		if(!this.el.id) {
+			this.el.id = jslet.nextId();
+		}
+		var jqEl = jQuery(this.el);
+		if(!jqEl.hasClass('jl-desktop')) {
+			jqEl.addClass('jl-desktop');
+		}
+		this.renderAll();
+		jslet.desktop = this;
+	},
+
+<span id='jslet-ui-Desktop-method-renderAll'>	/**
+</span>	 * @override
+	 */
+	renderAll: function () {
+		var Z = this,
+			jqEl = jQuery(this.el), html,
+			isTop = (Z._menuType === 'top');
+		if(isTop) {
+			html = '&lt;div name=&quot;mainMenu&quot; class=&quot;jl-dsk-menu-top&quot;&gt;&lt;/div&gt;&lt;div name=&quot;workbench&quot; class=&quot;jl-dsk-bench-top&quot;&gt;&lt;/div&gt;';
+		} else {
+			Z._expanded = true;
+			html = '&lt;div class=&quot;jl-dsk-menu-left&quot; style=&quot;width: ' + Z._menuWidth + 'px&quot;&gt;' + 
+			'&lt;div class=&quot;jl-dsk-header&quot;&gt;&lt;span class=&quot;jl-dsk-headercontent&quot;&gt;' + (Z._header || '') + 
+			'&lt;/span&gt;&lt;a class=&quot;jl-dsk-toggle&quot; href=&quot;javascript:void(0)&quot;&gt;&lt;i class=&quot;fa fa-exchange&quot;&gt;&lt;/i&gt;&lt;/a&gt;&lt;/div&gt;' +
+			'&lt;div class=&quot;jl-dsk-menu&quot; name=&quot;mainMenu&quot;&gt;&lt;/div&gt;&lt;/div&gt;&lt;div name=&quot;workbench&quot; class=&quot;jl-dsk-bench-left&quot; style=&quot;padding-left: ' + Z._menuWidth + 'px&quot;&gt;&lt;/div&gt;';
+		}
+ 		
+		jqEl.html(html);
+		var menuEl = jqEl.find('[name=&quot;mainMenu&quot;]')[0],
+			wbEl = jqEl.find('[name=&quot;workbench&quot;]')[0];
+		
+		var wbCfg = {type: 'TabControl', newable: false, isFixedHeight: true, styleClass: (Z.styleClass() || '') + ' jl-dsk-bench', 
+				enableLoading: true, 
+				onContentLoading: Z._doContentLoading, onContentLoaded: Z._doContentLoaded, onRemoveTabItem: Z._doRemoveTabItem};
+		Z._workbench = jslet.ui.bindControl(wbEl, wbCfg);
+		
+		var menuCfg = {type: (isTop? 'MenuBar': 'SideMenuBar'), onItemClick: jQuery.proxy(Z._openMenu, Z)},
+			menuItems = null;
+		if(Z._onLoadMenu) {
+			var result = Z._onLoadMenu();
+			if(result.done) {
+				result.done(function(items) {
+					jslet.Checker.test('Desktop.MenuItems', items).isArray();
+					Z._mainMenu.items(items);
+					Z._mainMenu.renderAll();
+					Z._autoOpenMenu(items);
+				});
+			} else {
+				menuCfg.items = result;
+				menuItems = result;
+			}
+		}
+		
+		Z._mainMenu = jslet.ui.bindControl(menuEl, menuCfg);
+		if(menuItems) {
+			Z._autoOpenMenu(menuItems);
+		}
+		if(!isTop) {
+			jqEl.find('.jl-dsk-toggle').off().on('click', function() {
+				Z._toggleMenu();
+			});
+		}
+	},
+	
+	_autoOpenMenu: function(menuItems) {
+		if(!menuItems) {
+			return;
+		}
+		var menuCfg;
+		for(var i = 0, len = menuItems.length; i &lt; len; i++) {
+			menuCfg = menuItems[i];
+			if(menuCfg.items) {
+				this._autoOpenMenu(menuCfg.items);
+			} else if(menuCfg.autoOpen) {
+				this._openMenu(menuCfg);
+			}
+		}
+	},
+	
+	_toggleMenu: function() {
+		var Z = this,
+			jqEl = jQuery(Z.el);
+		Z._expanded = !Z._expanded;
+		var menuContainer = jqEl.find('.jl-dsk-menu-left'),
+			jqHeader = jqEl.find('.jl-dsk-headercontent'),
+			jqWB = jQuery(Z._workbench.el);
+		if(Z._expanded) {
+			Z._mainMenu.expand();
+			menuContainer.removeClass('jl-dsk-menu-left-collapsed');
+			jqHeader.show();
+			jqWB.css('padding-left', Z._menuWidth);
+		} else {
+			Z._mainMenu.collapse();
+			jqHeader.hide();
+			menuContainer.addClass('jl-dsk-menu-left-collapsed');
+			jqWB.css('padding-left', 40);
+		}
+	},
+	
+	showTabPanel: function(tabPanelId) {
+		this._workbench.setContentLoadedState(tabPanelId);
+	},
+	
+	setTabPanelChanged: function(tabPanelId, changed) {
+		this._workbench.setContentChangedState(tabPanelId, changed);
+	},
+	
+	openMenuById: function(menuId) {
+		var menuCfg = this._getMenuCfg(this._mainMenu.items(), menuId, true);
+		this._openMenu(menuCfg);
+	},
+	
+	openMenuByName: function(menuName) {
+		var menuCfg = this._getMenuCfg(this._mainMenu.items(), menuName);
+		this._openMenu(menuCfg);
+	},
+	
+<span id='jslet-ui-Desktop-method-setContentChangedState'>	/**
+</span>	 * Set tab item to changed state or not.
+	 * 
+	 * @param {String} tabItemId Tab item id.
+	 * @param {Boolean} changed Changed state.
+	 */
+	setContentChangedState: function(tabItemId, changed) {
+		this._workbench.setContentChangedState(tabItemId, changed);
+	},
+	
+<span id='jslet-ui-Desktop-method-setContentLoadedState'>	/**
+</span>	 * set the specified tab item to loaded state. It will fire the &quot;onContentLoaded&quot; event.
+	 * 
+	 * @param {String} tabItemId - tab item id.
+	 */
+	setContentLoadedState: function(tabItemId) {
+		this._workbench.setContentLoadedState(tabItemId);
+	},
+	
+	_getMenuCfg: function(items, key, isById) {
+		var result = null, item;
+		for(var i = 0, len = items.length; i &lt; len; i++) {
+			item = items[i];
+			if(item.items) {
+				result = this._getMenuCfg(item.items, key, isById);
+				if(result) {
+					return result;
+				}
+			} else {
+				if(isById) {
+					if(item.id === key) {
+						return item;
+					}
+				} else {
+					if(item.name === key) {
+						return item;
+					}
+				}
+			}
+		}
+		return null;
+	},
+	
+	_doContentLoading: function(id, tabItemCfg) {
+    	if(tabItemCfg.debounce) {
+    		jQuery('#' + id).hide();
+    	}
+		
+	},
+	
+	_doContentLoaded: function(id, tabItemCfg) {
+    	if(tabItemCfg.debounce) {
+    		jQuery('#' + id).fadeIn('fast');
+    	}
+	},
+	
+	_doRemoveTabItem: function(tabItemCfg, isActive) {
+//    	var iframe = document.getElementById(tabItemCfg.contentId);
+//    	var iframeWin = iframe.contentWindow || iframe;
+//    	if(iframeWin.onMainTabClosed) {
+//    		iframeWin.onMainTabClosed(tabItemCfg);
+//    	}
+    	return true;
+	},
+	
+	_openMenu: function(menuCfg) {
+		if(!menuCfg) {
+			return;
+		}
+		var menuUrl = jQuery.trim(menuCfg.url);
+		
+		if(menuUrl) {
+			var menuId = menuCfg.id;
+			menuUrl = jslet.urlUtil.addParam(menuUrl, {menuId: menuId});
+	    	this._workbench.addTabItem({id: 'if-' + menuId, header: menuCfg.name, url: menuUrl, closable: true, userIFrame: true, debounce: menuCfg.debounce, iconClass: menuCfg.iconClass});
+	    	return;
+		}
+		if(menuCfg.onclick) {
+			menuCfg.onclick.call(menuCfg);
+			return;
+		}
+		console.warn('Menu: ' + menuCfg.name + ' not exists properties: &quot;url&quot; or &quot;onclick&quot;！');
+	},
+	
+<span id='jslet-ui-Desktop-method-destroy'>	/**
+</span>	 * @override
+	 */
+	destroy: function($super){
+		var jqEl = jQuery(this.el);
+		jqEl.find('.jl-dsk-toggle').off();
+		$super();
+	}
+});
+
+jslet.ui.register('Desktop', jslet.ui.Desktop);
+jslet.ui.Desktop.htmlTemplate = '&lt;div&gt;&lt;/div&gt;';
+
+jslet.ui.DesktopUtil = function() {
+	var checkDatasetChangedHandler, currTabItemId, changingDatasets, debounce = null;
+	
+	function getCurrTabItemId() {
+		if(!currTabItemId) {
+			var url = window.document.location.href;
+			currTabItemId = jslet.urlUtil.getParam(url, 'jlTabItemId');
+		}
+		return currTabItemId;
+	}
+	
+	function isPageDebounce() {
+		if(debounce === null) {
+			var url = window.document.location.href;
+			debounce = jslet.urlUtil.getParam(url, 'debounce');
+		}
+		return !!debounce;
+	}
+	
+	function getDesktop() {
+		var p = window.parent;
+		var result = null;
+		while(true) {
+			if(!p) {
+				break;
+			}
+			if(p.jslet &amp;&amp; p.jslet.desktop) {
+				result = p.jslet.desktop;
+				break;
+			}
+			p = p.parent;
+		}
+		if(!result) { //If parent not exists desktop object, check current window object.
+			if(window.jslet) {
+				result = window.jslet.desktop;
+			}
+		}
+		return result;
+	}
+	
+	this.showTabPanel = function() {
+		var desktop = getDesktop();
+		if(!desktop) {
+			return;
+		}
+		desktop.showTabPanel(getCurrTabItemId());
+	};
+	
+	this.registerEditableDataset = function(datasetNames) {
+		jslet.Checker.test('registerEditableDataset的参数必须为String', datasetNames).isString();
+		if(datasetNames) {
+			var chgDatasets = datasetNames;
+			if(jslet.isString(chgDatasets)) {
+				chgDatasets = datasetNames.split(',');
+			}
+			changingDatasets = {};
+			for(var i = 0, len = chgDatasets.length; i &lt; len; i++) {
+				changingDatasets[chgDatasets[i]] = false;
+			}
+			if(!checkDatasetChangedHandler &amp;&amp; getCurrTabItemId()) {
+				var self = this;
+				//定时监测注册的数据集是否有变动，有变动则发送消息给主页面的tabcontrol控件更新修改状态
+				checkDatasetChangedHandler = window.setInterval(function() {
+					var dsObj, isDiff = false,
+						changed = false, oldChanged, newChanged;
+					for(var dsName in changingDatasets) {
+						dsObj = jslet.data.getDataset(dsName);
+						if(dsObj) {
+							oldChanged = changingDatasets[dsName];
+							newChanged = dsObj.hasChangedData(true);
+							changed = changed || newChanged;
+							if(oldChanged !== newChanged) {
+								isDiff = true;
+								changingDatasets[dsName] = newChanged;
+								if(changed) {
+									break;
+								}
+							}
+						}
+					}
+					if(isDiff) {
+						var desktop = getDesktop();
+						if(!desktop) {
+							return;
+						}
+						desktop.setContentChangedState(getCurrTabItemId(), changed);
+					}
+				}, 500);
+			}
+		} else {
+			if(!checkDatasetChangedHandler) {
+				window.clearInterval(checkDatasetChangedHandler);
+				checkDatasetChangedHandler = null;
+			}
+			changingDatasets = null;
+		}
+	};
+	
+	this.openMenuById = function(menuId) {
+		var desktop = getDesktop();
+		if(!desktop) {
+			return;
+		}
+		desktop.openMenuById(menuId);
+	};
+
+	this.openMenuByName = function(menuName) {
+		var desktop = getDesktop();
+		if(!desktop) {
+			return;
+		}
+		desktop.openMenuByName(menuName);
+	};
+	
+	this.setContentLoadedState = function() {
+		if(!isPageDebounce()) {
+			return;
+		}
+		var desktop = getDesktop();
+		if(!desktop) {
+			return;
+		}
+		desktop.setContentLoadedState(getCurrTabItemId());
+	};
+};
+
+jslet.ui.desktopUtil = new jslet.ui.DesktopUtil();
+</pre>
+</body>
+</html>

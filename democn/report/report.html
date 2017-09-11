@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="../css/demo.css" />
+    
+    <title>Jslet - 列表打印</title>
+    <script type="text/javascript" data-main="../config.js" src="../lib/requirejs/require.min.js"></script>
+    <script type="text/javascript">
+	    require(['report/report']);
+    </script>
+</head>
+<body>
+    <div class="demo-header">
+    <h3 id="top">Jslet - 列表打印</h3>
+	</div>
+	<hr />
+	<div class="content">
+	报表打印需要先安装<a href="https://github.com/jslet/jslet/raw/master/report/JsletReport.exe" target="_blank">Jslet的报表打印助手</a>，此助手为绿色软件，解压即可使用。
+	</div>
+
+	<div style="border:1px solid gray;padding: 10px;border-radius: 5px">
+		<div style="padding-left: 5px;margin-bottom: 10px">
+	    <button class="btn btn-default btn-sm" id="btnQuery"> 查询 </button>
+	    <div class="btn-group">
+	    <button class="btn btn-default btn-sm" id="btnPreview"> 预览报表 </button>
+	    <button class="btn btn-default btn-sm" id="btnPrint"> 打印报表 </button>
+	    </div>
+	    <div class="btn-group">
+	    <button class="btn btn-default btn-sm" id="btnDesign"> 新增报表模板 </button>
+	    <button class="btn btn-default btn-sm" id="btnDesignEdit"> 修改报表模板 </button>
+	    </div>
+	
+	    <div class="form-horizontal" style="margin-top: 10px">
+ 			<div class="col-sm-12">
+	        <div data-jslet="type:'DBTable',dataset:'employee',hasSelectCol:true"></div>
+			</div>
+	    </div>
+	</div>
+	<div>
+	<hr />
+	<script type="text/text" id="reportTemplate">
+	<?xml version="1.0" encoding="utf-8" standalone="no"?>
+	<TfrxReport Version="5.3.16" DotMatrixReport="False" EngineOptions.MaxMemSize="100" IniFile="D:\github\jsletreport\source\Win32\Release\\report.ini" PreviewOptions.Buttons="4095" PreviewOptions.Zoom="1" PrintOptions.Printer="预设" PrintOptions.PrintOnSheet="0" ReportOptions.CreateDate="42925.9437166782" ReportOptions.Description.Text="" ReportOptions.LastChange="42925.9624785764" ScriptLanguage="PascalScript" ScriptText.Text="begin&#13;&#10;&#13;&#10;end." StoreInDFM="False">
+	  <Datasets>
+	    <item DataSetName="员工信息"/>
+	  </Datasets>
+	  <TfrxDataPage Name="Data" Height="1000" Left="0" Top="0" Width="1000"/>
+	  <TfrxReportPage Name="Page1" PaperWidth="210" PaperHeight="297" PaperSize="9" LeftMargin="10" RightMargin="10" TopMargin="10" BottomMargin="10" ColumnWidth="0" ColumnPositions.Text="" HGuides.Text="" VGuides.Text="">
+	    <TfrxReportTitle Name="ReportTitle1" FillType="ftBrush" FillGap.Top="0" FillGap.Left="0" FillGap.Bottom="0" FillGap.Right="0" Height="71.81107" Left="0" Top="18.89765" Width="718.1107">
+	      <TfrxMemoView Name="Memo1" Left="309.92146" Top="3.77953" Width="109.60637" Height="30.23624" Font.Charset="1" Font.Color="-16777208" Font.Height="-21" Font.Name="宋体" Font.Style="0" ParentFont="False" Text="员工列表"/>
+	      <TfrxMemoView Name="Memo18" Left="476.22078" Top="41.57483" Width="94.48825" Height="18.89765" Font.Charset="1" Font.Color="-16777208" Font.Height="-16" Font.Name="宋体" Font.Style="0" ParentFont="False" Text="打印日期:"/>
+	      <TfrxMemoView Name="Memo19" Left="578.26809" Top="41.57483" Width="94.48825" Height="18.89765" DisplayFormat.FormatStr="yyyy-mm-dd" DisplayFormat.Kind="fkDateTime" Font.Charset="1" Font.Color="-16777208" Font.Height="-16" Font.Name="宋体" Font.Style="0" ParentFont="False" Text="[Date]"/>
+	    </TfrxReportTitle>
+	    <TfrxPageHeader Name="PageHeader1" FillType="ftBrush" FillGap.Top="0" FillGap.Left="0" FillGap.Bottom="0" FillGap.Right="0" Height="30.23624" Left="0" Top="113.3859" Width="718.1107">
+	      <TfrxShapeView Name="Shape2" Left="7.55906" Top="0" Width="672.75634" Height="30.23624"/>
+	      <TfrxMemoView Name="Memo2" Left="34.01577" Top="7.55906" Width="49.13389" Height="18.89765" DataSetName="员工信息" Font.Charset="1" Font.Color="-16777208" Font.Height="-16" Font.Name="宋体" Font.Style="0" ParentFont="False" Text="编码"/>
+	      <TfrxMemoView Name="Memo3" Left="128.50402" Top="7.55906" Width="45.35436" Height="18.89765" DataSetName="员工信息" Font.Charset="1" Font.Color="-16777208" Font.Height="-16" Font.Name="宋体" Font.Style="0" ParentFont="False" Text="姓名"/>
+	      <TfrxMemoView Name="Memo4" Left="234.33086" Top="7.55906" Width="41.57483" Height="18.89765" DataSetName="员工信息" Font.Charset="1" Font.Color="-16777208" Font.Height="-16" Font.Name="宋体" Font.Style="0" ParentFont="False" Text="部门"/>
+	      <TfrxMemoView Name="Memo5" Left="336.37817" Top="7.55906" Width="45.35436" Height="18.89765" DataSetName="员工信息" Font.Charset="1" Font.Color="-16777208" Font.Height="-16" Font.Name="宋体" Font.Style="0" ParentFont="False" Text="性别"/>
+	      <TfrxMemoView Name="Memo6" Left="423.30736" Top="7.55906" Width="45.35436" Height="18.89765" DataSetName="员工信息" Font.Charset="1" Font.Color="-16777208" Font.Height="-16" Font.Name="宋体" Font.Style="0" ParentFont="False" Text="年龄"/>
+	      <TfrxMemoView Name="Memo7" Left="514.01608" Top="7.55906" Width="49.13389" Height="18.89765" DataSetName="员工信息" Font.Charset="1" Font.Color="-16777208" Font.Height="-16" Font.Name="宋体" Font.Style="0" ParentFont="False" Text="薪水"/>
+	      <TfrxLineView Name="Line7" Left="102.04731" Top="0" Width="0" Height="30.23624" Color="0" Diagonal="True"/>
+	      <TfrxLineView Name="Line8" Left="204.09462" Top="0" Width="0" Height="30.23624" Color="0" Diagonal="True"/>
+	      <TfrxLineView Name="Line9" Left="302.3624" Top="0" Width="0" Height="30.23624" Color="0" Diagonal="True"/>
+	      <TfrxLineView Name="Line10" Left="396.85065" Top="0" Width="0" Height="30.23624" Color="0" Diagonal="True"/>
+	      <TfrxLineView Name="Line11" Left="491.3389" Top="0" Width="0" Height="30.23624" Color="0" Diagonal="True"/>
+	      <TfrxLineView Name="Line12" Left="585.82715" Top="0" Width="0" Height="30.23624" Color="0" Diagonal="True"/>
+	      <TfrxMemoView Name="Memo8" Left="612.28386" Top="7.55906" Width="52.91342" Height="18.89765" DataSetName="员工信息" Font.Charset="1" Font.Color="-16777208" Font.Height="-16" Font.Name="宋体" Font.Style="0" ParentFont="False" Text="职位"/>
+	    </TfrxPageHeader>
+	    <TfrxMasterData Name="MasterData1" FillType="ftBrush" FillGap.Top="0" FillGap.Left="0" FillGap.Bottom="0" FillGap.Right="0" Height="30.23624" Left="0" Top="204.09462" Width="718.1107" ColumnWidth="0" ColumnGap="0" DataSetName="员工信息" RowCount="0">
+	      <TfrxShapeView Name="Shape1" Left="7.55906" Top="0" Width="672.75634" Height="30.23624"/>
+	      <TfrxLineView Name="Line1" Left="102.04731" Top="0" Width="0" Height="30.23624" Color="0" Diagonal="True"/>
+	      <TfrxLineView Name="Line2" Left="204.09462" Top="0" Width="0" Height="30.23624" Color="0" Diagonal="True"/>
+	      <TfrxLineView Name="Line3" Left="302.3624" Top="0" Width="0" Height="30.23624" Color="0" Diagonal="True"/>
+	      <TfrxLineView Name="Line4" Left="396.85065" Top="0" Width="0" Height="30.23624" Color="0" Diagonal="True"/>
+	      <TfrxLineView Name="Line5" Left="491.3389" Top="0" Width="0" Height="30.23624" Color="0" Diagonal="True"/>
+	      <TfrxLineView Name="Line6" Left="585.82715" Top="0" Width="0" Height="30.23624" Color="0" Diagonal="True"/>
+	      <TfrxMemoView Name="Memo9" Left="15.11812" Top="7.55906" Width="79.37013" Height="18.89765" DataField="编码" DataSetName="员工信息" Font.Charset="1" Font.Color="-16777208" Font.Height="-16" Font.Name="宋体" Font.Style="0" ParentFont="False" Text="[员工信息.&#34;编码&#34;]"/>
+	      <TfrxMemoView Name="Memo10" Left="113.3859" Top="7.55906" Width="79.37013" Height="18.89765" DataField="姓名" DataSetName="员工信息" Font.Charset="1" Font.Color="-16777208" Font.Height="-16" Font.Name="宋体" Font.Style="0" ParentFont="False" Text="[员工信息.&#34;姓名&#34;]"/>
+	      <TfrxMemoView Name="Memo11" Left="211.65368" Top="7.55906" Width="79.37013" Height="18.89765" DataField="部门" DataSetName="员工信息" Font.Charset="1" Font.Color="-16777208" Font.Height="-16" Font.Name="宋体" Font.Style="0" ParentFont="False" Text="[员工信息.&#34;部门&#34;]"/>
+	      <TfrxMemoView Name="Memo12" Left="317.48052" Top="7.55906" Width="79.37013" Height="18.89765" DataField="性别" DataSetName="员工信息" Font.Charset="1" Font.Color="-16777208" Font.Height="-16" Font.Name="宋体" Font.Style="0" ParentFont="False" Text="[员工信息.&#34;性别&#34;]"/>
+	      <TfrxMemoView Name="Memo13" Left="408.18924" Top="7.55906" Width="79.37013" Height="18.89765" DataSetName="员工信息" DisplayFormat.FormatStr="%g" DisplayFormat.Kind="fkNumeric" Font.Charset="1" Font.Color="-16777208" Font.Height="-16" Font.Name="宋体" Font.Style="0" ParentFont="False" Text="[员工信息.&#34;年龄&#34;]"/>
+	      <TfrxMemoView Name="Memo14" Left="498.89796" Top="7.55906" Width="79.37013" Height="18.89765" DataSetName="员工信息" DisplayFormat.FormatStr="%2.2n" DisplayFormat.Kind="fkNumeric" Font.Charset="1" Font.Color="-16777208" Font.Height="-16" Font.Name="宋体" Font.Style="0" ParentFont="False" Text="[员工信息.&#34;薪水&#34;]"/>
+	      <TfrxMemoView Name="Memo15" Left="597.16574" Top="7.55906" Width="79.37013" Height="18.89765" DataField="职位" DataSetName="员工信息" Font.Charset="1" Font.Color="-16777208" Font.Height="-16" Font.Name="宋体" Font.Style="0" ParentFont="False" Text="[员工信息.&#34;职位&#34;]"/>
+	    </TfrxMasterData>
+	    <TfrxReportSummary Name="ReportSummary1" FillType="ftBrush" FillGap.Top="0" FillGap.Left="0" FillGap.Bottom="0" FillGap.Right="0" Height="41.57483" Left="0" Top="294.80334" Width="718.1107">
+	      <TfrxMemoView Name="Memo16" Left="498.89796" Top="11.33859" Width="79.37013" Height="18.89765" DataSetName="员工信息" DisplayFormat.FormatStr="%2.2n" DisplayFormat.Kind="fkNumeric" Font.Charset="1" Font.Color="-16777208" Font.Height="-16" Font.Name="宋体" Font.Style="0" ParentFont="False" Text="[SUM(&#60;员工信息.&#34;薪水&#34;&#62;,MasterData1)]"/>
+	      <TfrxMemoView Name="Memo17" Left="396.85065" Top="11.33859" Width="94.48825" Height="18.89765" Font.Charset="1" Font.Color="-16777208" Font.Height="-16" Font.Name="宋体" Font.Style="0" ParentFont="False" Text="合计:"/>
+	    </TfrxReportSummary>
+	  </TfrxReportPage>
+	</TfrxReport>	
+	
+	</script>
+	
+	<div style="line-height: 2rem" class="demo-desc">
+	<p>以上界面的拥有如下功能：</p>
+	<ol>
+	<li>增加一个空白模板；</li>
+	<li>修改现有的模板；</li>
+	<li>预览报表和打印报表</li>
+	</ol>
+	</div>
+	<h3>Source</h3>
+	<h4>1、HTML控件定义，全部定义信息在属性：data-jslet</h4>
+    <pre class="prettyprint linenums lang-html"><code>
+Employee List:
+        &lt;div data-jslet="type:'DBTable',dataset:'employee',hasSelectCol:true,rowHeight:25"
+        &lt;/div&gt;
+	</code></pre>
+
+	<h4>2、report.js</h4>
+    <pre class="prettyprint linenums"><code>
+	var template = $('#reportTemplate').text();
+	
+	//查询报表数据
+	$('#btnQuery').click(function() {
+		dsEmployee.query();	
+	});
+	//设计新的报表模板
+	$('#btnDesign').click(function() {
+		jslet.defaultReport.design('employee', 'employee', '员工表');
+	});
+	//修改现有的报表模板
+	$('#btnDesignEdit').click(function() {
+		jslet.defaultReport.design('employee', 'employee', '员工表', template);
+	});
+	//预览报表
+	$('#btnPreview').click(function() {
+		jslet.defaultReport.preview('employee', 'employee', '员工表', template);
+	});
+	//打印报表
+	$('#btnPrint').click(function() {
+		jslet.defaultReport.print('employee', 'employee', '员工表', template);
+	});
+	
+	//查询数据，创建控件
+	dsEmployee.query();
+	jslet.ui.install();
+	</code></pre>
+
+    <script type="text/javascript">
+       window.LOADER_BASE_URL = "../lib/prettify";
+    </script>
+    <script type="text/javascript" src="../lib/prettify/run_prettify.js"></script>
+			
+</body>
+</html>

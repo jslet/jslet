@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js"><span id='jslet-data-FieldValidator'>/**
+</span> * @private
+ * @class
+ * 
+ * Field Validator.
+ */
+jslet.data.FieldValidator = function() {
+};
+
+jslet.data.FieldValidator.prototype = {
+	
+	intRegular: {expr: /^(-)?[1-9]*\d+$/ig},
+	
+	floatRegular: {expr: /((^-?[1-9])|\d)\d*(\.[0-9]*)?$/ig},
+
+<span id='jslet-data-FieldValidator-method-checkInputChar'>	/**
+</span>	 * Check the specified character is valid or not.
+	 * Usually use this when user presses a key down.
+	 * 
+	 * @param {String} inputChar Single character
+	 * @param {Boolean} True for passed, otherwise failed.
+	 */
+	checkInputChar: function (fldObj, inputChar, existText, cursorPos) {
+		var validChars = fldObj.validChars();
+		var valid = true;
+		if (validChars &amp;&amp; inputChar) {
+			var c = inputChar.charAt(0);
+			valid = validChars.indexOf(c) &gt;= 0;
+		}
+		if(existText &amp;&amp; valid &amp;&amp; fldObj.getType() == jslet.data.DataType.NUMBER){
+			var scale = fldObj.scale();
+			var k = existText.lastIndexOf('.');
+			if(inputChar == '.') {
+				if(k &gt;= 0) {
+					return false;
+				} else {
+					return true;
+				}
+			}
+			if(scale &gt; 0 &amp;&amp; k &gt;= 0) {
+				if(existText.length - k - 1 === scale &amp;&amp; cursorPos - 1 &gt; k) {
+					return false;
+				}
+			}
+			
+		}
+		return valid;
+	},
+	
+	_addFieldLabel: function(fldLabel, errMsg) {
+		return '[' + fldLabel + ']: ' + errMsg;
+	},
+	
+<span id='jslet-data-FieldValidator-method-checkRequired'>	/**
+</span>	 * Check the required field's value is empty or not
+	 * 
+	 * @param {jslet.data.Field} fldObj Field Object
+	 * @param {Object} value field value.
+	 * @return {String} If input text is valid, return null, otherwise return error message.
+	 */
+	checkRequired: function(fldObj, value) {
+		if (fldObj.required()) {
+			var valid = true;
+			if (value === null || value === undefined) {
+				valid = false;
+			}
+			if(valid &amp;&amp; jslet.isString(value) &amp;&amp; jslet.trim(value).length === 0) {
+				valid = false;
+			}
+			if(valid &amp;&amp; jslet.isArray(value) &amp;&amp; value.length === 0) {
+				valid = false;
+			}
+			if(!valid) {
+				return this._addFieldLabel(fldObj.label(), jslet.formatMessage(jsletlocale.Dataset.fieldValueRequired));
+			} else {
+				return null;
+			}
+		}
+		return null;
+	},
+	
+	checkMultiple: function(fldObj, value) {
+		var valueStyle = fldObj.valueStyle();
+		if(valueStyle !== jslet.data.FieldValueStyle.MULTIPLE || value === null || value === undefined) {
+			return null;
+		}
+		var valueCountRange = fldObj.valueCountRange();
+		if(!valueCountRange) {
+			return null;
+		}
+		var min = valueCountRange.min,
+			max = valueCountRange.max,
+			valueCount = value.length,
+			msg = null;
+		if(max &amp;&amp; valueCount &gt; max) {
+			msg = jslet.formatMessage(jsletlocale.Dataset.lessThanCount, [max]);
+		} else {
+			if(min &amp;&amp; valueCount &lt; min) {
+				msg = jslet.formatMessage(jsletlocale.Dataset.lessThanCount, [min]);
+			}
+		}
+		if(msg) {
+			return this._addFieldLabel(fldObj.label(), msg);
+		}
+		var fldRange = fldObj.dataRange();
+		if(fldRange) {
+			for(var i = 0, len = valueCount; i &lt; len; i++) {
+				msg = this.checkDataRange(fldObj, value[i]);
+				if(msg) {
+					return msg;
+				}
+			}
+		}
+		return null; 
+	},
+	
+	checkBetween: function(fldObj, value) {
+		var valueStyle = fldObj.valueStyle();
+		if(valueStyle !== jslet.data.FieldValueStyle.BETWEEN || value === null || value === undefined) {
+			return null;
+		}
+		var v1 = null, v2 = null;
+		if(value) {
+			if(value.length &gt; 0) {
+				v1 = value[0];
+				if(value.length &gt; 1) {
+					v2 = value[1];
+				}
+			}
+		}
+		var invalidMsg = null;
+		if(v1 !== null &amp;&amp; v1 !== undefined) {
+			invalidMsg = this.checkDataRange(fldObj, v1);
+		}
+		if(!invalidMsg &amp;&amp; v2 !== null &amp;&amp; v2 !== undefined) {
+			this.checkDataRange(fldObj, v2);
+		}
+		if(!invalidMsg &amp;&amp; v1 &amp;&amp; v2) {
+			if(jslet.isDate(v1) &amp;&amp; v1.getTime() &gt; v2.getTime() || v1 &gt; v2) {
+				invalidMsg = jsletlocale.Dataset.betwwenInvalid;
+			}
+			return invalidMsg;
+		}
+		return invalidMsg;
+	},
+	
+	checkDataRange: function(fldObj, value) {
+		var fldType = fldObj.getType();
+		//Check range
+		var fldRange = fldObj.dataRange();
+		if (!fldRange || value === null || value === undefined) {
+			return null;
+		}
+		var	hasLookup = fldObj.lookup()? true: false;
+		
+		if (hasLookup) {//lookup field need compare 'code' value 
+			var dsLookup = fldObj.lookup().dataset();
+			value = dsLookup.lookup(dsLookup.keyField(), value, dsLookup.codeField());
+		}
+			
+		var min = fldRange.min,
+			strMin = min,
+			max = fldRange.max,
+			strMax = max;
+		var fmt = fldObj.displayFormat();
+		
+		if (fldType == jslet.data.DataType.DATE) {
+			if (min) {
+				strMin = jslet.formatDate(min, fmt);
+			}
+			if (max) {
+				strMax = jslet.formatDate(max, fmt);
+			}
+		}
+		
+		if (!hasLookup &amp;&amp; fldType == jslet.data.DataType.NUMBER) {
+			strMin = jslet.formatNumber(min, fmt);
+			strMax = jslet.formatNumber(max, fmt);
+		}
+		
+		if (min !== undefined &amp;&amp; max !== undefined &amp;&amp; (value &lt; min || value &gt; max)) {
+			return this._addFieldLabel(fldObj.label(), 
+					jslet.formatMessage(jsletlocale.Dataset.notInRange, [strMin, strMax]));
+		}
+		if (min !== undefined &amp;&amp; max === undefined &amp;&amp; value &lt; min) {
+			return this._addFieldLabel(fldObj.label(), 
+					jslet.formatMessage(jsletlocale.Dataset.moreThanValue, [strMin]));
+		}
+		if (min === undefined &amp;&amp; max !== undefined &amp;&amp; value &gt; max) {
+			return this._addFieldLabel(fldObj.label(), 
+					jslet.formatMessage(jsletlocale.Dataset.lessThanValue, [strMax]));
+		}
+		return null;
+	},
+	
+	checkUnique: function(fldObj, value) {
+		if(!fldObj.unique() || value === null || value === undefined) {
+			return null;
+		}
+		var currDs = fldObj.dataset(),
+			records = currDs.records();
+		
+		if(value !== null &amp;&amp; value !== undefined &amp;&amp; records &amp;&amp; records.length &gt; 1) {
+			var currRec = currDs.getRecord(), 
+				fldName = fldObj.name(),
+				rec;
+			for(var i = 0, len = records.length; i &lt; len; i++) {
+				rec = records[i];
+				if(rec === currRec) {
+					continue;
+				}
+				if(rec[fldName] == value) {
+					return this._addFieldLabel(fldObj.label(), jsletlocale.Dataset.notUnique);
+				}
+			}
+		}
+		return null;
+	},
+	
+<span id='jslet-data-FieldValidator-method-checkValue'>	/**
+</span>	 * Check the specified field value is valid or not
+	 * It will check required, range and custom validation
+	 * 
+	 * @param {jslet.data.Field} fldObj Field Object
+	 * @param {Object} value field value. 
+	 * @return {String} If input text is valid, return null, otherwise return error message.
+	 */
+	checkValue: function(fldObj, value) {
+		if(!fldObj.visible() || fldObj.disabled() || fldObj.readOnly()) {
+			return null;
+		}
+		var result = this.checkRequired(fldObj, value);
+		if(result) {
+			return result;
+		}
+		if(fldObj.valueStyle()) {
+			result = this.checkMultiple(fldObj, value) || this.checkBetween(fldObj, value);
+		} else {
+			result = this.checkDataRange(fldObj, value) || this.checkUnique(fldObj, value);
+		}
+		if(result) {
+			return result;
+		}
+		
+		//Customized validation
+		if (fldObj.customValidator()) {
+			var msg = fldObj.customValidator().call(fldObj.dataset(), fldObj, value, jslet.data.serverValidator);
+			if(msg) {
+				return this._addFieldLabel(fldObj.label(), msg);
+			}
+		}
+		
+		return null;
+	}
+};
+
+<span id='jslet-data-FieldValidator-method-serverValidator'>/**
+</span> * The common function to validate data at server side.
+ * 
+ * @param {String} url - Validating url to connect to server.
+ * @param {Object} reqData - request data to post to server to validate.
+ */
+jslet.data.serverValidator = function(url, reqData) {
+	var ajaxSetting;
+	if(jslet.global.beforeSubmit) {
+		ajaxSetting = jslet.global.beforeSubmit({url: url});
+	}
+	if(!ajaxSetting) {
+		ajaxSetting = {};
+	}
+	ajaxSetting.type = 'POST';
+	ajaxSetting.async = false;
+	ajaxSetting.contentType = 'application/json';
+	ajaxSetting.mimeType = 'application/json';
+	ajaxSetting.dataType = 'json';
+	if(typeof reqData === 'object') {
+		reqData = jslet.JSON.stringify(reqData);
+	}
+	ajaxSetting.data = reqData;
+	var result = null;
+	jQuery.ajax(url, ajaxSetting)
+	.done(function(data, textStatus, jqXHR) {
+		if(data) {
+			var errorCode = data.errorCode;
+			if (errorCode) {
+				result = data.errorMessage;
+			} else {
+				if(jslet.isString(data)) {
+					result = data;
+				} else {
+					result = data.result;
+				}
+			}
+		} else {
+			result = null;
+		}
+	})
+	.fail(function( jqXHR, textStatus, errorThrown ) {
+		var data = jqXHR.responseJSON,
+			result;
+		if(data &amp;&amp; data.errorCode) {
+			result = data.errorMessage;
+		} else {
+			var errorCode = textStatus,
+				errorMessage = textStatus;
+			if(textStatus == 'error') {
+				errorCode = '0000';
+				errorMessage = jsletlocale.Common.ConnectError;
+			}
+			result = errorMessage;
+		}
+	});
+	return result;
+};
+</pre>
+</body>
+</html>

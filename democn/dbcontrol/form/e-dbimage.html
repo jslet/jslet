@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="../../css/demo.css" />
+    
+    <title>Jslet - DBImage</title>
+    <script type="text/javascript" data-main="../../config.js" src="../../lib/requirejs/require.min.js"></script>
+    <script type="text/javascript">
+	    require(['dbcontrol/form/e-dbimage']);
+    </script>
+</head>
+<body>
+    <div class="demo-header">
+    <h4 id="top">Jslet - DBImage</h4>
+	</div>
+	<hr />
+
+	<div data-jslet="type: 'DBTable', dataset: 'employee'" style="margin-bottom: 10px"></div>
+	
+	<div class="container-fluid">
+	<div class="form-horizontal">
+	
+	<div class="form-group form-group-sm" style="height: 150px">
+	<div class="col-sm-2">
+		<label>1、缺省显示</label>
+	</div>
+	<div class="col-sm-1">
+		<img data-jslet="type: 'DBImage', dataset: 'employee', field: 'photo', baseUrl:'../../photo/', altField: 'name'"></img>
+	</div>
+	<div class="col-sm-2">
+		<label>2、点击图片可显示大图片</label>
+	</div>
+	<div class="col-sm-1">
+		<img data-jslet="type: 'DBImage', dataset: 'employee', field: 'photo', baseUrl:'../../photo/', altField: 'name', enableViewer: true"></img>
+	</div>
+	<div class="col-sm-2">
+		<label>3、通过设置公式字段显示动态图片（此示例需要后端服务支持，可查看生成的URL）</label>
+	</div>
+	<div class="col-sm-1">
+		<img data-jslet="type: 'DBImage', dataset: 'employee', field: 'dyncPhoto', altField: 'name'"></img>
+	</div>
+	</div>
+
+	</div>
+	</div>
+	
+	
+	<hr />
+	<h4>源码</h4>
+	<h5>HTML</h5>
+    <pre class="prettyprint linenums"><code>
+    //1、缺省显示
+    &lt;img data-jslet="type: 'DBImage', dataset: 'employee', field: 'photo', baseUrl:'../../photo/', altField: 'name'">&lt;/img>
+    
+    //2、点击图片可显示大图片
+    &lt;img data-jslet="type: 'DBImage', dataset: 'employee', field: 'photo', baseUrl:'../../photo/', altField: 'name', enableViewer: true">&lt;/img>
+    
+    //3、通过设置公式字段显示动态图片（此示例需要后端服务支持，可查看生成的URL）
+    &lt;img data-jslet="type: 'DBImage', dataset: 'employee', field: 'dyncPhoto', altField: 'name'">&lt;/img>
+	</code></pre>
+    
+	<h5>JavaScript</h5>
+    <pre class="prettyprint linenums"><code>
+	//datasetMetaStore定义在公共js:common/datasetmetastore.js中
+	//将数据集定义信息仓库加到datasetFactory中，创建Dataset时会仓库里去定义信息
+	jslet.data.datasetFactory.addMetaStore(window.datasetMetaStore);
+	//通过工厂方法，可以自动创建主数据集及相关的数据集
+    jslet.data.datasetFactory.createDataset('employee').done(function() {
+    	var dsEmployee = jslet.data.getDataset('employee');
+    	
+    	dsEmployee.setVisibleFields(['id', 'name', 'photo']);
+    	
+    	//增加公式字段，实现通过参数取图片功能
+    	dsEmployee.createField({name: 'dyncPhoto', dataType: 'S', length: 30, displayWidth: 20, formula: '"/demo/getphoto?id=" + [id]'})
+    	dsEmployee.query();
+    	jslet.ui.install();
+    });
+	</code></pre>
+
+    <script type="text/javascript">
+       window.LOADER_BASE_URL = "../../lib/prettify";
+    </script>
+    <script type="text/javascript" src="../../lib/prettify/run_prettify.js"></script>
+		
+</body>
+</html>

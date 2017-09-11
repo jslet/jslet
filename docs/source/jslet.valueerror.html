@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js">/* Field value error */
+jslet.data.FieldError = {
+	
+	put: function(record, fldName, errorMsg, valueIndex, inputText) {
+		if(!record) {
+			return;
+		}
+		if(!errorMsg) {
+			jslet.data.FieldError.clear(record, fldName, valueIndex);
+			return;
+		}
+		var recInfo = jslet.data.getRecInfo(record), 
+			errObj = recInfo.error;
+		if(!errObj) {
+			errObj = {};
+			recInfo.error = errObj;
+		}
+		var fldErrObj = errObj[fldName];
+		if(!fldErrObj) {
+			fldErrObj = {};
+			errObj[fldName] = fldErrObj;
+		}
+		var errMsgObj = {message: errorMsg};
+		if(inputText !== undefined) {
+			errMsgObj.inputText = inputText;
+		}
+		if(!valueIndex) {
+			valueIndex = 0;
+		}
+		fldErrObj[valueIndex+&quot;&quot;] = errMsgObj;
+	},
+	
+	get: function(record, fldName, valueIndex) {
+		if(!record) {
+			return null;
+		}
+		var recInfo = jslet.data.getRecInfo(record), 
+			errObj = recInfo.error;
+		if(errObj) {
+			var fldErrObj = errObj[fldName];
+			if(!fldErrObj) {
+				return null;
+			}
+			if(!valueIndex) {
+				valueIndex = 0;
+			}
+			return fldErrObj[valueIndex+&quot;&quot;];
+		} else {
+			return null;
+		}
+	},
+	
+	clear: function(record, fldName, valueIndex) {
+		if(!record) {
+			return;
+		}
+		var recInfo = jslet.data.getRecInfo(record), 
+			errObj = recInfo.error;
+		if(errObj) {
+			var fldErrObj = errObj[fldName];
+			if(!fldErrObj) {
+				return;
+			}
+			if(!valueIndex) {
+				valueIndex = 0;
+			}
+			delete fldErrObj[valueIndex+&quot;&quot;];
+			var found = false;
+			for(var idx in fldErrObj) {
+				found = true;
+				break;
+			}
+			if(!found) {
+				delete errObj[fldName];
+			} 
+		}
+	},
+	
+	existFieldError: function(record, fldName, valueIndex) {
+		if(!record) {
+			return false;
+		}
+		var recInfo = jslet.data.getRecInfo(record), 
+		errObj = recInfo.error;
+		if(errObj) {
+			var fldErrObj = errObj[fldName];
+			if(!fldErrObj){
+				return false;
+			}
+			if(!valueIndex) {
+				valueIndex = 0;
+			}
+			return fldErrObj[valueIndex+&quot;&quot;] ? true: false;
+		}
+		return false;
+	},
+	
+	existRecordError: function(record, includeFields, excludeFields) {
+		if(!record) {
+			return false;
+		}
+		var recInfo = jslet.data.getRecInfo(record);
+		if(!recInfo) {
+			return false;
+		}
+		var errObj = recInfo.error;
+		if(errObj) {
+			for(var fldName in errObj) {
+				if(excludeFields &amp;&amp; excludeFields.indexOf(fldName) &gt;= 0 || 
+					includeFields &amp;&amp; includeFields.indexOf(fldName) &lt; 0) {
+					continue;
+				}
+				if(errObj[fldName]) {
+					return true;
+				}
+			}
+		}
+		return false;
+	},
+	
+	getFirstErrorField: function(record, includeFields, excludeFields) {
+		if(!record) {
+			return null;
+		}
+		var recInfo = jslet.data.getRecInfo(record);
+		if(!recInfo) {
+			return null;
+		}
+		var errObj = recInfo.error;
+		if(errObj) {
+			for(var fldName in errObj) {
+				if(excludeFields &amp;&amp; excludeFields.indexOf(fldName) &gt;= 0 || 
+					includeFields &amp;&amp; includeFields.indexOf(fldName) &lt; 0) {
+					continue;
+				}
+				if(errObj[fldName]) {
+					return fldName;
+				}
+			}
+		}
+		return null;
+	},
+	
+	clearFieldError: function(dataset, fldName) {
+		var records = dataset.records();
+		if(!records) {
+			return;
+		}
+		var rec, errObj, recInfo;
+		for(var i = 0, len = records.length; i &lt; len; i++) {
+			rec = records[i];
+			recInfo = jslet.data.getRecInfo(rec);
+			errObj = recInfo.error;
+			if(errObj) {
+				delete errObj[fldName];
+			}
+		}
+	},
+	
+	clearRecordError: function(record, includeFields, excludeFields) {
+		var recInfo = jslet.data.getRecInfo(record);
+		if(recInfo) {
+			if(jslet.isEmpty(includeFields) &amp;&amp; jslet.isEmpty(excludeFields)) {
+				delete recInfo.error;
+			} else {
+				var errObj = recInfo.error;
+				for(var fldName in errObj) {
+					if(excludeFields &amp;&amp; excludeFields.indexOf(fldName) &gt;= 0 || 
+						includeFields &amp;&amp; includeFields.indexOf(fldName) &lt; 0) {
+						continue;
+					}
+					delete errObj[fldName];
+				}
+			}
+		}
+	},
+	
+	clearDatasetError: function(dataset) {
+		var records = dataset.records();
+		if(!records) {
+			return;
+		}
+		var rec, errObj, recInfo;
+		for(var i = 0, len = records.length; i &lt; len; i++) {
+			rec = records[i];
+			recInfo = jslet.data.getRecInfo(rec);
+			if(recInfo) {
+				delete recInfo.error;
+			}
+		}
+	}
+};
+/*End of field value error manager*/
+</pre>
+</body>
+</html>

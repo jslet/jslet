@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="../css/demo.css" />
+    
+    <title>Jslet - 创建字段</title>
+    <script type="text/javascript" data-main="../config.js" src="../lib/requirejs/require.min.js"></script>
+    <script type="text/javascript">
+	    require(['dataset/b-fields']);
+    </script>
+</head>
+<body>
+    <div class="demo-header">
+    <h4 id="top">Jslet - 创建字段</h4>
+	</div>
+	<hr />
+	<div class="demo-desc">
+	<p>所有的字段类型存放在：jslet.data.DataType类中，最基础的有：S-String, N - Number, D - DateTime, B - Boolean, 其它还有一些特殊字段，后续专题说明。</p>
+	<p>字段的创建有三种方式：</p>
+	</div>
+	<h4>1、与数据集一起创建</h4>
+	<h4>源码</h4>
+    <pre class="prettyprint linenums"><code>
+    //字段信息
+    var deptFldCfg = [
+       {name: 'deptid', dataType: 'S', length: 6, label: '部门编码'}, 
+       {name: 'name', dataType: 'S', length: 15, label: '部门名称'}, 
+       {name: 'address', dataType: 'S', length: 20, label: '部门地址'}, 
+       {name: 'parentid', dataType: 'S', length: 6, label: '父级部门编码', visible:false}];
+
+	//创建数据集对象
+    var dsDept = new jslet.data.Dataset({name: 'department', fields: deptFldCfg});
+	</code></pre>
+
+	<h4>2、向现有的数据集里增加字段</h4>
+	<div id="tblDept" data-jslet="type: 'DBTable', dataset: 'department'"></div>
+	<button id="btnAddField" class="btn btn-default btn-sm">增加字段“Test”</button>
+	<h4>源码</h4>
+    <pre class="prettyprint linenums"><code>
+		function addField() {
+			var dsDept = jslet.data.getDataset('department');
+			dsDept.createField({name: 'test', dataType: 'N', label: 'Test'});
+			//增加后，重新绘制表格控件
+			jslet('#tblDept').renderAll();
+		}    
+	</code></pre>
+	<h4>3、从其它数据集中增加字段</h4>
+	<div id="tblGender" data-jslet="type: 'DBTable', dataset: 'gender'" style="height: 100px"></div>
+	<button id="btnAddFieldFromDs" class="btn btn-default btn-sm">从“部门”数据集中增加字段</button>
+	<h4>源码</h4>
+    <pre class="prettyprint linenums"><code>
+		function addFieldFromDataset() {
+			var dsDept = jslet.data.getDataset('department');
+			var dsGender = jslet.data.getDataset('gender');
+			dsGender.addFieldFromDataset(dsDept, ['address']);
+			//增加后，重新绘制表格控件
+			jslet('#tblGender').renderAll();
+		}    
+	</code></pre>
+
+    <script type="text/javascript">
+		window.LOADER_BASE_URL = "../lib/prettify";
+    </script>
+    <script type="text/javascript" src="../lib/prettify/run_prettify.js"></script>
+		
+</body>
+</html>

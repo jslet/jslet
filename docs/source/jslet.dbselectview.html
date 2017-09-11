@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js"><span id='jslet-ui-DBSelectView'>/**
+</span> * @class 
+ * @extend jslet.ui.DBControl
+ * 
+ * DBSelectView. Example:
+ * 
+ *     @example
+ *      var jsletParam = {type:&quot;DBSelectView&quot;,dataset:&quot;employee&quot;,displayFields:&quot;name&quot;};
+ * 
+ *     //1. Declaring:
+ *      &lt;select data-jslet='type:&quot;DBSelectView&quot;,dataset:&quot;employee&quot;,displayFields:&quot;name&quot;' /&gt;
+ *      or
+ *      &lt;select data-jslet='jsletParam' /&gt;
+ *
+ *     //2. Binding
+ *      &lt;select id=&quot;ctrlId&quot;  /&gt;
+ *      //Js snippet
+ *      var el = document.getElementById('ctrlId');
+ *      jslet.ui.bindControl(el, jsletParam);
+ *
+ *     //3. Create dynamically
+ *      jslet.ui.createControl(jsletParam, document.body);
+ */
+jslet.ui.DBSelectView = jslet.Class.create(jslet.ui.DBControl, {
+<span id='jslet-ui-DBSelectView-method-initialize'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	initialize: function($super, el, params) {
+		var Z = this;
+		Z.allProperties = 'styleClass,dataset,displayFields,groupField';
+
+		Z._groupField = null;
+		
+		Z._displayFields = null;
+
+		Z._innerEditFilterExpr = null;
+		
+		Z._isRendering = false;
+		
+		$super(el, params);
+	},
+
+<span id='jslet-ui-DBSelectView-property-groupField'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get group field name, you can use this to group options. &lt;br /&gt;
+	 * Detail to see HTML &quot;OptGroup&quot; element.
+	 * 
+	 * @param {String | undefined} groupField Group field name.
+	 * 
+	 * @return {this | String}
+	 */
+	groupField: function(groupField) {
+		if(groupField === undefined) {
+			return this._groupField;
+		}
+		groupField = jQuery.trim(groupField);
+		jslet.Checker.test('DBSelectView.groupField', groupField).isString();
+		this._groupField = groupField;
+		return this;
+	},
+	
+<span id='jslet-ui-DBSelectView-property-displayFields'>	/**
+</span>	 * @property
+	 * 
+	 * Display fields to render tree node, it's a js expresssion, like: &quot;[code]+'-'+[name]&quot;.
+	 * 
+	 * @param {String | undefined} displayFields Display fields, it's a js expresssion, like: &quot;[code]+'-'+[name]&quot;.
+	 * 
+	 * @return {this | String}
+	 */
+	displayFields: function(displayFields) {
+		if(displayFields === undefined) {
+			var dispFields = this._displayFields;
+			if(dispFields) {
+				if(this._dataset.getField(dispFields)) {
+					return '[' + dispFields + ']';
+				}
+				return dispFields;
+			} else {
+				var dataset = this._dataset;
+				var dispField = dataset.nameField() || dataset.codeField() || dataset.keyField();
+				if(dispField) {
+					return '[' + dispField + ']';
+				}
+				jslet.Checker.test('DBSelectView.displayFields', dispField).required();
+			}
+		}
+		displayFields = jQuery.trim(displayFields);
+		jslet.Checker.test('DBSelectView.displayFields', displayFields).required().isString();
+		this._displayFields = displayFields;
+		this._innerDisplayFieldsExpr = null;
+		return this;
+	},
+	
+<span id='jslet-ui-DBSelectView-method-isValidTemplateTag'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	isValidTemplateTag: function(el) {
+		return (el.tagName.toLowerCase() == 'select');
+	},
+
+<span id='jslet-ui-DBSelectView-method-bind'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	bind: function() {
+		var Z = this;
+		Z.renderAll();
+		var jqEl = jQuery(Z.el);
+		jqEl.on('change', Z._doChanged);
+		jqEl.addClass('form-control');//Bootstrap class
+	}, // end bind
+
+	_doChanged: function(event) {
+		this.jslet._dataset.recno(parseInt(this.value));
+	},
+	
+	_renderOptions: function() {
+		var Z = this;
+		if(Z._isRendering) {
+			return;
+		}
+		Z._isRendering = true;
+		var dsObj = Z.dataset(),
+			groupIsLookup = false,
+			groupLookup, 
+			groupFldObj, 
+			extraIndex;
+		if (Z._groupField) {
+			groupFldObj = dsObj.getField(Z._groupField);
+			if (groupFldObj === null) {
+				throw 'NOT found field: ' + Z._groupField + ' in ' + dsObj.name();
+			}
+			dsObj.fixedIndexFields(Z._groupField);
+		}
+		var preGroupValue = null, groupValue, groupDisplayValue, content = [];
+
+		var oldRecno = dsObj.recno(),
+			optValue, optDispValue, 
+			firstItemValue = null,
+			dispFieldExpr = Z.displayFields();
+		jslet.Checker.test('DBSelectView.displayFields', dispFieldExpr).required().isString();
+		if(!Z._innerDisplayFieldsExpr) {
+			Z._innerDisplayFieldsExpr = new jslet.data.Expression(dsObj, dispFieldExpr);
+		}
+		var allCnt = 0, displayValue;
+		try {
+			for (var i = 0, cnt = dsObj.recordCount(); i &lt; cnt; i++) {
+				dsObj.recnoSilence(i);
+				if (Z._groupField) {
+					groupValue = dsObj.getFieldValue(Z._groupField);
+					if (groupValue != preGroupValue) {
+						if (preGroupValue !== null) {
+							content.push('&lt;/optgroup&gt;');
+						}
+						if (groupIsLookup) {
+							if (!groupLookup.dataset()
+											.findByField(groupLookup.keyField(), groupValue)) {
+								throw 'Not found: [' + groupValue + '] in Dataset: [' +
+									groupLookup.dataset().name() +
+									']field: [' + groupLookup.keyField() + ']';
+							}
+							groupDisplayValue = groupLookup.getCurrentDisplayValue();
+						} else
+							groupDisplayValue = groupValue;
+
+						content.push('&lt;optgroup label=&quot;');
+						content.push(groupDisplayValue);
+						content.push('&quot;&gt;');
+						preGroupValue = groupValue;
+					}
+				}
+				content.push('&lt;option value=&quot;'+ i +'&quot;&gt;');
+				content.push(Z._innerDisplayFieldsExpr.eval());
+				content.push('&lt;/option&gt;');
+				allCnt++;
+			} // end for
+			if (preGroupValue !== null) {
+				content.push('&lt;/optgroup&gt;');
+			}
+			if(allCnt &gt; 100) {
+				console.warn(dsObj.name() + jsletlocale.DBSelectView.moreLookupRecords);
+			}
+
+			jQuery(Z.el).html(content.join(''));
+		} finally {
+			Z._isRendering = false;
+			dsObj.recnoSilence(oldRecno);
+			Z.el.value = Z.dataset().recno();
+		}
+	}, // end renderOptions
+
+<span id='jslet-ui-DBSelectView-method-renderAll'>	/**
+</span>	 * @override
+	 */
+	renderAll: function() {
+		this._renderOptions();
+		return this;
+	},
+
+	refreshControl: function(evt) {
+		var Z = this,
+			evtType = evt.eventType;
+		if (evtType == jslet.data.RefreshEvent.CHANGEMETA) {
+			//empty
+		} else if (evtType == jslet.data.RefreshEvent.UPDATEALL) {
+			Z.renderAll();
+		} else if (evtType == jslet.data.RefreshEvent.INSERT ||
+			evtType == jslet.data.RefreshEvent.DELETE) {
+			Z.renderAll();
+		} else if (evtType == jslet.data.RefreshEvent.UPDATERECORD ||
+			evtType == jslet.data.RefreshEvent.UPDATECOLUMN) {
+			Z.renderAll();
+		} else if (evtType == jslet.data.RefreshEvent.SCROLL) {
+			Z.el.value = Z.dataset().recno();
+		}
+	}, // end refreshControl
+		
+	
+<span id='jslet-ui-DBSelectView-method-destroy'>	/**
+</span>	 * @override
+	 */
+	destroy: function($super){
+		jQuery(this.el).off();
+		$super();
+	}
+});
+
+jslet.ui.register('DBSelectView', jslet.ui.DBSelectView);
+jslet.ui.DBSelectView.htmlTemplate = '&lt;select&gt;&lt;/select&gt;';
+</pre>
+</body>
+</html>

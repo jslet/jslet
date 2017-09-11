@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js"><span id='jslet-data-DataSelection'>/**
+</span> * @private
+ * @class
+ * 
+ * Data selection class.
+ */
+jslet.data.DataSelection = function(dataset) {
+	this._dataset = dataset;
+	this._selection = [];
+	this._onChanged = null;
+};
+
+jslet.data.DataSelection.prototype = {
+<span id='jslet-data-DataSelection-method-selectAll'>	/**
+</span>	 * Select all data.
+	 * 
+	 * @param {String[]} fields An array of field name to be selected.
+	 * @param {Boolean} fireEvent Identify firing event or not.
+	 */
+	selectAll: function(fields, fireEvent) {
+		jslet.Checker.test('DataSelection.add#fields', fields).isArray();
+		this.removeAll();
+		if(!fields) {
+			var arrFldObj = this._dataset.getNormalFields(), fldName;
+			fields = [];
+			for(var i = 0, len = arrFldObj.length; i &lt; len; i++) {
+				fldName = arrFldObj[i].name();
+				fields.push(fldName);
+			}
+		}
+		this.add(0, this._dataset.recordCount() - 1, fields, fireEvent);
+	},
+	
+<span id='jslet-data-DataSelection-method-removeAll'>	/**
+</span>	 * Remove all selected data.
+	 */
+	removeAll: function() {
+		this._selection = [];
+	},
+	
+<span id='jslet-data-DataSelection-method-add'>	/**
+</span>	 * Add data into selection.
+	 * 
+	 * @param {Integer} startRecno The start recno to be selected.
+	 * @param {Integer} endRecno The end recno to be selected.
+	 * @param {String[]} fields An array of field name to be selected.
+	 * @param {Boolean} fireEvent Identify firing event or not.
+	 */
+	add: function(startRecno, endRecno, fields, fireEvent) {
+		jslet.Checker.test('DataSelection.add#startRecno', startRecno).required().isNumber();
+		jslet.Checker.test('DataSelection.add#endRecno', endRecno).required().isNumber();
+		jslet.Checker.test('DataSelection.add#fields', fields).required().isArray();
+
+		if(endRecno === undefined) {
+			endRecno = startRecno;
+		}
+		var fldName, dsObj = this._dataset, dataType, arrFlds = [];
+		for(var j = 0, fldCnt = fields.length; j &lt; fldCnt; j++) {
+			fldName = fields[j];
+			dataType = dsObj.getField(fldName).dataType();
+			if(dataType === jslet.data.DataType.ACTION || dataType === jslet.data.DataType.EDITACTION) {
+				continue;
+			}
+			arrFlds.push(fldName);
+		}
+		for(var recno = startRecno; recno &lt;= endRecno; recno++) {
+			for(var i = 0, len = arrFlds.length; i &lt; len; i++) {
+				fldName = arrFlds[i];
+				this._selectCell(recno, fldName, true);
+			}
+		}
+		if(fireEvent &amp;&amp; this._onChanged) {
+			this._onChanged(startRecno, endRecno, fields, true);
+		}
+	},
+
+<span id='jslet-data-DataSelection-method-remove'>	/**
+</span>	 * Unselect data.
+	 * 
+	 * @param {Integer} startRecno The start recno to be unselected.
+	 * @param {Integer} endRecno The end recno to be selected.
+	 * @param {String[]} fields An array of field name to be unselected.
+	 * @param {Boolean} fireEvent Identify firing event or not.
+	 */
+	remove: function(startRecno, endRecno, fields, fireEvent) {
+		jslet.Checker.test('DataSelection.remove#startRecno', startRecno).required().isNumber();
+		jslet.Checker.test('DataSelection.remove#endRecno', endRecno).required().isNumber();
+		jslet.Checker.test('DataSelection.remove#fields', fields).required().isArray();
+
+		if(endRecno === undefined) {
+			endRecno = startRecno;
+		}
+		if(startRecno &gt; endRecno) {
+			var tmp = startRecno;
+			startRecno = endRecno;
+			endRecno = tmp;
+		}
+		var fldName;
+		for(var recno = startRecno; recno &lt;= endRecno; recno++) {
+			for(var i = 0, len = fields.length; i &lt; len; i++) {
+				fldName = fields[i];
+				this._selectCell(recno, fldName, false);
+			}
+		}
+		if(fireEvent &amp;&amp; this._onChanged) {
+			this._onChanged(startRecno, endRecno, fields, false);
+		}
+	},
+
+<span id='jslet-data-DataSelection-method-onChanged'>	/**
+</span>	 * Fired when the selection area is changed.
+	 * 
+	 * @param {Function} onChanged The event handler, format:
+	 * 	function(startRecno, endRecno, fields, selected) {
+	 * 		//startRecno - Integer, start recno;
+	 * 		//endRecno - Integer, end recno;
+	 * 		//fields - String[], field names;
+	 * 		//selected - Boolean, selected or not;	
+	 * 	}
+	 * 	
+	 */
+	onChanged: function(onChanged) {
+		if(onChanged === undefined) {
+			return this._onChanged;
+		}
+		jslet.Checker.test('DataSelection.onChanged', onChanged).isFunction();
+		this._onChanged = onChanged;
+	},
+	
+<span id='jslet-data-DataSelection-method-isSelected'>	/**
+</span>	 * Check the specified cell is selected or not.
+	 * 
+	 * @param {Integer} recno Record no.
+	 * @param {String} fldName Field name.
+	 * 
+	 * @return {Boolean}
+	 */
+	isSelected: function(recno, fldName) {
+		jslet.Checker.test('DataSelection.isSelected#recno', recno).required().isNumber();
+		jslet.Checker.test('DataSelection.isSelected#fldName', fldName).required().isString();
+		var selObj;
+		for(var i = 0, len = this._selection.length; i &lt; len; i++) {
+			selObj = this._selection[i];
+			if(selObj._recno_ === recno &amp;&amp; selObj[fldName]) {
+				return true;
+			}
+		}
+		return false;
+	},
+	
+<span id='jslet-data-DataSelection-method-getSelectionText'>	/**
+</span>	 * Get selected text.
+	 * 
+	 * @param {String} seperator Seperator for fields.
+	 * 
+	 * @return {String}
+	 */
+	getSelectionText: function(surround, encodeSpecialData, seperator) {
+		if(!seperator) {
+			seperator = '\t';
+		}
+		var Z = this;
+		surround = surround? surround: '';
+		encodeSpecialData = encodeSpecialData? true: false;
+		var dataset = Z._dataset,
+			result = [], 
+			context = dataset.startSilenceMove(),
+			fields = dataset.getNormalFields(),
+			fldCnt = fields.length, label,
+			labels = [], dispOrder, labelLen,
+			fldName, textRec, fldObj, text, dataType;
+		try {
+			dataset.iterate(function() {
+				textRec = [];
+				for(var i = 0; i &lt; fldCnt; i++) {
+					fldObj = fields[i];
+					fldName = fldObj.name();
+					if(!Z.isSelected(dataset.recno(), fldName)) {
+						continue;
+					}
+					dispOrder = fldObj.displayOrder();
+					labelLen = labels.length;
+					if(labelLen &lt; dispOrder) {
+						for(var j = labelLen; j &lt; dispOrder; j++) {
+							labels[j] = null;
+						}
+					}
+					if(!labels[dispOrder]) {
+						label = fldObj.label();
+						labels.push(jslet.removeHtmlTag(label) || ' ');
+					}
+					//If Number field does not have lookup field, return field value, not field text. 
+					//Example: 'amount' field
+					dataType = fldObj.getType();
+					if(dataType === 'N' &amp;&amp; !fldObj.lookup()) {
+						text = fldObj.getValue();
+						if(text === null || text === undefined) {
+							text = '';
+						}
+						text = surround + text + surround;
+					} else {
+						text = dataset.getFieldText(fldName);
+						if(text === null || text === undefined) {
+							text = '&quot;&quot;';
+						} else {
+							text = text.replace(/&quot;/g,'&quot;&quot;');
+							var isStartZero = false;
+							if(text.startsWith('0')) {
+								isStartZero = true;
+							}
+							text = surround + text + surround;
+							if(encodeSpecialData &amp;&amp; (isStartZero || dataType === jslet.data.DataType.DATE)) {
+								text = '=' + text;
+							}
+						}
+					}
+					
+					textRec.push(text); 
+				} //End for
+				if(textRec.length &gt; 0) {
+					result.push(textRec.join(seperator));
+				}
+			}); //End iterate
+		} finally { 
+			dataset.endSilenceMove(context); 
+		}
+		if(result.length &gt; 0) {
+			var labelStr = '', s, isFirst = true;
+			for(var i = 0, len = labels.length; i &lt; len; i++) {
+				s = labels[i];
+				if(s) {
+					labelStr += (isFirst? '':seperator) + s;
+					isFirst = false;
+				}
+			}
+			return labelStr + '\n' + result.join('\n');
+		} else {
+			return null;
+		}
+	},
+	
+	_selectCell: function(recno, fldName, selected) {
+		var selObj,
+			found = false;
+		for(var i = 0, len = this._selection.length; i &lt; len; i++) {
+			selObj = this._selection[i];
+			if(selObj._recno_ === recno) {
+				found = true;
+				selObj[fldName] = selected;
+			}
+		}
+		if(selected &amp;&amp; !found) {
+			selObj = {_recno_: recno};
+			selObj[fldName] = true;
+			this._selection.push(selObj);
+		}
+	}
+};
+</pre>
+</body>
+</html>

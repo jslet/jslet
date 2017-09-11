@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="../css/demo.css" />
+    
+    <title>Jslet - 录入设置对话框</title>
+    <script type="text/javascript" data-main="../config.js" src="../lib/requirejs/require.min.js"></script>
+    <script type="text/javascript">
+	    require(['dialog/inputsettingdialog']);
+    </script>
+</head>
+<body>
+    <div class="demo-header">
+    <h4 id="top">Jslet - 录入设置对话框</h4>
+	</div>
+	<hr />
+
+<!-- 	<div data-jslet="type: 'DBTable', dataset: 'employee'" style="margin-bottom: 10px"></div> -->
+	<div style="padding-left: 5px;margin-bottom: 10px">
+	    <button class="btn btn-default btn-sm" id="btnQuery"> 查询 </button>
+	    <div class="btn-group">
+	    <button class="btn btn-default btn-sm" id="btnAppend"> 新增 </button>
+	    <button class="btn btn-default btn-sm" id="btnDelete"> 删除 </button>
+	    </div>
+	    <button class="btn btn-default btn-sm" id="btnInputSetting"> 录入设置 </button>
+	</div>
+	<div data-jslet="type: 'DBTable', dataset: 'employee'" style="margin-bottom: 10px"></div>
+	<div data-jslet="type: 'DBEditPanel', dataset: 'employee', columnCount: 4" style="margin-bottom: 10px"></div>
+	<hr />
+	<h4>源码</h4>
+	<h5>HTML</h5>
+    <pre class="prettyprint linenums"><code>
+    //列表
+    &lt;div data-jslet="type: 'DBTable', dataset: 'employee'" style="margin-bottom: 10px">&lt;/div>
+    //编辑区
+    &lt;div data-jslet="type: 'DBEditPanel', dataset: 'employee', columnCount: 4" style="margin-bottom: 10px">&lt;/div>
+	</code></pre>
+    
+	<h5>JavaScript</h5>
+    <pre class="prettyprint linenums"><code>
+	//datasetMetaStore定义在公共js:common/datasetmetastore.js中
+	//将数据集定义信息仓库加到datasetFactory中，创建Dataset时会仓库里去定义信息
+	jslet.data.datasetFactory.addMetaStore(window.datasetMetaStore);
+	//通过工厂方法，可以自动创建主数据集及相关的数据集
+    jslet.data.datasetFactory.createDataset('employee').done(function() {
+		var dsEmployee = jslet.data.getDataset('employee');
+		dsEmployee.query();
+		
+    	jslet.ui.install();
+    });
+    
+    //绑定按钮事件
+	$('#btnQuery').click(function() {
+		var dsEmployee = jslet.data.getDataset('employee');
+		dsEmployee.query();	
+	});
+	$('#btnAppend').click(function() {
+		var dsEmployee = jslet.data.getDataset('employee');
+		dsEmployee.appendRecord();	
+	});
+	$('#btnDelete').click(function() {
+		var dsEmployee = jslet.data.getDataset('employee');
+        jslet.ui.confirm('确实要删除吗?', '确认', function(button) {
+        	if(button === 'ok') {
+        		dsEmployee.deleteRecord();	
+        	}
+        });
+	});
+    
+	$('#btnInputSetting').click(function() {
+		jslet.ui.defaultInputSettingDialog.show('employee');
+	});
+	</code></pre>
+
+    <script type="text/javascript">
+       window.LOADER_BASE_URL = "../lib/prettify";
+    </script>
+    <script type="text/javascript" src="../lib/prettify/run_prettify.js"></script>
+		
+</body>
+</html>

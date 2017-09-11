@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js"><span id='jslet-ui-MessageBox'>/**
+</span>* @class
+* 
+* MessageBox, it can be used to display info, warn, error, confirm, prompt dialog.
+*/
+jslet.ui.MessageBox = function () {
+
+<span id='jslet-ui-MessageBox-method-show'>	/**
+</span>	 * Show message box.
+	 * 
+	 * @param {String} message Message text.
+	 * @param {String} caption Caption text.
+	 * @param {String} iconClass Caption icon class.
+	 * @param {String[]} buttons Array of button names, it's the subset of array ['ok','cancel', 'yes', 'no'], like : ['ok','cancel'].
+	 * @param {Function} callbackFn Callback function when user click one button. 
+	 * @param {String} callbackFn.button Button name which clicked, optional value: ok, cancel, yes, no. 
+	 * @param {String} callbackFn.value Text which user inputted. 
+	 * @param {Integer} hasInput Value inputting flag, options: 0 - none, 1 - single line input, 2 - multiple line input.
+	 * @param {String} defaultValue The default value of Input element, if 'hasInput' = 0, this argument is be ignored.
+	 * @param {Function} validateFn Validate function of input element, if 'hasInput' = 0, this argument is be ignored.
+	 * @param {String} validateFn.value The value which need to be validated, if 'hasInput' = 0, this argument is be ignored.
+	 */
+	this.show = function (message, caption, iconClass, buttons, callbackFn, hasInput, defaultValue, validateFn) {
+
+		var opt = { type: 'window', caption: caption, isCenter: true, resizable: false, minimizable: false, maximizable: false, stopEventBubbling: true, animation: 'fade'};
+		var owin = jslet.ui.createControl(opt);
+		var iconHtml = '';
+		if (iconClass) {
+			iconHtml = '&lt;div class=&quot;jl-msg-icon ';
+			if (iconClass == 'info' || iconClass == 'error' || iconClass == 'question' || iconClass == 'warning') {
+				iconHtml += 'jl-msg-icon-' + iconClass;
+			} else {
+				iconHtml += iconClass;
+			}
+			iconHtml += '&quot;&gt;&lt;i class=&quot;fa ';
+			switch (iconClass) {
+	            case 'info':
+	            	iconHtml += 'fa-info';
+	                break;
+	            case 'error':
+	            	iconHtml += 'fa-times';
+	                break;
+	            case 'success':
+	            	iconHtml += 'fa-check';
+	                break;
+	            case 'warning':
+	            	iconHtml += 'fa-exclamation';
+	                break;
+	            case 'question':
+	            	iconHtml += 'fa-question';
+	                break;
+	            default :
+	            	iconHtml += 'fa-info';
+                 	break;
+	        }
+			iconHtml += '&quot;&gt;&lt;/i&gt;&lt;/div&gt;';
+		}
+
+		var btnCount = buttons.length;
+		var btnHtml = [], btnName, i;
+		if (jsletlocale.isRtl){
+			for (i = btnCount - 1; i &gt;=0; i--) {
+				btnName = buttons[i];
+				btnHtml.push('&lt;button class=&quot;jl-msg-button btn btn-default btn-xs&quot; ');
+				btnHtml.push(' data-jsletname=&quot;');
+				btnHtml.push(btnName);
+				btnHtml.push('&quot;&gt;');
+				btnHtml.push(jsletlocale.MessageBox[btnName]);
+				btnHtml.push('&lt;/button&gt;');
+			}
+		} else {
+			for (i = 0; i &lt; btnCount; i++) {
+				btnName = buttons[i];
+				btnHtml.push('&lt;button class=&quot;jl-msg-button btn btn-default btn-xs&quot; ');
+				btnHtml.push('&quot; data-jsletname=&quot;');
+				btnHtml.push(btnName);
+				btnHtml.push('&quot;&gt;');
+				btnHtml.push(jsletlocale.MessageBox[btnName]);
+				btnHtml.push('&lt;/button&gt;');
+			}
+		}
+		var inputHtml = ['&lt;br /&gt;'];
+		if (hasInput) {
+			if (hasInput == 1) {
+				inputHtml.push('&lt;input type=&quot;text&quot;');
+			} else {
+				inputHtml.push('&lt;textarea rows=&quot;5&quot;');
+			}
+			inputHtml.push(' style=&quot;width:');
+			inputHtml.push('98%&quot;');
+			if (defaultValue !== null &amp;&amp; defaultValue !== undefined) {
+				inputHtml.push(' value=&quot;');
+				inputHtml.push(defaultValue);
+				inputHtml.push('&quot;');
+			}
+			if (hasInput == 1) {
+				inputHtml.push(' /&gt;');
+			} else {
+				inputHtml.push('&gt;&lt;/textarea&gt;');
+			}
+		}
+		if(message) {
+			message = message.replace('\n', '&lt;br /&gt;');
+		}
+		var html = ['&lt;div class=&quot;jl-msg-container&quot;&gt;', iconHtml, '&lt;div class=&quot;' + (hasInput? 'jl-msg-message-noicon': 'jl-msg-message') + '&quot;&gt;',
+					message, inputHtml.join(''), '&lt;/div&gt;', '&lt;/div&gt;',
+					'&lt;div class=&quot;jl-msg-tool&quot;&gt;&lt;div&gt;', btnHtml.join(''), '&lt;/div&gt;&lt;/div&gt;'
+		];
+
+		owin.setContent(html.join(''));
+		var jqEl = jQuery(owin.el);
+		var toolBar = jqEl.find('.jl-msg-tool')[0].firstChild;
+		var inputCtrl = null;
+		if (hasInput == 1) {
+			inputCtrl = jqEl.find('.jl-msg-container input')[0];
+		} else {
+			inputCtrl = jqEl.find('.jl-msg-container textarea')[0];
+		}
+		
+		jQuery(toolBar).on('click', 'button', function(event) {
+			var obtn = event.currentTarget;
+			var btnName = jQuery(obtn).attr('data-jsletname');
+			var value = null;
+			if (hasInput &amp;&amp; btnName == 'ok') {
+				value = inputCtrl.value;
+				if (validateFn &amp;&amp; !validateFn(value)) {
+					inputCtrl.focus();
+					return;
+				}
+			}
+			owin.close();
+			if (callbackFn) {
+				callbackFn(btnName, value);
+			}
+		});
+
+		owin.showModal();
+		owin.setZIndex(99981);
+		var k = btnCount - 1;
+		if (jsletlocale.isRtl) {
+			k = 0;
+		}
+		if(inputCtrl) {
+			inputCtrl.focus();
+		} else {
+			var toolBtn = toolBar.childNodes[k];
+			if(toolBtn) {
+				toolBtn.focus();
+			}
+		}
+		return owin;
+	};
+};
+
+<span id='jslet-ui-method-info'>/**
+</span> * Show info message. Example:
+ * 
+ *     @example
+ *     jslet.ui.info('Finished!', 'Tips');
+ *     jslet.ui.info('Finished!', 'Tips', function(){console.log('info')});
+ *     jslet.ui.info('Finished!', 'Tips', null, 1000); //Auto close after 1 second.
+ *     
+ * @member jslet.ui
+ * 
+ * @param {String} message Message text.
+ * @param {String} caption Caption text.
+ * @param {Function} callbackFn Callback function when user click one button.
+ * @param {Integer} timeout Auto close message box after 'timeout'(ms) elapses. 
+ */
+jslet.ui.info = jslet.ui.alert = function (message, caption, callbackFn, timeout) {
+	var omsgBox = new jslet.ui.MessageBox();
+	if (!caption) {
+		caption = jsletlocale.MessageBox.info;
+	}
+	var owin = omsgBox.show(message, caption, 'info', ['ok'], callbackFn);
+	if(timeout) {
+		timeout = parseInt(timeout);
+		if(!window.isNaN(timeout)) {
+			window.setTimeout(function() {
+				owin.close();
+			}, timeout);
+		}
+	}
+};
+
+
+<span id='jslet-ui-method-error'>/**
+</span> * Show error message. Example:
+ * 
+ *     @examle
+ *     jslet.ui.error('You have made a mistake!', 'Error');
+ *     jslet.ui.error('You have made a mistake!', 'Error', function(){console.log('error')});
+ *     jslet.ui.error('You have made a mistake!', 'Error', null, 1000); //Auto close after 1 second.
+ * 
+ * @member jslet.ui
+ * 
+ * @param {String} message Message text.
+ * @param {String} caption Caption text.
+ * @param {Function} callbackFn Callback function when user click one button.
+ * @param {Integer} timeout Auto close message box after 'timeout'(ms) elapses. 
+ */
+jslet.ui.error = function (message, caption, callbackFn, timeout) {
+	var omsgBox = new jslet.ui.MessageBox();
+	if (!caption) {
+		caption = jsletlocale.MessageBox.error;
+	}
+	var owin = omsgBox.show(message, caption, 'error', ['ok'], callbackFn);
+	if(timeout) {
+		timeout = parseInt(timeout);
+		if(!window.isNaN(timeout)) {
+			window.setTimeout(function() {
+				owin.close();
+			}, timeout);
+		}
+	}
+};
+
+<span id='jslet-ui-method-warn'>/**
+</span> * Show warning message. Example:
+ * 
+ *     @example
+ *     jslet.ui.warn('Program will be shut down!', 'Warning');
+ *     jslet.ui.warn('Program will be shut down!', 'Warning', function(){console.log('warning')});
+ *     jslet.ui.warn('Program will be shut down!', 'Warning', null, 1000); //Auto close after 1 second.
+ *     
+ * @member jslet.ui
+ * 
+ * @param {String} message Message text.
+ * @param {String} caption Caption text.
+ * @param {Function} callbackFn Callback function when user click one button.
+ * @param {Integer} timeout Auto close message box after 'timeout'(ms) elapses. 
+ */
+jslet.ui.warn = function (message, caption, callbackFn, timeout) {
+	var omsgBox = new jslet.ui.MessageBox();
+	if (!caption) {
+		caption = jsletlocale.MessageBox.warn;
+	}
+	var owin = omsgBox.show(message, caption, 'warning', ['ok'], callbackFn);
+	if(timeout) {
+		timeout = parseInt(timeout);
+		if(!window.isNaN(timeout)) {
+			window.setTimeout(function() {
+				owin.close();
+			}, timeout);
+		}
+	}
+};
+
+<span id='jslet-ui-method-confirm'>/**
+</span> * Show confirm message. Example:
+ * 
+ *     @example
+ *     var callbackFn = function(button){
+ *       alert('Button: ' + button + ' clicked!');
+ *     }
+ *     jslet.ui.confirm('Are you sure?', 'Confirm', callbackFn);//show Ok/Cancel
+ *     jslet.ui.confirm('Are you sure?', 'Confirm', callbackFn, true);//show Yes/No/Cancel
+ * 
+ * @member jslet.ui
+ * 
+ * @param {String} message Message text.
+ * @param {String} caption Caption text.
+ * @param {Function} callbackFn Callback function when user click one button. 
+ * @param {String} callbackFn.button Button name which clicked, optional value: ok, cancel, yes, no. 
+ */
+jslet.ui.confirm = function(message, caption, callbackFn, isYesNo){
+	var omsgBox = new jslet.ui.MessageBox();
+	if (!caption) {
+		caption = jsletlocale.MessageBox.confirm;
+	}
+	if (!isYesNo) {
+		omsgBox.show(message, caption, 'question',['ok', 'cancel'], callbackFn);	
+	} else {
+		omsgBox.show(message, caption, 'question', ['yes', 'no', 'cancel'], callbackFn);
+	}
+};
+
+<span id='jslet-ui-method-prompt'>/**
+</span> * Prompt user to input some value. Example:
+ * 
+ *     @example
+ *     var callbackFn = function(button, value){
+ *       alert('Button: ' + button + ', value:' + value);
+ *     };
+ *     
+ *     var validateFn = function(value){
+ *       if (!value){
+ *         alert('Please input some thing!');
+ *         return false;
+ *       }
+ *       return true;
+ *     };
+ *     
+ *     jslet.ui.prompt('Input your name: ', 'Prompt', callbackFn, 'Bob', validateFn);
+ *     jslet.ui.prompt('Input your comments: ', 'Prompt', callbackFn, null, validateFn, true);
+ * 
+ * @member jslet.ui
+ * 
+ * @param {String} message Message text.
+ * @param {String} caption Caption text.
+ * @param {Function} callbackFn Callback function when user click one button. 
+ * @param {String} callbackFn.button Button name which clicked, optional value: ok, cancel, yes, no. 
+ * @param {String} callbackFn.value Text which user inputted. 
+ * @param {String} defaultValue The default value of Input element, if 'hasInput' = 0, this argument is be ignored.
+ * @param {Function} validateFn Validate function of input element, if 'hasInput' = 0, this argument is be ignored.
+ * @param {String} validateFn.value The value which need to be validated, if 'hasInput' = 0, this argument is be ignored.
+ * @param {Boolean} isMultiLine True - user can input multiple lines text, false - only one line text.
+ */
+jslet.ui.prompt = function (message, caption, callbackFn, defaultValue, validateFn, isMultiLine) {
+	var omsgBox = new jslet.ui.MessageBox();
+	if (!caption &amp;&amp; !message) {
+		caption = jsletlocale.MessageBox.prompt;
+	}
+	if (!isMultiLine) {
+		omsgBox.show(message, caption, null, ['ok', 'cancel'], callbackFn, 1, defaultValue, validateFn);
+	} else {
+		omsgBox.show(message, caption, null, ['ok', 'cancel'], callbackFn, 2, defaultValue, validateFn);
+	}
+};
+</pre>
+</body>
+</html>

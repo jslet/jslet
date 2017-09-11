@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js">jslet.data.FieldValueCache = {
+	
+	put: function(record, fieldName, value, valueIndex) {
+		var recInfo = jslet.data.getRecInfo(record), 
+			cacheObj = recInfo.cache;
+		if(!cacheObj) {
+			cacheObj = {};
+			record._jl_.cache = cacheObj;
+		}
+		if(valueIndex || valueIndex === 0) {
+			var fldCacheObj = cacheObj[fieldName];
+			if(!fldCacheObj || !jslet.isObject(fldCacheObj)){
+				fldCacheObj = {};
+				cacheObj[fieldName] = fldCacheObj;
+			}
+			fldCacheObj[valueIndex+&quot;&quot;] = value;
+		} else {
+			cacheObj[fieldName] = value;
+		}
+	},
+	
+	get: function(record, fieldName, valueIndex) {
+		var recInfo = jslet.data.getRecInfo(record), 
+			cacheObj = recInfo.cache;
+		if(cacheObj) {
+			if(valueIndex || valueIndex === 0) {
+				var fldCacheObj = cacheObj[fieldName];
+				if(fldCacheObj &amp;&amp; jslet.isObject(fldCacheObj)){
+					return fldCacheObj[valueIndex+&quot;&quot;];
+				}
+				return undefined;
+			} else {
+				return cacheObj[fieldName];
+			}
+		} else {
+			return undefined;
+		}
+	},
+	
+	clear: function(record, fieldNameOrArray) {
+		var recInfo = jslet.data.getRecInfo(record), 
+			cacheObj = recInfo.cache;
+		if(cacheObj) {
+			var arrFldNames;
+			if(jslet.isString(fieldNameOrArray)) {
+				arrFldNames = fieldNameOrArray.split(',');
+			} else {
+				arrFldNames = fieldNameOrArray;
+			}
+			var j, fldCnt = arrFldNames.length;
+			for(j = 0; j &lt; fldCnt; j++) {
+				delete cacheObj[arrFldNames[j]];
+			}
+		}
+	},
+	
+	clearAll: function(dataset, fieldNameOrArray) {
+		var records = dataset.records();
+		if(!records) {
+			return;
+		}
+		var arrFldNames;
+		if(jslet.isString(fieldNameOrArray)) {
+			arrFldNames = fieldNameOrArray.split(',');
+		} else {
+			arrFldNames = fieldNameOrArray;
+		}
+		var rec, cacheObj, recInfo, j, fldCnt = arrFldNames.length;
+		for(var i = 0, len = records.length; i &lt; len; i++) {
+			rec = records[i];
+			recInfo = jslet.data.getRecInfo(rec);
+			cacheObj = recInfo.cache;
+			if(cacheObj) {
+				for(j = 0; j &lt; fldCnt; j++) {
+					delete cacheObj[arrFldNames[j]];
+				}
+			}
+		}
+	},
+	
+	removeCache: function(record) {
+		var recInfo = jslet.data.getRecInfo(record);
+		delete recInfo.cache;
+	},
+	
+	removeAllCache: function(dataset) {
+		var records = dataset.records();
+		if(!records) {
+			return;
+		}
+		var rec, cacheObj, recInfo;
+		for(var i = 0, len = records.length; i &lt; len; i++) {
+			rec = records[i];
+			if(!rec) {
+				continue;
+			}
+			recInfo = jslet.data.getRecInfo(rec); 
+			delete recInfo.cache;
+		}
+	}
+};
+/*End of field value cache manager*/</pre>
+</body>
+</html>

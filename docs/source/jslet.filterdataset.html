@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js"><span id='jslet-data-FilterDataset'>/**
+</span> * @class
+ */
+jslet.data.FilterDataset = function(hostDataset) {
+	if(!jslet.data.getDataset('ds_logical_opr_')) {
+		var dsObj = new jslet.data.Dataset({name: 'ds_logical_opr_', isEnum: true, records: {'and': jsletlocale.FilterDataset.and, 'or': jsletlocale.FilterDataset.or}});
+		dsObj.isFireGlobalEvent(false);
+	}
+	
+	if(!jslet.data.getDataset('ds_operator_')) {
+		var fldCfg = [{name: 'code', type: 'S', length: 10, label:'code'},
+	                  {name: 'name', type: 'S', length: 30, label:'name'},
+	                  {name: 'range', type: 'S', length: 30, label:'range'}];
+		
+		var dsOperator = new jslet.data.Dataset({name: 'ds_operator_', fields: fldCfg, 
+				keyField: 'code', codeField: 'code', nameField: 'name', autoRefreshHostDataset: true, isFireGlobalEvent: false});
+		dsOperator.records([{code: '==', name: jsletlocale.FilterDataset.equal, range: 'NDSBLH'},
+		                     {code: '!=', name: jsletlocale.FilterDataset.notEqual, range: 'NDS'},
+		                     {code: '&gt;', name: jsletlocale.FilterDataset.greatThan, range: 'ND'},
+		                     {code: '&gt;=', name: jsletlocale.FilterDataset.greatThanAndEqual, range: 'ND'},
+		                     {code: '&lt;', name: jsletlocale.FilterDataset.lessThan, range: 'ND'},
+		                     {code: '&lt;=', name: jsletlocale.FilterDataset.lessThanAndEqual, range: 'ND'},
+		                     
+		                     {code: 'likeany', name: jsletlocale.FilterDataset.likeany, range: 'S'},
+		                     {code: 'likefirst', name: jsletlocale.FilterDataset.likefirst, range: 'S'},
+		                     {code: 'likelast', name: jsletlocale.FilterDataset.likelast, range: 'S'},
+		                     {code: 'between', name: jsletlocale.FilterDataset.between, range: 'NDS'},
+	
+		                     {code: 'select', name: jsletlocale.FilterDataset.select, range: 'LH'},
+		                     {code: 'selfchildren0', name: jsletlocale.FilterDataset.selfchildren0, range: 'H'},
+		                     {code: 'children0', name: jsletlocale.FilterDataset.children0, range: 'H'},
+		                     {code: 'selfchildren1', name: jsletlocale.FilterDataset.selfchildren1, range: 'H'},
+		                     {code: 'children1', name: jsletlocale.FilterDataset.children1, range: 'H'}
+		                     ]);
+	}
+	this._hostDataset = hostDataset;
+	this._filterDataset = null;
+	this._varValues = null;
+};
+
+jslet.data.FilterDataset.prototype = {
+<span id='jslet-data-FilterDataset-method-filterDataset'>	/**
+</span>	 * Get filter dataset, if not found, generate it.
+	 * 
+	 * @return {jslet.data.Dataset}
+	 */
+	filterDataset: function() {
+		var Z = this;
+		if(Z._filterDataset) {
+			return Z._filterDataset;
+		}
+		
+		var id =  jslet.nextId();
+		var fldCfg = [
+            {name: 'name', type: 'S', length: 30, label: 'Field Code'}, 
+            {name: 'label', type: 'S', length: 50, label: 'Field Name'}, 
+            {name: 'dataType', type: 'S', length: 2, label: 'Data Type'}, 
+            {name: 'parentName', type: 'S', length: 30, label: 'Parent Field Code'}, 
+		];
+		var dsFields = jslet.data.createDataset('ds_fields_' + id, fldCfg, 
+				{keyField: 'name', codeField: 'name', nameField: 'label', parentField: 'parentName', autoRefreshHostDataset: true, isFireGlobalEvent: false});
+		
+		var fieldLabels = [];
+		Z._appendFields(Z._hostDataset, fieldLabels);
+		dsFields.records(fieldLabels);
+		
+		function doProxyFieldChanged(dataRec, proxyFldName, proxyFldObj) {
+			if(proxyFldName.endsWith('.Y') || proxyFldName.endsWith('.M') || proxyFldName.endsWith('.YM')) {
+				proxyFldObj.dataType('N');
+				proxyFldObj.length(10);
+				proxyFldObj.scale(0);
+				proxyFldObj.editMask(null);
+				proxyFldObj.displayFormat(null);
+				proxyFldObj.dateFormat(null);
+				proxyFldObj.displayControl(null);
+				proxyFldObj.validChars(null);
+				proxyFldObj.lookup(null);
+				proxyFldObj.editControl('DBText');
+				proxyFldObj.valueStyle(null);
+				return;
+			}
+			var hostFldObj = jslet.data.getDataset(Z._hostDataset).getField(proxyFldName);
+			proxyFldObj.dataType(hostFldObj.dataType());
+			proxyFldObj.length(hostFldObj.length());
+			proxyFldObj.scale(hostFldObj.scale());
+			proxyFldObj.editMask(hostFldObj.editMask());
+
+			proxyFldObj.displayFormat(hostFldObj.displayFormat());
+			proxyFldObj.dateFormat(hostFldObj.dateFormat());
+			proxyFldObj.displayControl(hostFldObj.displayControl());
+			proxyFldObj.validChars(hostFldObj.validChars());
+			if(hostFldObj.lookup()) {
+				var hostLkObj = hostFldObj.lookup();
+				var lkCfg = hostLkObj.toPlanObject();
+				lkCfg.onlyLeafLevel = false;
+				proxyFldObj.lookup(lkCfg);
+//				proxyFldObj.editControl('DBComboSelect');
+				proxyFldObj.editControl('DBAutoComplete');
+			} else {
+				proxyFldObj.lookup(null);
+				var editorObj = hostFldObj.editControl();
+				if(jslet.compareValue(editorObj.type,'DBTextArea') === 0) {
+					editorObj = {type: 'DBText'};
+				}
+				proxyFldObj.editControl(editorObj);
+			}
+			var operator = dataRec.operator;
+			var valueStyle = jslet.data.FieldValueStyle.NORMAL;
+			if(operator == 'between') {
+				valueStyle = jslet.data.FieldValueStyle.BETWEEN;
+			} else if(operator == 'select') {
+				valueStyle = jslet.data.FieldValueStyle.MULTIPLE;
+			}
+			proxyFldObj.valueStyle(valueStyle);
+		}
+		
+		var filterFldCfg = [ 
+             {name: 'lParenthesis', type: 'S', length: 10, label: jsletlocale.FilterDataset.lParenthesis, validChars:'(', tabIndex: 90980}, 
+	         {name: 'hostField', type: 'S', length: 30, label: 'Host Field', visible: false},
+	         {name: 'field', type: 'S', length: 200, displayWidth:30, label: jsletlocale.FilterDataset.field, tabIndex: 90981, 
+	        	 lookup: {dataset: dsFields, onlyLeafLevel: false}, editControl: {type: 'DBComboSelect', textReadOnly: true}, required: true},
+	         {name: 'dataType', type: 'S', length: 10, label: jsletlocale.FilterDataset.dataType, visible: false},
+	         {name: 'operator', type: 'S',length: 50, displayWidth:20, label: jsletlocale.FilterDataset.operator, 
+	        	 lookup: {dataset:&quot;ds_operator_&quot;}, required: true, tabIndex: 90982},
+	         {name: 'value', type: 'P', length: 200, displayWidth:30, label: jsletlocale.FilterDataset.value, tabIndex: 90983, 
+	        		 proxyHostFieldName: 'field', proxyFieldChanged: doProxyFieldChanged, visible: false},
+	         {name: 'valueExpr', type: 'S', length: 30, visible: false},
+	         {name: 'valueExprInput', type: 'S', length: 2, label: ' ', readOnly: true, visible: false,
+	        	 fixedValue: '&lt;button class=&quot;btn btn-defualt btn-xs&quot;&gt;...&lt;/button&gt;', tabIndex: 90984},
+             {name: 'rParenthesis', type: 'S', length: 10, label: jsletlocale.FilterDataset.rParenthesis, validChars:')', tabIndex: 90985}, 
+             {name: 'logicalOpr', type: 'S', length: 10, label: jsletlocale.FilterDataset.logicalOpr, 
+            	 lookup: {dataset:&quot;ds_logical_opr_&quot;}, required: true, defaultValue: 'and', tabIndex: 90986} 
+		];
+		var dsFilter = new jslet.data.Dataset({name: 'dsFilter_' + id, fields: filterFldCfg, isFireGlobalEvent: false});
+		var rule1 = {condition: '[field]', rules: [{field: 'value', customized: function(fldObj, changingFldName){
+			var fldName = dsFilter.getFieldValue('field');
+			if(!fldName) {
+				return;
+			}
+			var valueFldObj = dsFilter.getField('value', true);
+			var hostFldObj = jslet.data.getDataset(Z._hostDataset).getField(fldName), 
+				fldType;
+			if(hostFldObj) {
+				var lkObj = hostFldObj.lookup();
+				if(lkObj) {
+					fldType = (lkObj.dataset().parentField()) ? 'H': 'L';
+				} else {
+					fldType = hostFldObj.getType();
+				}
+				
+			} else {
+				fldType = dsFields.getFieldValue('dataType');
+			}
+			if(changingFldName) {
+				dsFilter.setFieldValue('dataType', fldType);
+			}
+			}}
+		]};
+		
+		var rule2 = {
+			condition: '[dataType]',
+			rules: [{field: 'operator', customized: function(fldObj, changingFldName){
+				var dataType = dsFilter.getFieldValue('dataType');
+				if(!dataType) {
+					return;
+				}
+				fldObj = dsFilter.getField('operator');
+				var lkDs = fldObj.lookup().dataset();
+				lkDs.filter('[range].indexOf(&quot;' + dataType + '&quot;) &gt;= 0');
+				lkDs.filtered(true);
+				lkDs.first();
+				if(changingFldName) {
+					var firstValue = lkDs.getFieldValue('code');
+					dsFilter.setFieldValue('operator', firstValue);
+				}
+				}}
+			]};
+
+		var rule3 = {condition: '[operator]', rules: [{field: 'value', customized: function(fldObj, changingFldName){
+			if(!changingFldName) {
+				return;
+			}
+
+			var oldValueStyle = dsFilter.getField('value').valueStyle();
+			var operator = dsFilter.getFieldValue('operator');
+			var valueStyle = jslet.data.FieldValueStyle.NORMAL;
+			if(operator == 'between') {
+				valueStyle = jslet.data.FieldValueStyle.BETWEEN;
+			}
+			var ctrlType = fldObj.editControl().type;
+			if(operator == 'select') {
+				valueStyle = jslet.data.FieldValueStyle.MULTIPLE;
+				if(ctrlType !== 'DBComboSelect') {
+					fldObj.editControl('DBComboSelect');
+				}
+			} else {
+				var dataType = dsFilter.getFieldValue('dataType');
+				if((dataType == 'L' || dataType == 'H') &amp;&amp; ctrlType !== 'DBAutoComplete') {
+					fldObj.editControl('DBAutoComplete');
+				}
+			}
+			if(oldValueStyle != valueStyle) {
+				fldObj.valueStyle(valueStyle);
+			}
+			}}
+		]};
+		
+		dsFilter.contextRules([rule1, rule2, rule3]);
+		dsFilter.enableContextRule();
+		dsFilter.onFieldChanged(function(fldName, fldValue) {
+			if(fldName == 'field' || fldName == 'operator') {
+				this.setFieldValue('value', null);
+				this.focusEditControl('value');
+			}
+		});
+		this._filterDataset = dsFilter;
+		return dsFilter;
+
+	},
+	
+<span id='jslet-data-FilterDataset-method-getFilterExprText'>	/**
+</span>	 * Get filter expression text.
+	 * 
+	 * @return {String} Filter expression text.
+	 */
+	getFilterExprText: function() {
+		var Z = this,
+			dsFilter = Z._filterDataset;
+		if(!dsFilter || dsFilter.recordCount() === 0) {
+			return null;
+		}
+		this.validate();
+		var result = '', recno,
+			lastRecno = dsFilter.recordCount() - 1;
+		
+		dsFilter.iterate(function() {
+			recno = this.recno();
+			result += this.getFieldValue('lParenthesis') || '';
+			result += this.getFieldText('field') + ' ';
+			result += this.getFieldText('operator') + ' ';
+			result += this.getFieldText('value');
+			result += this.getFieldText('valueExpr');
+			result += this.getFieldValue('rParenthesis') || '';
+			if(recno != lastRecno) {
+				result += ' ' + this.getFieldText('logicalOpr') + ' ';
+			}
+		});
+		return result;
+	},
+	
+<span id='jslet-data-FilterDataset-method-getFilterExpr'>	/**
+</span>	 * Get filter expression.
+	 * 
+	 * @return {String} Filter expression.
+	 */
+	getFilterExpr: function() {
+		var Z = this,
+			dsFilter = Z._filterDataset;
+		if(!dsFilter || dsFilter.recordCount() === 0) {
+			return null;
+		}
+		this.validate();
+		var result = '', recno,
+			lastRecno = dsFilter.recordCount() - 1;
+		
+		dsFilter.iterate(function() {
+			recno = this.recno();
+			var dataType = this.getFieldValue('dataType');
+			result += this.getFieldValue('lParenthesis') || '';
+			
+			result += Z._getFieldFilter(this);
+			result += this.getFieldValue('rParenthesis') || '';
+			if(recno != lastRecno) {
+				result += ' ' + (this.getFieldValue('logicalOpr') == 'or' ?  '||': '&amp;&amp;') + ' ';
+			}
+			
+		});
+		return result;
+	},
+	
+	_appendFields: function(hostDataset, fieldLabels, hostFldName, hostFldLabel) {
+		var fields = jslet.data.getDataset(hostDataset).getNormalFields(),
+			fldObj;
+		for(var i = 0, len = fields.length; i &lt; len; i++) {
+			fldObj = fields[i];
+			//Hidden fields, fixed value fields and dataset fieldS do not need to filter.
+			if(!fldObj.visible() || fldObj.fixedValue() || fldObj.getType() === jslet.data.Dataset.DATASET) { 
+				continue;
+			}
+			var fldCode = fldObj.name(),
+				fldLabel = fldObj.label(),
+				fldDataType = fldObj.getType();
+			if(hostFldName) {
+				fldCode = hostFldName + '.' + fldCode;
+				fldLabel = hostFldLabel + '.' + fldLabel;
+			}
+			var fldCfg = {name: fldCode, label: fldLabel, dataType: fldDataType};
+			if(hostFldName) {
+				fldCfg.parentName = hostFldName;
+			}
+			fieldLabels.push(fldCfg);
+			if(fldDataType === jslet.data.DataType.DATE) {
+				fieldLabels.push({name: fldCode + '.Y', label: fldLabel + '.' + jsletlocale.FilterDataset.year, dataType: 'N', parentName: fldCode});
+				fieldLabels.push({name: fldCode + '.M', label: fldLabel + '.' + jsletlocale.FilterDataset.month, dataType: 'N', parentName: fldCode});
+				fieldLabels.push({name: fldCode + '.YM', label: fldLabel + '.' + jsletlocale.FilterDataset.yearMonth, dataType: 'N', parentName: fldCode});
+			}
+			var lkObj = fldObj.lookup();
+			if(lkObj) {
+				this._appendFields(lkObj.dataset(), fieldLabels, fldCode, fldLabel);
+			}
+		}
+	},
+
+	_getFieldFilter: function(dsFilter) {
+		var	fldName = dsFilter.getFieldValue('field'),
+			dataType = dsFilter.getFieldValue('dataType'),
+			operator = dsFilter.getFieldValue('operator'),
+			value = dsFilter.getFieldValue('value'),
+			valueExpr = dsFilter.getFieldValue('valueExpr'),
+			result = '';
+		//Boolean value
+		if(dataType == 'B') { 
+			result =  '[' + fldName + ']';
+			if(!value) {
+				result =  '!' + result;
+			}
+			return result;
+		}
+		var fldNameStr = '[' + fldName + ']';
+		//Extend date field
+		if(dataType === 'N') {
+			if(fldName.endsWith('.Y')) {
+				fldNameStr = '[' + fldName.substring(0, fldName.length - 2) + ']';
+				fldNameStr = 'jslet.getYear(' + fldNameStr + ')';
+			} else	if(fldName.endsWith('.M')) {
+				fldNameStr = '[' + fldName.substring(0, fldName.length - 2) + ']';
+				fldNameStr = 'jslet.getMonth(' + fldNameStr + ')';
+			} else if(fldName.endsWith('.YM')) {
+				fldNameStr = '[' + fldName.substring(0, fldName.length - 3) + ']';
+				fldNameStr = 'jslet.getYearMonth(' + fldNameStr + ')';
+			}
+		}
+		function getValue(dataType, value) {
+			if(dataType === 'D') {
+				return 'new Date(' + value.getTime() + ')';
+			}
+			if(dataType === 'S') {
+				return '&quot;' + value + '&quot;';
+			}
+			return value;
+		}
+		//Operator: ==, !=, &gt;, &gt;=, &lt;, &lt;=
+		if(operator == '==' || operator == '!=' ||
+		   operator == '&gt;' || operator == '&gt;=' || 
+		   operator == '&lt;' || operator == '&lt;=') {
+			if(dataType === 'L' || dataType === 'H') {
+				dataType = this._hostDataset.getField(fldName).getType();
+			}
+			result = 'jslet.compareValue(' + fldNameStr + ', ' + getValue(dataType, value) + ')';
+			result += operator + '0';
+			return result;
+		}
+		//Operator: between
+		if(operator == 'between') {
+			var value1 = value[0], value2 = null;
+			if(value.length &gt; 1) {
+				value2 = value[1];
+			}
+			if(value1 !== null &amp;&amp; value1 !== undefined) {
+				result += 'jslet.compareValue(' + fldNameStr + ', ' + getValue(dataType, value1) + ') &gt;=0';
+			}
+			if(value2 !== null &amp;&amp; value2 !== undefined) {
+				if(result.length &gt; 0) {
+					result += ' &amp;&amp; ';
+				}
+				result += 'jslet.compareValue(' + fldNameStr + ', ' + getValue(dataType, value2) + ') &lt;=0';
+			}
+			return '(' + result + ')';
+		}
+		//Operator: likeany, likefirst, likelast
+		if(operator == 'likeany' || operator == 'likefirst' || operator == 'likelast') {
+			result = 'like(' + fldNameStr + ', &quot;';
+			if(operator == 'likeany' || operator == 'likelast') {
+				result += '%';
+			}
+			result += value;
+			if(operator == 'likeany' || operator == 'likefirst') {
+				result += '%';
+			}
+			result += '&quot;)';
+			return result;
+		}
+		//Operator: select
+		if(operator == 'select') {
+			dataType = this._hostDataset.getField(fldName).getType();
+			result = 'inlist(' + fldNameStr ; 
+			for(var i = 0, len = value.length; i &lt; len; i++) {
+				result += ',' + getValue(dataType, value[i]);
+			}
+			result += ')';
+			return result;
+		}
+		//Operator: selfchildren0, children0, selfchildren1, children1
+		if(operator == 'selfchildren0' || operator == 'children0' || 
+			operator == 'selfchildren1' || operator == 'children1') {
+			var funcStr = 'inChildren';
+			if(operator == 'selfchildren0' || operator == 'selfchildren1') {
+				funcStr = 'inChildrenAndSelf';
+			} else {
+				result = 'inChildren';
+			}
+			dataType = this._hostDataset.getField(fldName).getType();
+			result = funcStr + '(&quot;' + fldName + '&quot;, ' + getValue(dataType, value) + ',';
+			if(operator == 'selfchildren0' || operator == 'children0') {
+				result += 'false)';
+			} else {
+				result += 'true)';
+			}
+			return result;
+		}
+		return result;
+	},
+	
+	_getFilterValue: function(dsFilter) {
+		return dsFilter.getFieldValue('value');
+	},
+	
+	validate: function() {
+		var dsFilter = this._filterDataset,
+			parenthesisCount = 0,
+			errMsg = null;
+		dsFilter.iterate(function() {
+			parenthesisCount = (this.getFieldValue('lParenthesis') || '').length - (this.getFieldValue('rParenthesis') || '').length;
+			if(this.getFieldValue('value') === null &amp;&amp; this.getFieldValue('valueExpr') === null) {
+				errMsg = jsletlocale.FilterDataset.valueRequired;
+				return true; //Exists invalidate record, break iterating.
+			}
+		});
+		if(!errMsg &amp;&amp; parenthesisCount !== 0) {
+			errMsg = jsletlocale.FilterDataset.parenthesisNotMatched;
+		}
+		if(errMsg) {
+			console.error(errMsg);
+		}
+		return errMsg;
+	},
+	
+	destroy: function() {
+		var lkdsField = this._filterDataset.getField('field').lookup().dataset();
+		this._filterDataset.destroy();
+		lkdsField.destroy();
+	}
+};</pre>
+</body>
+</html>

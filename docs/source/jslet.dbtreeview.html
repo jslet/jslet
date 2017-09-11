@@ -1,0 +1,1292 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js"><span id='jslet-ui-DBTreeView'>/**
+</span> * @class 
+ * @extend jslet.ui.DBControl
+ * 
+ * DBTreeView. &lt;br /&gt; 
+ * Features: &lt;br /&gt;
+ * 1. Perfect performance, you can load unlimited data; &lt;br /&gt;
+ * 2. Checkbox on tree node; &lt;br /&gt;
+ * 3. Relative check, when you check one tree node, its children and its parent will check too; &lt;br /&gt;
+ * 4. Many events for you to customize tree control; &lt;br /&gt;
+ * 5. Context menu supported and you can customize your context menu; &lt;br /&gt;
+ * 6. Icon supported on each tree node. &lt;br /&gt;
+ * 
+ * Example:
+ * 
+ *     @example
+ *     var jsletParam = { type: &quot;DBTreeView&quot;, 
+ *     	dataset: &quot;dsAgency&quot;, 
+ *     	displayFields: &quot;[code]+'-'+[name]&quot;,
+ *      keyField: &quot;id&quot;, 
+ *     	parentField: &quot;parentid&quot;,
+ *      hasCheckBox: true, 
+ *     	iconClassField: &quot;iconcls&quot;, 
+ *     	onCreateContextMenu: doCreateContextMenu, 
+ *     	correlateCheck: true
+ *     };
+ *     
+ *     //1. Declaring:
+ *       &lt;div id=&quot;ctrlId&quot; data-jslet=&quot;jsletParam&quot;&gt;
+ *       or
+ *       &lt;div data-jslet='jsletParam' /&gt;
+ *  
+ *     //2. Binding
+ *       &lt;div id=&quot;ctrlId&quot;  /&gt;
+ *       //Js snippet
+ *     	var el = document.getElementById('ctrlId');
+ *      jslet.ui.bindControl(el, jsletParam);
+ *
+ *     //3. Create dynamically
+ *       jslet.ui.createControl(jsletParam, document.body);
+ */
+jslet.ui.DBTreeView = jslet.Class.create(jslet.ui.DBControl, {
+<span id='jslet-ui-DBTreeView-method-initialize'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	initialize: function($super, el, params) {
+		var Z = this;
+		Z.allProperties = 'styleClass,dataset,displayFields,useArrow,itemHeight,hasLine,hasCheckBox,enableErrorFinding,correlateCheck,correlative,onlyCheckChildren,readOnly,expandLevel,onItemClick,onItemDblClick,beforeCheckBoxClick,afterCheckBoxClick,iconClassField,onGetIconClass,onRenderItem,onCreateContextMenu';
+		Z.requiredProperties = 'displayFields';
+		
+		Z._displayFields = null;
+
+		Z._itemHeight = 22;
+		
+		Z._useArrow = false;
+
+		Z._hasLine = true;
+
+		Z._hasCheckBox = false;
+
+		Z._readOnly = false;
+		
+		Z._correlative = false;
+		
+		Z._onlyCheckChildren = false;
+		
+		Z._iconClassField = null;
+		
+		Z._expandLevel = -1;
+		
+		Z._onItemClick = null;
+		
+		Z._onItemDblClick = null;
+
+		Z._beforeCheckBoxClick = null;
+		
+		Z._afterCheckBoxClick = null;
+
+		Z._onGetIconClass = null;
+		
+		Z._onRenderItem = null;
+		
+		Z._onCreateContextMenu = null;
+		
+		Z._enableErrorFinding = false;
+		
+		Z.iconWidth = null;
+		
+		$super(el, params);
+	},
+	
+<span id='jslet-ui-DBTreeView-property-displayFields'>	/**
+</span>	 * @property
+	 * 
+	 * Display fields to render tree node, it's a js expresssion, like: &quot;[code]+'-'+[name]&quot;.
+	 * 
+	 * @param {String | undefined} displayFields Display fields, it's a js expresssion, like: &quot;[code]+'-'+[name]&quot;.
+	 * 
+	 * @return {this | String}
+	 */
+	displayFields: function(displayFields) {
+		if(displayFields === undefined) {
+			var dispFields = this._displayFields;
+			if(dispFields) {
+				if(this._dataset.getField(dispFields)) {
+					return '[' + dispFields + ']';
+				}
+				return dispFields;
+			} else {
+				var dataset = this._dataset;
+				var dispField = dataset.nameField() || dataset.codeField() || dataset.keyField();
+				if(dispField) {
+					return '[' + dispField + ']';
+				}
+				jslet.Checker.test('DBTreeView.displayFields', dispField).required();
+			}
+		}
+		displayFields = jQuery.trim(displayFields);
+		jslet.Checker.test('DBTreeView.displayFields', displayFields).required().isString();
+		this._displayFields = displayFields;
+		return this;
+	},
+	
+<span id='jslet-ui-DBTreeView-property-itemHeight'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get tree items' height, default is 22px.
+	 * 
+	 * @param {Integer | undefined} itemHeight Tree items' height.
+	 * 
+	 * @return {this | Integer}
+	 */
+	itemHeight: function(itemHeight) {
+		if(itemHeight === undefined) {
+			return this._itemHeight;
+		}
+		jslet.Checker.test('DBTreeView.itemHeight', itemHeight).isNumber();
+		this._itemHeight = itemHeight;
+	},
+	
+<span id='jslet-ui-DBTreeView-property-iconClassField'>	/**
+</span>	 * @property
+	 * 
+	 * If icon class is stored one field, you can set this property to display different tree node icon.
+	 * 
+	 * @param {String | undefined} iconClassField Icon class field.
+	 * 
+	 * @return {this | String}
+	 */
+	iconClassField: function(iconClassField) {
+		if(iconClassField === undefined) {
+			return this._iconClassField;
+		}
+		iconClassField = jQuery.trim(iconClassField);
+		jslet.Checker.test('DBTreeView.iconClassField', iconClassField).isString();
+		this._iconClassField = iconClassField;
+		return this;
+	},
+	
+<span id='jslet-ui-DBTreeView-property-useArrow'>	/**
+</span>	 * @property
+	 * 
+	 * If true, use &quot;Arrow&quot; as expander, else &quot;Plus/Minus&quot; as expander.
+	 * 
+	 * @param {Boolean | undefined} useArrow True - use &quot;Arrow&quot; as expander, False - &quot;Plus/Minus&quot; as expander.
+	 * 
+	 * @return {this | Boolean}
+	 */
+	useArrow: function(useArrow) {
+		if(useArrow === undefined) {
+			return this._useArrow;
+		}
+		this._useArrow = useArrow ? true: false;
+		return this;
+	},
+	
+<span id='jslet-ui-DBTreeView-property-hasLine'>	/**
+</span>	 * @property
+	 * 
+	 * Identify whether there is a line before tree node.
+	 * 
+	 * @param {Boolean | undefined} hasLine True - a line before tree node, False - otherwise.
+	 * 
+	 * @return {this | Boolean}
+	 */
+	hasLine: function(hasLine) {
+		if(hasLine === undefined) {
+			return this._hasLine;
+		}
+		this._hasLine = hasLine ? true: false;
+		return this;
+	},
+	
+<span id='jslet-ui-DBTreeView-property-hasCheckBox'>	/**
+</span>	 * @property
+	 * 
+	 * Identify whether there is a check box on tree node.
+	 * 
+	 * @param {Boolean | undefined} hasCheckBox True - a check box on tree node, false - otherwise.
+	 * 
+	 * @return {this | Boolean}
+	 */
+	hasCheckBox: function(hasCheckBox) {
+		if(hasCheckBox === undefined) {
+			return this._hasCheckBox;
+		}
+		this._hasCheckBox = hasCheckBox ? true: false;
+		return this;
+	},
+	
+	correlateCheck: function(correlateCheck) {
+		return this.correlative(correlateCheck);
+	},
+	
+<span id='jslet-ui-DBTreeView-property-correlative'>	/**
+</span>	 * @property
+	 * 
+	 * If true, when you check one tree node, its children and its parent will be checked too.
+	 * 
+	 * @param {Boolean | undefined} correlative If true, when checking one tree node, its children and its parent will be checked too.
+	 * 
+	 * @return {this | Boolean}
+	 */
+	correlative: function(correlative) {
+		if(correlative === undefined) {
+			return this._correlative;
+		}
+		this._correlative = correlative ? true: false;
+		return this;
+	},
+	
+<span id='jslet-ui-DBTreeView-property-onlyCheckChildren'>	/**
+</span>	 * @property
+	 * 
+	 * If true, only check children.
+	 * 
+	 * @param {Boolean | undefined} onlyCheckChildren True - only check children, false - otherwise.
+	 * 
+	 * @return {this | Boolean}
+	 */
+	onlyCheckChildren: function(onlyCheckChildren) {
+		if(onlyCheckChildren === undefined) {
+			return this._onlyCheckChildren;
+		}
+		this._onlyCheckChildren = onlyCheckChildren ? true: false;
+		return this;
+	},
+	
+<span id='jslet-ui-DBTreeView-property-readOnly'>	/**
+</span>	 * @property
+	 * 
+	 * Identify whether the checkbox is read only or not, ignored if &quot;hasCheckBox&quot; is false.
+	 * 
+	 * @param {Boolean | undefined} readOnly Checkbox is readOnly or not, ignored if hasCheckBox = false.
+	 * 
+	 * @return {this | Boolean}
+	 */
+	readOnly: function(readOnly) {
+		if(readOnly === undefined) {
+			return this._readOnly;
+		}
+		this._readOnly = readOnly ? true: false;
+		return this;
+	},
+	
+<span id='jslet-ui-DBTreeView-property-expandLevel'>	/**
+</span>	 * @property
+	 * 
+	 * Identify the nodes which level is from 0 to &quot;expandLevel&quot; will be expanded when initialize tree.
+	 * 
+	 * @param {Integer | undefined} expandLevel Identify the nodes which level is from 0 to &quot;expandLevel&quot; will be expanded when initialize tree.
+	 * 
+	 * @return {this | Integer}
+	 */
+	expandLevel: function(expandLevel) {
+		if(expandLevel === undefined) {
+			return this._expandLevel;
+		}
+		jslet.Checker.test('DBTreeView.expandLevel', expandLevel).isGTEZero();
+		this._expandLevel = parseInt(expandLevel);
+		return this;
+	},
+	
+<span id='jslet-ui-DBTreeView-property-enableErrorFinding'>	/**
+</span>	 * @property
+	 * 
+	 * Identify whether it's showing the 'Error find' menu item in the context menu.
+	 * 
+	 * @param {Boolean | undefined} enableErrorFinding True - show error find menu item in the context menu, false - otherwise.
+	 * 
+	 * @return {this | Boolean}
+	 */
+	enableErrorFinding: function(enableErrorFinding) {
+		if(enableErrorFinding === undefined) {
+			return this._enableErrorFinding;
+		}
+		this._enableErrorFinding = enableErrorFinding ? true: false;
+		return this;
+	},
+		
+<span id='jslet-ui-DBTreeView-event-onItemClick'>	/**
+</span>	 * @event
+	 * 
+	 * Get or set item clicking event. Example:
+	 * 
+	 *     @example
+	 *     treeObj.onItemClick(function() {});
+	 * 
+	 * @param {Function | undefined} onItemClick Item clicking event.
+	 * 
+	 * @return {this | Function}
+	 */
+	onItemClick: function(onItemClick) {
+		if(onItemClick === undefined) {
+			return this._onItemClick;
+		}
+		jslet.Checker.test('DBTreeView.onItemClick', onItemClick).isFunction();
+		this._onItemClick = onItemClick;
+		return this;
+	},
+	
+<span id='jslet-ui-DBTreeView-event-onItemDblClick'>	/**
+</span>	 * @event
+	 * 
+	 * Get or set item double clicking event. Example:
+	 * 
+	 *     @example
+	 *     treeObj.onItemDblClick(function() {});
+	 * 
+	 * @param {Function | undefined} onItemDblClick Double clicking item event.
+	 * 
+	 * @return {this | Function}
+	 */
+	onItemDblClick: function(onItemDblClick) {
+		if(onItemDblClick === undefined) {
+			return this._onItemDblClick;
+		}
+		jslet.Checker.test('DBTreeView.onItemDblClick', onItemDblClick).isFunction();
+		this._onItemDblClick = onItemDblClick;
+		return this;
+	},
+	
+<span id='jslet-ui-DBTreeView-event-beforeCheckBoxClick'>	/**
+</span>	 * @event
+	 * 
+	 * Set or get before check box clicking event. Example:
+	 * 
+	 *     @example
+	 *     treeObj.beforeCheckBoxClick(function() {});
+	 * 
+	 * @param {Function | undefined} beforeCheckBoxClick Before check box clicking event handler.
+	 * 
+	 * @return {this | Function}
+	 */
+	beforeCheckBoxClick: function(beforeCheckBoxClick) {
+		if(beforeCheckBoxClick === undefined) {
+			return this._beforeCheckBoxClick;
+		}
+		jslet.Checker.test('DBTreeView.beforeCheckBoxClick', beforeCheckBoxClick).isFunction();
+		this._beforeCheckBoxClick = beforeCheckBoxClick;
+		return this;
+	},
+	
+<span id='jslet-ui-DBTreeView-event-afterCheckBoxClick'>	/**
+</span>	 * @event
+	 * 
+	 * Set or get after check box click event. Example:
+	 * 
+	 *     @example
+	 *     treeObj.afterCheckBoxClick(function() {});
+	 * 
+	 * @param {Function | undefined} afterCheckBoxClick After check box clicking event handler.
+	 * 
+	 * @return {this | Function}
+	 */
+	afterCheckBoxClick: function(afterCheckBoxClick) {
+		if(afterCheckBoxClick === undefined) {
+			return this._afterCheckBoxClick;
+		}
+		jslet.Checker.test('DBTreeView.afterCheckBoxClick', afterCheckBoxClick).isFunction();
+		this._afterCheckBoxClick = afterCheckBoxClick;
+		return this;
+	},
+	
+<span id='jslet-ui-DBTreeView-event-onGetIconClass'>	/**
+</span>	 * @event
+	 * 
+	 * You can use this event to customize your tree node icon flexibly. Example:
+	 * 
+	 *     @example
+	 *     treeObj.onGetIconClass(function(keyValue, level, isLeaf) {
+	 *        return 'icon_class';
+	 *     });
+	 *     
+	 * @param {Function | undefined} onGetIconClass Get icon class event.
+	 * @param {String} onGetIconClass.keyValue Key value of tree node.
+	 * @param {Integer} onGetIconClass.level Tree node level.
+	 * @param {Boolean} onGetIconClass.isLeaf Identify whether the tree node is the leaf node.
+	 * @param {String} onGetIconClass.return Icon class name.
+	 * 
+	 * @return {this | Function}
+	 */
+	onGetIconClass: function(onGetIconClass) {
+		if(onGetIconClass === undefined) {
+			return this._onGetIconClass;
+		}
+		jslet.Checker.test('DBTreeView.onGetIconClass', onGetIconClass).isFunction();
+		this._onGetIconClass = onGetIconClass;
+		return this;
+	},
+	
+<span id='jslet-ui-DBTreeView-event-onRenderItem'>	/**
+</span>	 * @event
+	 * 
+	 * Set or get item rendering event. Example:
+	 * 
+	 *     @example
+	 *     treeObj.onRenderItem(function(iconEl, textEl, level, isLeaf) {});
+	 * 
+	 * @param {Function | undefined} onRenderItem Item rendering event.
+	 * @param {HtmlElement} onRenderItem.iconEl HTML element for rendering icon.
+	 * @param {HtmlElement} onRenderItem.textEl HTML element for rendering text.
+	 * @param {Integer} onRenderItem.level Tree node level.
+	 * @param {Boolean} onRenderItem.isLeaf Identify whether the tree node is the leaf node.
+	 * 
+	 * @return {this | Function}
+	 */
+	onRenderItem: function(onRenderItem) {
+		if(onRenderItem === undefined) {
+			return this._onRenderItem;
+		}
+		jslet.Checker.test('DBTreeView.onRenderItem', onRenderItem).isFunction();
+		this._onRenderItem = onRenderItem;
+		return this;
+	},
+	
+<span id='jslet-ui-DBTreeView-event-onCreateContextMenu'>	/**
+</span>	 * @event
+	 * 
+	 * Set or get context menu creating event. It's used to add customized menu. Example:
+	 * 
+	 *     @example
+	 *     treeObj.onCreateContextMenu(function(menuItems) {
+	 *       menuItems.push({ name: '-' });
+	 *       menuItems.push({ id: 'customMenu', name: 'Customized Menu1', onClick: function() { alert('Customized Menu1 clicked!'); } });
+	 *     });
+	 * 
+	 * @param {Function | undefined} onCreateContextMenu context menu creating event.
+	 * @param {Object[]} onCreateContextMenu.menuItems context menu creating event.
+	 * 
+	 * @return {this | Function}
+	 */
+	onCreateContextMenu: function(onCreateContextMenu) {
+		if(onCreateContextMenu === undefined) {
+			return this._onCreateContextMenu;
+		}
+		jslet.Checker.test('DBTreeView.onCreateContextMenu', onCreateContextMenu).isFunction();
+		this._onCreateContextMenu = onCreateContextMenu;
+		return this;
+	},
+	
+<span id='jslet-ui-DBTreeView-method-isValidTemplateTag'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	isValidTemplateTag: function(el) {
+		return el.tagName.toLowerCase() == 'div';
+	},
+	
+<span id='jslet-ui-DBTreeView-method-bind'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	bind: function() {
+		var Z = this,
+			jqEl = jQuery(Z.el);
+		Z.scrBarSize = jslet.ui.scrollbarSize() + 1;
+		
+		if (Z._keyField === undefined) {
+			Z._keyField = Z._dataset.keyField();
+		}
+		var ti = jqEl.attr('tabindex');
+		if (!ti) {
+			jqEl.attr('tabindex', -1);
+		}
+		jqEl.keydown(function(event) {
+			var keyCode = event.which, 
+				ctrlKey = event.ctrlKey;
+			if(ctrlKey &amp;&amp; keyCode === jslet.ui.KeyCode.E) { //ctrl + e
+				Z.gotoNextError();
+				event.preventDefault();
+	       		event.stopImmediatePropagation();
+				return false;
+			}
+			if(ctrlKey &amp;&amp; keyCode === jslet.ui.KeyCode.HOME) { //ctrl + Home
+				Z._dataset.first();
+				event.preventDefault();
+	       		event.stopImmediatePropagation();
+				return false;
+			}
+			if(ctrlKey &amp;&amp; keyCode === jslet.ui.KeyCode.END) { //ctrl + Home
+				Z._dataset.last();
+				event.preventDefault();
+	       		event.stopImmediatePropagation();
+				return false;
+			}
+			if (Z._doKeydown(event.which)) {
+				event.preventDefault();
+			}
+		});
+		jqEl.on('mouseenter', 'td.jl-tree-text', function(event) {
+			jQuery(this).addClass('jl-tree-nodes-hover');
+		});
+		jqEl.on('mouseleave', 'td.jl-tree-text', function(event) {
+			jQuery(this).removeClass('jl-tree-nodes-hover');
+		});
+		if (!jqEl.hasClass('jl-tree')) {
+			jqEl.addClass('jl-tree');
+		}
+        var notFF = ((typeof Z.el.onmousewheel) == 'object'); //firefox or nonFirefox browser
+        var wheelEvent = (notFF ? 'mousewheel' : 'DOMMouseScroll');
+        jqEl.on(wheelEvent, function(event) {
+            var originalEvent = event.originalEvent;
+            var num = notFF ? originalEvent.wheelDelta / -120 : originalEvent.detail / 3;
+            Z.listvm.setVisibleStartRow(Z.listvm.getVisibleStartRow() + num);
+       		event.preventDefault();
+        });
+		
+		Z.renderAll();
+		Z.refreshControl(jslet.data.RefreshEvent.scrollEvent(this._dataset.recno()));
+		Z._createContextMenu();		
+		jslet.ui.resizeEventBus.subscribe(Z);
+	}, // end bind
+	
+<span id='jslet-ui-DBTreeView-method-renderAll'>	/**
+</span>	 * @override
+	*/
+	renderAll: function() {
+		var Z = this,
+			jqEl = jQuery(Z.el);
+		Z.evaluator = new jslet.data.Expression(Z._dataset, Z.displayFields());
+		if(Z._useArrow) {
+			jqEl.removeClass('jl-tree-plus');
+			jqEl.removeClass('jl-tree-plus-nl');
+			jqEl.addClass('jl-tree-arrow');
+		} else {
+			jqEl.removeClass('jl-tree-arrow');
+			if(Z._hasLine) {
+				jqEl.addClass('jl-tree-plus');
+			} else {
+				jqEl.addClass('jl-tree-plus-nl');
+			}
+		}
+		jqEl.html('');
+		Z.oldWidth = jqEl.width();
+		Z.oldHeight = jqEl.height();
+		jqEl.css('line-height', Z._itemHeight + 'px');
+		Z.nodeHeight = Z.iconWidth = (Z._itemHeight || parseInt(jslet.ui.getCssValue('jl-tree', 'line-height')));
+		var strHeight = jqEl[0].style.height; 
+		if(strHeight.indexOf('%') &gt; 0) {
+			Z.treePanelHeight = jqEl.parent().height() * parseFloat(strHeight) / 100;
+		} else {
+			Z.treePanelHeight = jqEl.height();
+		}
+		Z.treePanelWidth = jqEl.width();
+		Z.nodeCount = Math.floor(Z.treePanelHeight / Z.nodeHeight);
+
+		Z._initVm();
+		Z._initFrame();
+		Z.listvm.syncDataset();
+	}, // end renderAll
+	
+	_initFrame: function() {
+		var Z = this,
+			jqEl = jQuery(Z.el);
+			
+		jqEl.find('.jl-tree-container').off();
+		jqEl.find('.jl-tree-scrollbar').off();
+		
+		var strCheckbox = '&lt;span class=&quot;fa-stack jl-tree-mixedchecked jl-hidden&quot;&gt;&lt;i class=&quot;fa fa-square fa-stack-1x&quot;&gt;&lt;/i&gt;&lt;i class=&quot;fa fa-square-o fa-stack-2x&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;/span&gt;';
+		strCheckbox += '&lt;span class=&quot;fa fa-check-square-o jl-tree-checked jl-hidden&quot;&gt;&lt;/span&gt;';
+		strCheckbox += '&lt;span class=&quot;fa fa-square-o jl-tree-unchecked jl-hidden&quot;&gt;&lt;/span&gt;';
+		var lines = [], i, cnt;
+		for(i = 0; i &lt; 5; i++) {//Default cells for lines is 5
+			lines.push('&lt;td class=&quot;jl-tree-unit jl-tree-lines&quot; ');
+			lines.push(jslet.ui.DBTreeView.NODETYPE);
+			lines.push('=&quot;0&quot;&gt;&lt;/td&gt;');
+		}
+		var strLines = lines.join(''),
+			tmpl = ['&lt;div class=&quot;jl-tree-container&quot;&gt;'],
+			flag = !Z._hasLine || Z._useArrow;
+		for(i = 0, cnt = Z.nodeCount; i &lt; cnt; i++) {
+			tmpl.push('&lt;table class=&quot;jl-tree-nodes&quot; cellpadding=&quot;0&quot; cellspacing=&quot;0&quot;&gt;&lt;tr&gt;');
+			tmpl.push(strLines);
+			tmpl.push('&lt;td class=&quot;jl-tree-unit jl-tree-expander&quot; ');
+			tmpl.push(jslet.ui.DBTreeView.NODETYPE);//expander
+			tmpl.push('=&quot;1&quot;&gt;');
+			if(flag) {
+				if(Z._useArrow) {
+					tmpl.push('&lt;i class=&quot;fa fa-caret-right&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;');
+				} else {
+					tmpl.push('&lt;i class=&quot;fa fa-plus-square-o&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;');
+				}
+			}
+			tmpl.push('&lt;/td&gt;&lt;td class=&quot;jl-tree-unit jl-tree-checkbox&quot; ');
+			tmpl.push(jslet.ui.DBTreeView.NODETYPE);//checkbox
+			tmpl.push('=&quot;2&quot;&gt;' + strCheckbox + '&lt;/td&gt;&lt;td ');
+			tmpl.push(jslet.ui.DBTreeView.NODETYPE);//icon
+			tmpl.push('=&quot;3&quot;&gt;&lt;/td&gt;&lt;td class=&quot;jl-tree-text&quot; ');
+			tmpl.push(jslet.ui.DBTreeView.NODETYPE);//text
+			tmpl.push('=&quot;9&quot; nowrap=&quot;nowrap&quot;&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;');
+		}
+		tmpl.push('&lt;/div&gt;&lt;div class=&quot;jl-tree-scrollbar&quot;&gt;&lt;div class=&quot;jl-tree-tracker&quot;&gt;&lt;/div&gt;&lt;/div&gt;');
+		jqEl.html(tmpl.join(''));
+		
+		jqEl.on('click', 'td[data-nodetype]', function(event) {
+			Z._doRowClick(event.currentTarget);
+			event.stopImmediatePropagation();
+		});
+		jqEl.on('dblclick', 'td[data-nodetype]', function(event) {
+			Z._doRowDblClick(event.currentTarget);
+			event.stopImmediatePropagation();
+		});
+		Z.listvm.setVisibleCount(Z.nodeCount);
+		var sb = jqEl.find('.jl-tree-scrollbar');
+		
+		sb.on('scroll',function() {
+			var numb = Math.ceil(this.scrollTop/Z.nodeHeight);
+			if (numb != Z.listvm.getVisibleStartRow()) {
+				Z._skip_ = true;
+				try {
+					Z.listvm.setVisibleStartRow(numb);
+				} finally {
+					Z._skip_ = false;
+				}
+			}
+		});	
+	},
+	
+<span id='jslet-ui-DBTreeView-method-gotoNextError'>	/**
+</span>	 * Goto next error record if dataset exists error records. Press 'Ctrl + E' to call this method.
+	 */
+	gotoNextError: function() {
+		var Z = this;
+		if(!Z._dataset.nextError()) {
+			Z._dataset.firstError();
+		}
+	},
+
+	resize: function() {
+		var Z = this,
+			jqEl = jQuery(Z.el),
+			height = jqEl.height(),
+			width = jqEl.width();
+		if (width != Z.oldWidth) {
+			Z.oldWidth = width;
+			Z.treePanelWidth = jqEl.innerWidth();
+			Z._fillData();
+		}
+		if (height != Z.oldHeight) {
+			Z.oldHeight = height;
+			Z.treePanelHeight = jqEl.innerHeight();
+			Z.nodeCount = Math.floor(height / Z.nodeHeight) - 1;
+			Z._initFrame();
+		}
+	},
+	
+	hasChildren: function() {
+		return this.listvm.hasChildren();
+	},
+	
+	_initVm:function() {
+		var Z=this;
+		Z.listvm = new jslet.ui.ListViewModel(Z._dataset, true);
+		Z.listvm.refreshModel(Z._expandLevel);
+		Z.listvm.fixedRows=0;
+		
+		Z.listvm.onTopRownoChanged=function(rowno) {
+			rowno = Z.listvm.getCurrentRowno();
+			Z._fillData();
+			Z._doCurrentRowChanged(rowno);
+			Z._syncScrollBar(rowno);
+		};
+		
+		Z.listvm.onVisibleCountChanged=function() {
+			Z._fillData();
+			var allCount = Z.listvm.getNeedShowRowCount();
+			jQuery(Z.el).find('.jl-tree-tracker').height(Z.nodeHeight * allCount);
+		};
+		
+		Z.listvm.onCurrentRownoChanged=function(prevRowno, rowno) {
+			Z._doCurrentRowChanged(rowno);
+		};
+		
+		Z.listvm.onNeedShowRowsCountChanged = function(allCount) {
+			Z._fillData();
+			jQuery(Z.el).find('.jl-tree-tracker').height(Z.nodeHeight * (allCount + 2));
+		};
+		
+		Z.listvm.onCheckStateChanged = function() {
+			Z._fillData();
+		};
+	},
+	
+	_doKeydown: function(keyCode) {
+		var Z = this, result = false;
+		if (keyCode === jslet.ui.KeyCode.SPACE) {//space
+			Z._doCheckBoxClick();
+			result = true;
+		} else if (keyCode === jslet.ui.KeyCode.UP) {//KEY_UP
+			Z.listvm.priorRow();
+			Z._dataset.recno(Z.listvm.getCurrentRecno());
+			result = true;
+		} else if (keyCode === jslet.ui.KeyCode.DOWN) {//KEY_DOWN
+			Z.listvm.nextRow();
+			Z._dataset.recno(Z.listvm.getCurrentRecno());
+			result = true;
+		} else if (keyCode === jslet.ui.KeyCode.LEFT) {//KEY_LEFT
+			if (jsletlocale.isRtl) {
+				Z.listvm.expand();
+			} else {
+				Z.listvm.collapse();
+			}
+			result = true;
+		} else if (keyCode === jslet.ui.KeyCode.RIGHT) {//KEY_RIGHT
+			if (jsletlocale.isRtl) {
+				Z.listvm.collapse();
+			} else {
+				Z.listvm.expand();
+			}
+			result = true;
+		} else if (keyCode === jslet.ui.KeyCode.PAGEUP) {//KEY_PAGEUP
+			Z.listvm.priorPage();
+			Z._dataset.recno(Z.listvm.getCurrentRecno());
+			result = true;
+		} else if (keyCode === jslet.ui.KeyCode.PAGEDOWN) {//KEY_PAGEDOWN
+			Z.listvm.nextPage();
+			Z._dataset.recno(Z.listvm.getCurrentRecno());
+			result = true;
+		}
+		return result;
+	},
+	
+	_getTrByRowno: function(rowno) {
+		var nodes = jQuery(this.el).find('.jl-tree-nodes'), row;
+		for(var i = 0, cnt = nodes.length; i &lt; cnt; i++) {
+			row = nodes[i].rows[0];
+			if (row.jsletrowno == rowno) {
+				return row;
+			}
+		}
+		return null;
+	},
+	
+	_doCurrentRowChanged: function(rowno) {
+		var Z = this;
+		if (Z.prevRow) {
+			jQuery(Z._getTextTd(Z.prevRow)).removeClass(jslet.ui.htmlclass.TREENODECLASS.selected);
+		}
+		var otr = Z._getTrByRowno(rowno);
+		if (otr) {
+			jQuery(Z._getTextTd(otr)).addClass(jslet.ui.htmlclass.TREENODECLASS.selected);
+		}
+		Z.prevRow = otr;
+	},
+	
+	_getTextTd: function(otr) {
+		return otr.cells[otr.cells.length - 1];
+	},
+	
+	_doExpand: function() {
+		this.expand();
+	},
+	
+	_doRowClick: function(treeNode) {
+		var Z = this,
+			nodeType = treeNode.getAttribute(jslet.ui.DBTreeView.NODETYPE);
+		if(!nodeType) {
+			return;
+		}
+		if (nodeType != '0') {
+			Z._syncToDs(treeNode);
+		}
+		if (nodeType == '1' || nodeType == '2') { //expander
+			var item = Z.listvm.getCurrentRow();
+			if (nodeType == '1' &amp;&amp; item.children &amp;&amp; item.children.length &gt; 0) {
+				if (item.expanded) {
+					Z.collapse();
+				} else {
+					Z.expand();
+				}
+			}
+			if (nodeType == '2') {//checkbox
+				Z._doCheckBoxClick();
+			}
+		}
+		if(nodeType == '9') {
+			Z._doCheckBoxClick();
+			if(Z._onItemClick) {
+				Z._onItemClick.call(Z);
+			}
+		}
+	},
+	
+	_doRowDblClick: function(treeNode) {
+		this._syncToDs(treeNode);
+		var nodeType = treeNode.getAttribute(jslet.ui.DBTreeView.NODETYPE);
+		if (this._onItemDblClick &amp;&amp; nodeType == '9') {
+			this._onItemDblClick.call(this);
+		}
+	},
+	
+	_doCheckBoxClick: function() {
+		var Z = this;
+		if (Z._readOnly) {
+			return;
+		}
+		var node = Z.listvm.getCurrentRow();
+		if(!node.hasCheckbox) {
+			return;
+		}
+		if (Z._beforeCheckBoxClick &amp;&amp; !Z._beforeCheckBoxClick.call(Z)) {
+			return;
+		}
+		Z.listvm.checkNode(!Z._dataset.selected()? 1:0, Z._correlative, Z._onlyCheckChildren);
+		if (Z._afterCheckBoxClick) {
+			Z._afterCheckBoxClick.call(Z);
+		}
+	},
+	
+	_syncToDs: function(otr) {
+		var rowno = -1, k;
+		while(true) {
+			k = otr.jsletrowno;
+			if (k === 0 || k) {
+				rowno = k;
+				break;
+			}
+			otr = otr.parentNode;
+			if (!otr) {
+				break;
+			}
+		}
+		if (rowno &lt; 0) {
+			return;
+		}
+		this.listvm.setCurrentRowno(rowno);
+		this._dataset.recno(this.listvm.getCurrentRecno());
+	},
+	
+	_fillData: function() {
+		var Z = this,
+			vCnt = Z.listvm.getVisibleCount(), 
+			topRowno = Z.listvm.getVisibleStartRow(),
+			allCnt = Z.listvm.getNeedShowRowCount(),
+			availbleCnt = vCnt + topRowno,
+			index = 0,
+			jqEl = jQuery(Z.el),
+			nodes = jqEl.find('.jl-tree-nodes'), node;
+		if (Z._isRendering) {
+			return;
+		}
+
+		Z._isRendering = true;
+		Z._skip_ = true;
+		var oldRecno = Z._dataset.recnoSilence(),
+			preRowNo = Z.listvm.getCurrentRowno(),
+			ajustScrBar = true, maxNodeWidth = 0, nodeWidth;
+		try{
+			if (allCnt &lt; availbleCnt) {
+				for(var i = availbleCnt - allCnt; i &gt; 0; i--) {
+					node = nodes[vCnt - i];
+					node.style.display = 'none';
+				}
+				ajustScrBar = false; 
+			} else {
+				allCnt = availbleCnt;
+			}
+			var endRow = allCnt - 1;
+			
+			for(var k = topRowno; k &lt;= endRow; k++) {
+				node = nodes[index++];
+				nodeWidth = Z._fillNode(node, k);
+				if (ajustScrBar &amp;&amp; maxNodeWidth &lt; Z.treePanelWidth) {
+					if (k == endRow &amp;&amp; nodeWidth &lt; Z.treePanelWidth) {
+						ajustScrBar = false;
+					} else {
+						maxNodeWidth = Math.max(maxNodeWidth, nodeWidth);
+					}
+				}
+				if (k == endRow &amp;&amp; ajustScrBar) {
+					node.style.display = 'none';
+				} else {
+					node.style.display = '';
+					node.jsletrowno = k;
+				}
+			}
+		} finally {
+			Z.listvm.setCurrentRowno(preRowNo, false);
+			Z._dataset.recnoSilence(oldRecno);
+			Z._isRendering = false;
+			Z._skip_ = false;
+		}
+		window.setTimeout(function() {
+			Z._checkScrollBar();
+		}, 5);
+	},
+
+	_setCheckClsName: function(oCheckBox, expanded) {
+		var jqCheckBox = jQuery(oCheckBox);
+		if (!expanded) {
+			jqCheckBox.find('.jl-tree-checked').addClass('jl-hidden');
+			jqCheckBox.find('.jl-tree-mixedchecked').addClass('jl-hidden');
+			jqCheckBox.find('.jl-tree-unchecked').removeClass('jl-hidden');
+		} else if (expanded == 2) { //mixed checked
+			jqCheckBox.find('.jl-tree-checked').addClass('jl-hidden');
+			jqCheckBox.find('.jl-tree-mixedchecked').removeClass('jl-hidden');
+			jqCheckBox.find('.jl-tree-unchecked').addClass('jl-hidden');
+		} else {
+			jqCheckBox.find('.jl-tree-checked').removeClass('jl-hidden');
+			jqCheckBox.find('.jl-tree-mixedchecked').addClass('jl-hidden');
+			jqCheckBox.find('.jl-tree-unchecked').addClass('jl-hidden');
+		}
+	},
+	
+	_fillNode: function(nodeTbl, rowNo) {
+		var row = nodeTbl.rows[0],
+			Z = this,
+			item = Z.listvm.setCurrentRowno(rowNo, true),
+			cells = row.cells, 
+			cellCnt = cells.length, 
+			requiredCnt = item.level + 4,
+			otd, i, cnt;
+		Z._dataset.recnoSilence(Z.listvm.getCurrentRecno());
+		row.jsletrowno = rowNo;
+		if (cellCnt &lt; requiredCnt) {
+			for(i = 1, cnt = requiredCnt - cellCnt; i &lt;= cnt; i++) {
+				otd = row.insertCell(0);
+				jQuery(otd).addClass('jl-tree-unit jl-tree-lines').attr('jsletline', 1);
+			}
+		}
+		if (cellCnt &gt;= requiredCnt) {
+			for(i = 0, cnt = cellCnt - requiredCnt; i &lt; cnt; i++) {
+				cells[i].style.display = 'none';
+			}
+			for(i = cellCnt - requiredCnt; i &lt; requiredCnt; i++) {
+				cells[i].style.display = '';
+			}
+		}
+		cellCnt = cells.length;
+		//Line
+		var pitem = item, k = 1, totalWidth = Z.iconWidth * item.level;
+		for(i = item.level; i &gt; 0; i--) {
+			otd = row.cells[cellCnt- 4 - k++];
+			pitem = pitem.parent;
+			if (pitem.islast) {
+				otd.className = jslet.ui.htmlclass.TREELINECLASS.empty;
+			} else {
+				otd.className = jslet.ui.htmlclass.TREELINECLASS.line;
+			}
+		}
+
+		//expander
+		var oexpander = row.cells[cellCnt- 4],
+			jqSign;
+		oexpander.noWrap = true;
+		oexpander.style.display = '';
+		if (item.children &amp;&amp; item.children.length &gt; 0) {
+			if(!Z._useArrow &amp;&amp; Z._hasLine) {
+				if (!item.islast) {
+					oexpander.className = item.expanded ? jslet.ui.htmlclass.TREELINECLASS.minus : jslet.ui.htmlclass.TREELINECLASS.plus;
+				} else {
+					oexpander.className = item.expanded ? jslet.ui.htmlclass.TREELINECLASS.minusBottom : jslet.ui.htmlclass.TREELINECLASS.plusBottom;
+				}
+			} else {
+				jqSign = jQuery(oexpander.childNodes[0]);
+				if(Z._useArrow) {
+					if(item.expanded) {
+						jqSign.addClass('jl-tree-rotate-45');
+						
+					} else {
+						jqSign.removeClass('jl-tree-rotate-45');
+					}
+				} else {
+					if(item.expanded) {
+						jqSign.removeClass('fa-plus-square-o');
+						jqSign.addClass('fa-minus-square-o');
+					} else {
+						jqSign.addClass('fa-plus-square-o');
+						jqSign.removeClass('fa-minus-square-o');
+					}
+				}
+				jqSign.show();
+			}
+		} else {
+			if(!Z._useArrow &amp;&amp; Z._hasLine) {
+				if (!item.islast) {
+					oexpander.className = jslet.ui.htmlclass.TREELINECLASS.join;
+				} else {
+					oexpander.className = jslet.ui.htmlclass.TREELINECLASS.joinBottom;
+				}
+			} else {
+				jqSign = jQuery(oexpander.childNodes[0]);
+				jqSign.hide();
+			}
+		}
+		totalWidth += Z.iconWidth;
+				
+		// CheckBox
+		var flag = Z._hasCheckBox &amp;&amp; Z._dataset.checkSelectable();
+		var node = Z.listvm.getCurrentRow();
+		node.hasCheckbox = flag;
+		var ocheckbox = row.cells[cellCnt- 3];
+		if (flag) {
+			ocheckbox.noWrap = true;
+			Z._setCheckClsName(ocheckbox, Z._dataset.selected());
+			ocheckbox.style.display = '';
+			totalWidth += Z.iconWidth;
+		} else {
+			ocheckbox.style.display = 'none';
+		}
+		//Icon
+		var oIcon = row.cells[cellCnt- 2],
+			clsName = 'jl-tree-unit jl-tree-icon',
+			iconClsId = null;
+
+		var isLeaf = !(item.children &amp;&amp; item.children.length &gt; 0);
+		if(Z._iconClassField || Z._onGetIconClass) {
+			if(Z._iconClassField) {
+				iconClsId = Z._dataset.getFieldValue(Z._iconClassField);
+			} else if (Z._onGetIconClass) {
+				iconClsId = Z._onGetIconClass.call(Z, Z._dataset.keyValue(), item.level, isLeaf); //keyValue, level, isLeaf
+			}
+			if (iconClsId) {
+				clsName = iconClsId + ' '+ clsName;
+			}
+			if (oIcon.className != clsName) {
+				oIcon.className = clsName;
+			}
+			oIcon.style.display = '';
+			totalWidth += Z.iconWidth;
+		} else {
+			oIcon.style.display = 'none';
+		}
+		//Text
+		var text = Z.evaluator.eval() || '      ';
+		jslet.ui.textMeasurer.setElement(Z.el);
+		var width = Math.round(jslet.ui.textMeasurer.getWidth(text)) + 10;
+		totalWidth += width + 10;
+		jslet.ui.textMeasurer.setElement();
+		var oText = row.cells[cellCnt- 1];
+		oText.style.width = width + 'px';
+
+		var jqTd = jQuery(oText);
+		jqTd.html(text);
+		if(Z._dataset.existRecordError()) {
+			if(!jqTd.hasClass('has-error')) {
+				jqTd.addClass('has-error');
+			}
+			oText.title = Z._dataset.getRecordErrorInfo();
+		} else {
+			if(jqTd.hasClass('has-error')) {
+				jqTd.removeClass('has-error');
+			}
+			oText.title = jqTd.text();
+		}
+		
+		if (item.isbold) {
+			jqTd.addClass('jl-tree-child-checked');
+		} else {
+			jqTd.removeClass('jl-tree-child-checked');
+		}
+		if(Z._onRenderItem) {
+			Z._onRenderItem.call(Z, oIcon, oText, item.level, isLeaf); //keyValue, level, isLeaf
+		}
+		return totalWidth;
+	},
+		
+	_syncScrollBar: function() {
+		var Z = this;
+		if (Z._skip_) {
+			return;
+		}
+		jQuery(Z.el).find('.jl-tree-scrollbar').scrollTop(Z.nodeHeight * Z.listvm.getVisibleStartRow());
+	},
+	
+	_checkScrollBar: function() {
+		var jqScr = jQuery(this.el).find('.jl-tree-scrollbar');
+		var scr = jqScr[0];
+		if(scr.scrollHeight &gt; scr.clientHeight) {
+			jqScr.removeClass('jl-tree-scrollbar-hidden');
+		} else {
+			if(!jqScr.hasClass('jl-tree-scrollbar-hidden')) {
+				jqScr.addClass('jl-tree-scrollbar-hidden');
+			}
+		}
+	},
+	
+<span id='jslet-ui-DBTreeView-method-expand'>	/**
+</span>	 * Expand the current tree node.
+	 */
+	expand: function() {
+		this.listvm.expand();
+	},
+	
+<span id='jslet-ui-DBTreeView-method-collapse'>	/**
+</span>	 * Collapse the current tree node.
+	 */
+	collapse: function() {
+		this.listvm.collapse();
+	},
+	
+<span id='jslet-ui-DBTreeView-method-expandAll'>	/**
+</span>	 * Expand all child nodes of the current tree node.
+	 */
+	expandAll: function() {
+		this.listvm.expandAll();
+	},
+	
+<span id='jslet-ui-DBTreeView-method-collapseAll'>	/**
+</span>	 * Collapse all child nodes of the current tree node.
+	 */
+	collapseAll: function() {
+		this.listvm.collapseAll();
+	},
+	
+	_createContextMenu: function() {
+		if (!jslet.ui.Menu) {
+			return;
+		}
+		var Z = this;
+		var menuCfg = { type: 'Menu', onItemClick: jQuery.proxy(Z._menuItemClick, Z), items: []};
+		if (Z._hasCheckBox) {
+			menuCfg.items.push({ id: 'checkAll', name: jsletlocale.DBTreeView.checkAll });
+			menuCfg.items.push({ id: 'uncheckAll', name: jsletlocale.DBTreeView.uncheckAll });
+			menuCfg.items.push({ name: '-' });
+		}
+		menuCfg.items.push({ id: 'expandAll', name: jsletlocale.DBTreeView.expandAll });
+		menuCfg.items.push({ id: 'collapseAll', name: jsletlocale.DBTreeView.collapseAll});
+		if(Z._enableErrorFinding) {
+			menuCfg.items.push({ name: '-' });
+			menuCfg.items.push({ id: 'nextError', name: jsletlocale.DBTreeView.nextError});
+		}
+
+		if (Z._onCreateContextMenu) {
+			Z._onCreateContextMenu.call(Z, menuCfg.items);
+		}
+		if (menuCfg.items.length === 0) {
+			return;
+		}
+		Z.contextMenu = jslet.ui.createControl(menuCfg);
+		jQuery(Z.el).on('contextmenu', function(event) {
+			var node = event.target,
+				nodeType = node.getAttribute(jslet.ui.DBTreeView.NODETYPE);
+			if(!nodeType || nodeType == '0') {
+				return;
+			}
+			Z._syncToDs(node);
+			Z.contextMenu.showContextMenu(event, Z);
+		});
+	},
+	
+	_menuItemClick: function(menuCfg, checked) {
+		var menuId = menuCfg.id;
+		var Z = this;
+		if (menuId == 'expandAll') {
+			Z.expandAll();
+		} else if (menuId == 'collapseAll') {
+			Z.collapseAll();
+		} else if (menuId == 'checkAll') {
+			Z.listvm.checkChildNodes(true, true);
+			if (Z._afterCheckBoxClick) {
+				Z._afterCheckBoxClick.call(Z);
+			}
+		} else if (menuId == 'uncheckAll') {
+			Z.listvm.checkChildNodes(false, true);
+			if (Z._afterCheckBoxClick) {
+				Z._afterCheckBoxClick.call(Z);
+			}
+		} else if (menuId == 'nextError') {
+			Z.gotoNextError();
+		}
+		
+	},
+	
+	refreshControl: function(evt) {
+		var Z = this,
+			evtType = evt.eventType;
+		if (evtType == jslet.data.RefreshEvent.CHANGEMETA) {
+			//empty
+		} else if (evtType == jslet.data.RefreshEvent.UPDATEALL) {
+			Z.renderAll();
+		} else if (evtType == jslet.data.RefreshEvent.INSERT ||
+			evtType == jslet.data.RefreshEvent.DELETE) {
+			Z.listvm.refreshModel(Z._expandLevel);
+			if(evtType == jslet.data.RefreshEvent.INSERT) {
+				Z.listvm.syncDataset();
+			}
+		} else if (evtType == jslet.data.RefreshEvent.UPDATERECORD ||
+			evtType == jslet.data.RefreshEvent.UPDATECOLUMN) {
+			Z._fillData();
+		} else if (evtType == jslet.data.RefreshEvent.SELECTALL) {
+			if (Z._hasCheckBox) {
+				Z._fillData();
+			}
+		} else if (evtType == jslet.data.RefreshEvent.SELECTRECORD) {
+			if (Z._hasCheckBox) {
+				Z.listvm.checkNode(Z._dataset.selected(), Z._correlative, Z._onlyCheckChildren);
+			}
+		} else if (evtType == jslet.data.RefreshEvent.SCROLL) {
+			Z.listvm.syncDataset();
+		}
+	}, // end refreshControl
+		
+<span id='jslet-ui-DBTreeView-method-checkSizeChanged'>	/**
+</span>	 * @protected
+	 * 
+	 * Run when container size changed, it's revoked by jslet.ui.resizeEventBus.
+	 * 
+	 */
+	checkSizeChanged: function() {
+		this.resize();
+	},
+
+<span id='jslet-ui-DBTreeView-method-destroy'>	/**
+</span>	 * @override
+	 */
+	destroy: function($super) {
+		var Z = this,
+			jqEl = jQuery(Z.el);
+		
+		jslet.ui.resizeEventBus.unsubscribe(Z);
+		jqEl.find('.jl-tree-nodes').off();
+		Z.listvm.destroy();
+		Z.listvm = null;
+		Z.prevRow = null;
+		
+		$super();
+	}
+});
+
+jslet.ui.htmlclass.TREELINECLASS = {
+		line : 'jl-tree-unit jl-tree-lines jl-tree-line',// '|'
+		join : 'jl-tree-unit jl-tree-lines jl-tree-join',// |-
+		joinBottom : 'jl-tree-unit jl-tree-lines jl-tree-join-bottom',// |_
+		minus : 'jl-tree-unit  jl-tree-expander jl-tree-lines jl-tree-minus',// O-
+		minusBottom : 'jl-tree-unit jl-tree-expander jl-tree-lines jl-tree-minus-bottom',// o-_
+		noLineMinus : 'jl-tree-unit  jl-tree-expander jl-tree-lines jl-tree-noline-minus',// o-
+		plus : 'jl-tree-unit jl-tree-expander jl-tree-lines jl-tree-plus',// o+
+		plusBottom : 'jl-tree-unit jl-tree-expander jl-tree-lines jl-tree-plus-bottom',// o+_
+		noLinePlus : 'jl-tree-unit jl-tree-expander jl-tree-lines jl-tree-noline-plus',// o+
+		empty : 'jl-tree-unit'
+};
+jslet.ui.htmlclass.TREECHECKBOXCLASS = {
+	checked : 'jl-tree-unit jl-tree-checkbox jl-tree-checked',
+	unChecked : 'jl-tree-unit jl-tree-checkbox jl-tree-unchecked',
+	mixedChecked : 'jl-tree-unit jl-tree-checkbox jl-tree-mixedchecked'
+};
+
+jslet.ui.htmlclass.TREENODECLASS = {
+	selected : 'jl-tree-selected',
+	childChecked : 'jl-tree-child-checked',
+	treeNodeLevel : 'jl-tree-child-level'
+};
+
+jslet.ui.DBTreeView.NODETYPE = 'data-nodetype';
+
+jslet.ui.register('DBTreeView', jslet.ui.DBTreeView);
+jslet.ui.DBTreeView.htmlTemplate = '&lt;div&gt;&lt;/div&gt;';
+
+
+</pre>
+</body>
+</html>

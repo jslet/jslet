@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="../css/demo.css" />
+    
+    <title>Jslet - Clone数据集（查询条件）</title>
+    <script type="text/javascript" data-main="../config.js" src="../lib/requirejs/require.min.js"></script>
+    <script type="text/javascript">
+	    require(['dataset/c-clonedataset']);
+    </script>
+</head>
+<body>
+    <h4 id="top">Jslet - Clone数据集（查询条件）</h4>
+    <p>如果某个数据集与另外一个数据集结构差不多，则可以先Clone数据集，然后再做调整。</p>
+    <p>常用的功能就是从主数据集Clone一个出来作为查询条件用。</p>
+	</div>
+	<hr />
+	<div>查询条件</div>
+	<div data-jslet="type: 'DBEditPanel', dataset: 'criteria'"></div>
+	<div>员工信息&nbsp;&nbsp;&nbsp;<button class="btn btn-default btn-sm" id="btnQuery">查询</button></div>
+	<div data-jslet="type: 'DBTable', dataset: 'employee'" style="height: 200px"></div>
+	<div class="demo-desc">
+	<h4>源码</h4>
+    <pre class="prettyprint linenums"><code>
+	//datasetMetaStore定义在公共js:common/datasetmetastore.js中
+	//将数据集定义信息仓库加到datasetFactory中，创建Dataset时会仓库里去定义信息
+	jslet.data.datasetFactory.addMetaStore(window.datasetMetaStore);
+	//通过工厂方法，可以自动创建主数据集及相关的数据集
+    jslet.data.datasetFactory.createDataset('employee').done(function() {
+    	cloneDataset();
+    	jslet.ui.install();
+    });
+    
+    function cloneDataset() {
+		var dsEmployee = jslet.data.getDataset('employee');
+		//Clone出一个数据集：criteria，用于输入查询条件
+		var dsCriteria = dsEmployee.clone('criteria', ['salary','gender']);
+		//修改“工资”字段的属性
+		dsCriteria.getField('salary').valueStyle(jslet.data.FieldValueStyle.BETWEEN);
+		dsCriteria.insertRecord();
+		dsCriteria.autoShowError(false);
+    }
+    //绑定按钮事件
+	$('#btnQuery').click(function() {
+		var dsEmployee = jslet.data.getDataset('employee');
+		var dsCriteria = jslet.data.getDataset('criteria');
+		dsEmployee.queryUrl('/demo/employee/find');
+		//将Criteria数据集中的数据作为查询条件，传给服务端
+		dsEmployee.query(dsCriteria.getRecord());
+		dsEmployee.first();
+	});
+	</code></pre>
+
+    <script type="text/javascript">
+       window.LOADER_BASE_URL = "../lib/prettify";
+    </script>
+    <script type="text/javascript" src="../lib/prettify/run_prettify.js"></script>
+		
+</body>
+</html>

@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js"><span id='jslet-ui-Control'>/**
+</span>* @class
+* 
+* Control Class, base class for all control.
+*/
+jslet.ui.Control = jslet.Class.create({
+<span id='jslet-ui-Control-method-initialize'>	/**
+</span>	 * @protected
+	 * 
+	 * Constructor method.
+	 * 
+	 * @param {HtmlElement} el HTML element.
+	 * @param {String | Object} ctrlParams Parameters of this control, it would be a JSON string or plan object, like: '{prop1: value1, prop2: value2}'.
+	 */
+	initialize: function (el, ctrlParams) {
+		var Z = this;
+		Z.el = el;
+
+		Z.allProperties = null;
+		ctrlParams = jslet.ui._evalParams(ctrlParams);
+		if (Z.isValidTemplateTag	&amp;&amp; !Z.isValidTemplateTag(Z.el)) {
+			var ctrlClass = jslet.ui.getControlClass(ctrlParams.type), template;
+			if (ctrlClass) {
+				template = ctrlClass.htmlTemplate;
+			} else {
+				template = '';
+			}
+			throw new Error(jslet.formatMessage(jsletlocale.DBControl.invalidHtmlTag, template));
+		}
+		Z._styleClass = null;
+		
+		Z.styleClass = function(styleClass) {
+			if(styleClass === undefined) {
+				return Z._styleClass;
+			}
+			Z._styleClass = styleClass;
+		};
+		
+		Z._childControls = null;
+		Z.setParams(ctrlParams);
+		Z.checkRequiredProperty();
+		Z.el.jslet = this;
+		Z.beforeBind();
+		if(!Z.el.id) {
+			Z.el.id = jslet.nextId();
+		}
+		Z.bind();
+		var jqEl = jQuery(Z.el);
+		if(Z._styleClass) {
+			jqEl.addClass(Z._styleClass);
+		}
+		Z.afterBind();
+	},
+
+<span id='jslet-ui-Control-method-beforeBind'>	/**
+</span>	 * @protected
+	 * 
+	 * Before bind.
+	 * Child control can extend this method.
+	 */
+	beforeBind: function() {
+		
+	},
+	
+<span id='jslet-ui-Control-method-bind'>	/**
+</span>	 * @protected
+	 * 
+	 * Bind this control to a HTML element.
+	 */
+	bind: function() {
+		
+	},
+	
+<span id='jslet-ui-Control-method-afterBind'>	/**
+</span>	 * @protected
+	 * 
+	 * After bind.
+	 */
+	afterBind: function() {
+		
+	},
+	
+<span id='jslet-ui-Control-method-renderAll'>	/**
+</span>	 * @protected
+	 * 
+	 * Render this control, if control configuration is changed, call this method to refresh control.
+	 * 
+	 * @return {this}
+	 */
+	renderAll: function() {
+		return this;
+	},
+	
+<span id='jslet-ui-Control-method-setParams'>	/**
+</span>	 * @protected
+	 */
+	setParams: function (ctrlParams) {
+		if (!ctrlParams) {
+			return;
+		}
+		var ctrlType = ctrlParams.type;
+		this.styleClass(ctrlParams.styleClass);
+		
+		for(var name in ctrlParams) {
+			var prop = this[name];
+			if(name == 'type' || name == 'styleClass') {
+				continue;
+			}
+			if(prop &amp;&amp; prop.call) {
+				prop.call(this, ctrlParams[name]);
+			} else {
+				throw new Error(ctrlType +  &quot; NOT support control property: &quot; + name);
+			}
+		}
+	},
+
+<span id='jslet-ui-Control-method-checkRequiredProperty'>	/**
+</span>	 * @protected
+	 */
+	checkRequiredProperty: function () {
+		if (!this.requiredProperties) {
+			return;
+		}
+		var arrProps = this.requiredProperties.split(','),
+			cnt = arrProps.length, name;
+		for (var i = 0; i &lt; cnt; i++) {
+			name = arrProps[i].trim();
+			if (!this[name]) {
+				throw new Error(jslet.formatMessage(jsletlocale.DBControl.expectedProperty, [name]));
+			}
+		}
+	},
+	
+<span id='jslet-ui-Control-method-addChildControl'>	/**
+</span>	 * @protected
+	 * 
+	 * Add child control into this control.
+	 */
+	addChildControl: function(childCtrl) {
+		var Z = this;
+		if(!Z._childControls) {
+			Z._childControls = [];
+		}
+		if(childCtrl) {
+			Z._childControls.push(childCtrl);
+		}
+	},
+	
+<span id='jslet-ui-Control-method-doUIChanged'>	/**
+</span>	 * @protected
+	 * 
+	 * Refresh dataset when user changed the value.
+	 */
+	doUIChanged: function () {},
+	
+<span id='jslet-ui-Control-method-removeAllChildControls'>	/**
+</span>	 * @protected
+	 * 
+	 * Remove all child controls from this control.
+	 */
+	removeAllChildControls: function() {
+		var Z = this, childCtrl;
+		if(Z._childControls) {
+			for(var i = 0, len = Z._childControls.length; i &lt; len; i++) {
+				childCtrl = Z._childControls[i];
+				childCtrl.destroy();
+			}
+			Z._childControls = null;
+		}
+        if(Z.el) {
+            Z.el.innerHTML = '';
+        }
+	},
+	
+<span id='jslet-ui-Control-method-destroy'>	/**
+</span>	 * Destroy method
+	 */
+	destroy: function(){
+		if(this.el) {
+			this.el.jslet = null;
+			this.el = null;
+		}
+	}
+});
+
+<span id='jslet-ui-DBControl'>/**
+</span> * @class
+ * @extend jslet.ui.Control
+ * 
+ * Base data sensitive control.
+ */
+jslet.ui.DBControl = jslet.Class.create(jslet.ui.Control, {
+	
+<span id='jslet-ui-DBControl-method-initialize'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	initialize: function ($super, el, ctrlParams) {
+		$super(el, ctrlParams);
+	},
+
+	_dataset: undefined,
+
+	_isDBControl: true,
+	
+<span id='jslet-ui-DBControl-property-dataset'>	/**
+</span>	 * @property
+	 * 
+	 * Dataset which to link to control.
+	 * 
+	 * @param {String | undefined} dataset Dataset name.
+	 * 
+	 * @return {this | jslet.data.Dataset}
+	 */
+	dataset: function(dataset) {
+		if(dataset === undefined) {
+			return this._dataset;
+		}
+
+		if (jslet.isString(dataset)) {
+			dataset = jslet.data.getDataset(jQuery.trim(dataset));
+		}
+		
+		jslet.Checker.test('DBControl.dataset', dataset).required().isClass(jslet.data.Dataset.className);
+		this._dataset = dataset;
+		return this;
+	},
+
+<span id='jslet-ui-DBControl-method-setParams'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	setParams: function ($super, ctrlParams) {
+		$super(ctrlParams);
+		if(this._isDBControl &amp;&amp; !this._dataset) {
+			var dsName = this.getDatasetInParentElement();
+			this.dataset(dsName);
+		}
+	},
+	
+<span id='jslet-ui-DBControl-method-beforeBind'>	/**
+</span>	 * @protected
+	 * @override
+	 * 
+	 * Call this method before binding parameters to a HTML element, you can rewrite this in your owner control.
+	 */
+	beforeBind: function ($super) {
+		$super();
+		if(this._isDBControl) {
+			this._dataset.addLinkedControl(this);
+		}
+	},
+
+<span id='jslet-ui-DBControl-method-checkRequiredProperty'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	checkRequiredProperty: function($super) {
+		if(this._isDBControl) {
+			jslet.Checker.test('DBControl.dataset', this._dataset).required();
+		}
+		$super();
+	},
+	
+<span id='jslet-ui-DBControl-method-refreshControl'>	/**
+</span>	 * @protected
+	 * 
+	 * Refresh control when data changed.
+	 * There are three type changes: meta changed, data changed, lookup data changed.
+	 * 
+	 * @param {jslet.data.RefreshEvent} evt jslet refresh event object.
+	 * 
+	 * @return {Boolean} if refresh successfully, return true, otherwise false.
+	 */
+	refreshControl: function (evt) {
+		var Z = this, evtType;
+		if(evt) {
+			evtType = evt.eventType;
+		} else {
+			evtType = jslet.data.RefreshEvent.UPDATEALL;
+		}
+		// Meta changed 
+		if (evtType == jslet.data.RefreshEvent.CHANGEMETA) {
+			var metaName = evt.metaName;
+			if(Z._field &amp;&amp; Z._field == evt.fieldName) {
+				Z.doMetaChanged(metaName);
+			} else {
+				if(!Z._field &amp;&amp; (metaName == 'visible' || metaName == 'editControl')) {
+					Z.doMetaChanged(metaName);
+				}
+			}
+			return true;
+		}
+		//Lookup data changed
+		if(evtType == jslet.data.RefreshEvent.UPDATELOOKUP &amp;&amp; evt.fieldName == Z._field) {
+			Z.doLookupChanged(evt.isMetaChanged);
+			return true;
+		}
+
+		//Value changed
+		if (evtType == jslet.data.RefreshEvent.SCROLL || 
+				evtType == jslet.data.RefreshEvent.INSERT ||
+				evtType == jslet.data.RefreshEvent.DELETE) {
+			Z.doValueChanged();
+			return true;
+		}
+		if((evtType == jslet.data.RefreshEvent.UPDATERECORD ||
+			evtType == jslet.data.RefreshEvent.UPDATECOLUMN) &amp;&amp; 
+			evt.fieldName === undefined || evt &amp;&amp; evt.fieldName == Z._field){
+			Z.doValueChanged();
+			return true;
+		}
+		if(evtType == jslet.data.RefreshEvent.UPDATEALL) {
+			Z.doMetaChanged();
+			Z.doLookupChanged();
+			Z.doValueChanged();
+			return true;
+		}
+		
+		return true;
+	}, // end refreshControl
+	
+<span id='jslet-ui-DBControl-method-doMetaChanged'>	/**
+</span>	 * @protected
+	 * 
+	 * Refresh UI when field meta is changed.
+	 * 
+	 * @param {String} metaName Field meta name, like: readOnly, disabled,...
+	 */
+	doMetaChanged: function(metaName){},
+	
+<span id='jslet-ui-DBControl-method-doValueChanged'>	/**
+</span>	 * @protected
+	 * 
+	 * Refresh UI when field value is changed.
+	 */
+	doValueChanged: function() {},
+	
+<span id='jslet-ui-DBControl-method-doLookupChanged'>	/**
+</span>	 * @protected
+	 * 
+	 * Refresh UI when field lookup value is changed.
+	 */
+	doLookupChanged: function() {},
+	
+<span id='jslet-ui-DBControl-method-getDatasetInParentElement'>	/**
+</span>	 * @private
+	 */
+	getDatasetInParentElement: function () {
+		var el = this.el, pEl = null;
+		while (true) {
+			pEl = jslet.ui.getParentElement(el, 1);
+			if (!pEl) {
+				break;
+			}
+			if (pEl.jslet) {
+				return pEl.jslet.dataset;
+			}
+			el = pEl;
+		} //end while
+		return null;
+	},
+
+<span id='jslet-ui-DBControl-method-destroy'>	/**
+</span>	 * @override
+	 */
+	destroy: function ($super) {
+		this.removeAllChildControls();
+		if (this._isDBControl &amp;&amp; this._dataset) {
+			this._dataset.removeLinkedControl(this);
+		}
+		this._dataset = null;
+		$super();
+	}
+});
+
+<span id='jslet-ui-DBFieldControl'>/**
+</span> * @class
+ * @extend jslet.ui.DBControl
+ * 
+ * Base data sensitive field control. It's the base class for all form controls.
+ */
+jslet.ui.DBFieldControl = jslet.Class.create(jslet.ui.DBControl, {
+	initialize: function ($super, el, ctrlParams) {
+		$super(el, ctrlParams);
+	},
+
+	_field: undefined,
+	
+	_valueIndex: undefined,
+	
+	_enableInvalidTip: true,
+	
+	_tableId: null,
+	
+	_tabIndex: null,
+	
+<span id='jslet-ui-DBFieldControl-property-field'>	/**
+</span>	 * @property
+	 * 
+	 * Field name which to link to control.
+	 * 
+	 * @param {String | undefined} fldName Field name.
+	 * 
+	 * @return {this | String}
+	 */
+	field: function(fldName) {
+		if(fldName === undefined) {
+			return this._field;
+		}
+		
+		fldName = jQuery.trim(fldName);
+		jslet.Checker.test('DBControl.field', fldName).isString().required();
+		var k = fldName.lastIndexOf('#');
+		if(k &gt; 0) {
+			this._fieldMeta = fldName.substring(k+1);
+			fldName = fldName.substring(0, k);
+		}
+		
+		this._field = fldName;
+		return this;
+	},
+	
+	fieldMeta: function() {
+		return this._fieldMeta;
+	},
+	
+<span id='jslet-ui-DBFieldControl-property-valueIndex'>	/**
+</span>	 * @property
+	 * 
+	 * Field value index which to link to control. 
+	 * 
+	 * @param {Integer | undefined} valueIndex Field value index.
+	 * 
+	 * @return {this | Integer}
+	 */
+	valueIndex: function(valueIndex) {
+		if(valueIndex === undefined) {
+			return this._valueIndex;
+		}
+		jslet.Checker.test('DBControl.valueIndex', valueIndex).isNumber();
+		
+		this._valueIndex = parseInt(valueIndex);
+		return this;
+	},
+	
+<span id='jslet-ui-DBFieldControl-property-tabIndex'>	/**
+</span>	 * @property
+	 * 
+	 * Tab index of control. 
+	 * 
+	 * @param {Integer | undefined} tabIndex Tab index.
+	 * 
+	 * @return {this | Integer}
+	 */
+	tabIndex: function(tabIndex) {
+		if(tabIndex === undefined) {
+			return this._tabIndex;
+		}
+		jslet.Checker.test('DBControl.tabIndex', tabIndex).isNumber();
+		this._tabIndex = tabIndex;
+		return this;
+	},
+	
+<span id='jslet-ui-DBFieldControl-method-setParams'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	setParams: function ($super, ctrlParams) {
+		$super(ctrlParams);
+		if(this._isDBControl) {
+			var value = ctrlParams.valueIndex;
+			if (value !== undefined) {
+				this.valueIndex(value);
+			}
+		}
+		var tbIdx = ctrlParams.tabIndex;
+		if(tbIdx !== undefined) {
+			this.tabIndex(tbIdx);
+		}
+		
+	},
+ 
+<span id='jslet-ui-DBFieldControl-method-checkRequiredProperty'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	checkRequiredProperty: function($super) {
+		$super();
+		if(this._isDBControl) {
+			jslet.Checker.test('DBControl.field', this._field).required();
+			this.existField(this._field);
+		}
+	},
+
+<span id='jslet-ui-DBFieldControl-method-doMetaChanged'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	doMetaChanged: function($super, metaName){
+		$super(metaName);
+		if(!metaName || metaName == 'tip') {
+			var fldObj = this._dataset.getField(this._field);
+			if(!fldObj) {
+				throw new Error('Field: ' + this._field + ' NOT exist!');
+			}
+			var tip = fldObj.tip();
+			tip = tip ? tip: '';
+			this.el.title = tip;
+		}
+	},
+	
+	setTabIndex: function() {
+		var Z = this,
+			tabIdx = Z._tabIndex;
+		if(Z._isDBControl) {
+			if(tabIdx !== 0 &amp;&amp; !tabIdx) {
+				var fldObj = Z._dataset.getField(Z._field);
+				if(fldObj) {
+					tabIdx = fldObj.tabIndex();
+				}
+			}
+		}
+		if(tabIdx === 0 || tabIdx) {
+			Z.el.tabIndex = tabIdx;
+		}
+	},
+	
+	existField: function(fldName) {
+		var fldObj = this._dataset.getField(fldName);
+		return fldObj ? true: false;
+	},
+	
+<span id='jslet-ui-DBFieldControl-method-tableId'>	/**
+</span>	 * @protected
+	 * 
+	 * The table id when this control is embed into a DBTable control. This property is used internally, don't call it directly.
+	 */
+	tableId: function(tableId) {
+		if(tableId === undefined) {
+			return this._tableId;
+		}
+		this._tableId = tableId;
+		return this;
+	},
+	
+<span id='jslet-ui-DBFieldControl-method-getValue'>	/**
+</span>	 * Get field value.
+	 * 
+	 * @return {Object} Field value.
+	 */
+	getValue: function() {
+		return this._dataset.getFieldValue(this._field, this._valueIndex); 
+	},
+	
+<span id='jslet-ui-DBFieldControl-method-getText'>	/**
+</span>	 * Get display text of field.
+	 * 
+	 * @param {Boolean} isEditing True - get editing text, false - get display text.
+	 * 
+	 * @return {String}
+	 */
+	getText: function(isEditing) {
+		return this._dataset.getFieldText(this._field, isEditing, this._valueIndex); 
+	},
+	
+<span id='jslet-ui-DBFieldControl-method-getFieldError'>	/**
+</span>	 * Get field error.
+	 * 
+	 * @return {Object} Error Object, like {message: 'Not Exists!', inputText: 'Foo'}
+	 */
+	getFieldError: function() {
+		return this._dataset.getFieldError(this._field, this._valueIndex);
+	},
+	
+<span id='jslet-ui-DBFieldControl-method-renderInvalid'>	/**
+</span>	 * @protected
+	 * 
+	 * Render invalid message and change the control to &quot;invalid&quot; style.
+	 * 
+	 *  @param {String} errObj error object: {code: xxx, message}, if it's null, clear the 'invalid' style. 
+	 */
+	renderInvalid: function (errObj) {
+		var Z = this;
+		if (!Z._field) {
+			return;
+		}
+		if (errObj){
+			jQuery(Z.el).parent().addClass('has-error');
+			Z.el.title = errObj.message || '';
+		} else {
+			jQuery(Z.el).parent().removeClass('has-error');
+			Z.el.title = '';
+		}
+	},
+ 
+<span id='jslet-ui-DBFieldControl-method-canFocus'>	/**
+</span>	 * @protected
+	 * 
+	 * Identify this control can be focused or not.  
+	 */
+	canFocus: function() {
+		return true;
+	},
+	
+<span id='jslet-ui-DBFieldControl-method-focus'>	/**
+</span>	 * Focus to this control.
+	 * 
+	 * @return {this}
+	 */
+	focus: function() {
+		var Z = this;
+		if(!Z.canFocus()) {
+			return;
+		}
+		if(Z._isDBControl) {
+			var	fldObj = Z._dataset.getField(Z._field),
+				flag = !fldObj || fldObj.disabled() || fldObj.readOnly() || !fldObj.visible();
+			if(flag) {
+				return;
+			}
+			if(Z._tableId) {
+				jslet('#' + Z._tableId).gotoField(Z._field);
+			}
+		}
+		this.innerFocus();
+		return this;
+	},
+	
+<span id='jslet-ui-DBFieldControl-method-innerFocus'>	/**
+</span>	 * @protected
+	 * 
+	 */
+	innerFocus: function() {
+		var Z = this,
+			el = Z.el;
+		if (el.focus) {
+			try {
+				el.focus();
+				if(Z.selectText &amp;&amp; Z.autoSelectAll &amp;&amp; Z.autoSelectAll()) {
+					Z.selectText();
+				}
+				return;
+			} catch (e) {
+				//Can\'t focus on this control, maybe it\'s disabled!
+				console.warn(jsletlocale.Dataset.cannotFocusControl);
+			}
+		}
+	},
+	
+<span id='jslet-ui-DBFieldControl-method-destroy'>	/**
+</span>	 * @override
+	 */
+	destroy: function ($super) {
+		$super();
+		this._field = null;
+	}
+	
+});
+
+/*
+ * Convert string parameters to object
+ * 
+ * @param {String | Object} ctrlParams Control parameters.
+ * @return {Object}
+ */
+jslet.ui._evalParams = function (ctrlParams) {
+	jslet.Checker.test('evalParams#ctrlParams', ctrlParams).required();
+	if (jslet.isString(ctrlParams)) {
+		var p = jQuery.trim(ctrlParams);
+		if (!p.startsWith('{') &amp;&amp; p.indexOf(':')&gt;0) {
+			p = '{' + p +'}';
+		}
+		try {
+			/* jshint ignore:start */
+			ctrlParams = new Function('return ' + unescape(p))();
+			/* jshint ignore:end */
+			if(ctrlParams['var']) {
+				ctrlParams = ctrlParams['var'];
+			}
+			return ctrlParams;
+		} catch (e) {
+			throw new Error(jslet.formatMessage(jsletlocale.DBControl.invalidJsletProp, [ctrlParams]));
+		}
+	}
+	return ctrlParams;
+};
+
+/*
+ * Hold all jslet control's configurations.
+ */
+jslet.ui.controls = {};
+
+<span id='jslet-ui-method-register'>/**
+</span> * @member jslet.ui
+ * 
+ * Register jslet control class. This method is used to create a new Jslet control. Example:
+ * 
+ *     @example
+ *     jslet.ui.register('DBTable', jslet.ui.DBTable);
+ * 
+ * @param {String} ctrlName Control name.
+ * @param {jslet.ui.Control} ctrlType Control Class.
+ */
+jslet.ui.register = function (ctrlName, ctrlType) {
+	jslet.Checker.test('jslet.ui.register#ctrlName', ctrlName).required().isString();
+	jslet.Checker.test('jslet.ui.register#ctrlType', ctrlType).required();
+	jslet.ui.controls[ctrlName.toLowerCase()] = ctrlType;
+};
+
+<span id='jslet-ui-method-createControl'>/**
+</span> * Create jslet control according to control configuration, and add it to parent element. Example:
+ * 
+ *     @example
+ *     var pElement = document.getElementById('div1');
+ *     jslet.ui.createControl({type:'DBTable', dataset: 'employee'}, pElement, 300, 500); 
+ * 
+ * @member jslet.ui
+ * 
+ * @param {String | Object} jsletparam Jslet Parameter.
+ * @param {HtmlElement} parent Parent html element which created control will be added to.
+ * @param {Integer} width (Optional)Control width, unit: px.
+ * @param {Integer} height (Optional)Control height, Unit: px. 
+ * @param {Boolean} hidden (Optional)Hide control or not.
+ *  
+ * @return {jslet.ui.Control}
+ */
+jslet.ui.createControl = function (jsletparam, parent, width, height, hidden) {
+	jslet.Checker.test('jslet.ui.createControl#jsletparam', jsletparam).required();
+	var isAuto = false, 
+		pnode = parent,
+		container = document.createElement('div'),
+		ctrlParam = jslet.ui._evalParams(jsletparam),
+		controlType = ctrlParam.type;
+	if (!controlType) {
+		controlType = jslet.ui.controls.DBTEXT;
+	}
+	var ctrlClass = jslet.ui.controls[controlType.toLowerCase()];
+	if (!ctrlClass) {
+		throw new Error('NOT found control type: ' + controlType);
+	}
+	container.innerHTML = ctrlClass.htmlTemplate;
+
+	var el = container.firstChild;
+	container.removeChild(el);
+	if(hidden) {
+		el.style.display = 'none';
+	}	
+	if (parent) {
+		parent.appendChild(el);
+	} else {
+		document.body.appendChild(el);
+	}
+	if (width) {
+		if (parseInt(width) == width)
+			width = width + 'px';
+		el.style.width = width;
+	}
+	if (height) {
+		if (parseInt(height) == height)
+			height = height + 'px';
+		el.style.height = height;
+	}
+
+	return new ctrlClass(el, ctrlParam);
+};
+
+<span id='jslet-ui-method-getControlClass'>/**
+</span> * @member jslet.ui
+ * 
+ * Get jslet class with class name.
+ * 
+ * @param {String} name Class name.
+ * 
+ * @return {jslet.ui.Control}
+ */
+jslet.ui.getControlClass = function (name) {
+	jslet.Checker.test('jslet.ui.getControlClass#name', name).required().isString();
+	return jslet.ui.controls[name.toLowerCase()];
+};
+
+<span id='jslet-ui-method-bindControl'>/**
+</span> * @member jslet.ui
+ * 
+ * Bind jslet control to an existing html element. Example:
+ * 
+ *     @example
+ *     var tblDiv = document.getElementById('tblDiv');
+ *     jslet.ui.bindControl(tblDiv, {type:'DBTable', dataset: 'employee'}); 
+ * 
+ * @param {HtmlElement} el HTML element.
+ * @param {String | Object} jsletParam Control parameters.
+ */
+jslet.ui.bindControl = function (el, jsletParam, isInstalling) {
+	if(!isInstalling) {
+		jslet.Checker.test('jslet.ui.bindControl#el', el).required().isHTMLElement();
+	}
+	if (!jsletParam)
+		jsletParam = jQuery(el).attr('data-jslet');
+	if(el.jslet) {
+		console.warn('Control has installed! Don\'t install it again!');
+		return null;
+	}
+	if(!isInstalling) {
+		jslet.Checker.test('jslet.ui.bindControl#jsletParam', jsletParam).required();
+	}
+	var ctrlParam = jslet.ui._evalParams(jsletParam);
+	var controlType = ctrlParam.type;
+	if (!controlType) {
+		el.jslet = ctrlParam;
+		return null;
+	}
+	var ctrlClass = jslet.ui.controls[controlType.toLowerCase()];
+	if (!ctrlClass) {
+		throw new Error('NOT found control type: ' + controlType);
+	}
+	return new ctrlClass(el, ctrlParam);
+};
+
+<span id='jslet-ui-method-unbindControl'>/**
+</span> * @member jslet.ui
+ * 
+ * Unbind jslet control and clear jslet property. Example:
+ * 
+ *     @example
+ *     var tblDiv = document.getElementById('tblDiv');
+ *     jslet.ui.unbindControl(tblDiv); 
+ * 
+ * @param {HtmlElement} el HTML element.
+ */
+jslet.ui.unbindControl = function(el, isInstalling) {
+	if(!isInstalling) {
+		jslet.Checker.test('jslet.ui.unbindControl#el', el).required().isHTMLElement();
+	}
+	if (el.jslet &amp;&amp; el.jslet.destroy) {
+		el.jslet.destroy();
+	}
+	el.jslet = null;
+};
+
+<span id='jslet-ui-method-rebindControl'>/**
+</span> * @member jslet.ui
+ * 
+ * Re-bind jslet control. Example:
+ * 
+ *     @example
+ *     var tblDiv = document.getElementById('tblDiv');
+ *     jslet.ui.rebindControl(tblDiv); 
+ * 
+ * @param {HtmlElement} el HTML element which binded a Jslet control.
+ */
+jslet.ui.rebindControl = function(el) {
+	jslet.Checker.test('jslet.ui.rebindControl#el', el).required().isHTMLElement();
+	jslet.ui.unbindControl(el);
+	jslet.ui.bindControl(el);
+};
+
+<span id='jslet-ui-method-install'>/**
+</span> * @member jslet.ui
+ * 
+ * Scan the specified HTML element children and bind jslet control to these HTML element with 'data-jslet' attribute. Example:
+ * 
+ *     @example
+ *     jslet.ui.install(); //Install jslet on document.body
+ *     
+ *     var dialogDiv = document.getElementById('dlgId');
+ *     jslet.ui.install(dialogDiv); //Install jslet on a dialog.
+ * 
+ * @param {HtmlElement} pElement (Optional)Parent HTML element which need to be scan, if null, document.body is used.
+ * @param {Function} onJsletReady (Optional)Call back function after jslet installed.
+ */
+jslet.ui.install = function (pElement, onJsletReady) {
+	if(pElement &amp;&amp; (onJsletReady === undefined)) {
+		//Match case: jslet.ui.install(onJsletReady);
+		if(jQuery.isFunction(pElement)) {
+			onJsletReady = pElement;
+			pElement = null;
+		}
+	}
+	
+	if(!pElement &amp;&amp; jsletlocale.isRtl){
+		var jqBody = jQuery(document.body);
+		if(!jqBody.hasClass('jl-rtl')) {
+			jqBody.addClass('jl-rtl');
+		}
+	}
+	var htmlTags;
+	if (!pElement){
+		pElement = document.body;
+	} else {
+		jslet.Checker.test('jslet.ui.install#pElement', pElement).isHTMLElement();		
+	}
+	htmlTags = jQuery(pElement).find('*[data-jslet]');
+
+	var cnt = htmlTags.length, el, id, 
+		existIds = jslet.existIds;
+	if(!existIds) {
+		existIds = {};
+		jslet.existIds = existIds;
+	}
+	for (var i = 0; i &lt; cnt; i++) {
+		el = htmlTags[i];
+		id = el.id;
+		if(id) {
+			if(existIds[id]) {
+				console.warn(jslet.formatMessage(jsletlocale.Control.duplicatedId, [id]));
+			} else {
+				existIds[id] = 1;
+			}
+		}
+		jslet.ui.bindControl(el, undefined, true);
+	}
+	if(onJsletReady){
+		onJsletReady();
+		//jslet.ui.onReady();
+	}
+	if(jslet.global.afterInstall) {
+		jslet.global.afterInstall(pElement);
+	}
+};
+
+///**
+// * {Event} Fired after jslet has installed all controls.
+// * Pattern: function(){};
+// */
+//jslet.ui.onReady = null;
+
+<span id='jslet-ui-method-uninstall'>/**
+</span> * @member jslet.ui
+ * 
+ * Scan the specified HTML element children and unbind jslet control to these HTML element with 'data-jslet' attribute.
+ * 
+ * @param {HtmlElement} pElement (Optional)Parent HTML element which need to be scan, if null, document.body is used.
+ */
+jslet.ui.uninstall = function (pElement) {
+	var htmlTags;
+	if (!pElement) {
+		htmlTags = jQuery('*[data-jslet]');
+	} else {
+		jslet.Checker.test('jslet.ui.install#pElement', pElement).isHTMLElement();		
+		htmlTags = jQuery(pElement).find('*[data-jslet]');
+	}
+	var el;
+	for(var i =0, cnt = htmlTags.length; i &lt; cnt; i++){
+		el = htmlTags[i];
+		if (el.jslet &amp;&amp; el.jslet.destroy) {
+			el.jslet.destroy();
+		}
+		el.jslet = null;
+	}
+	if(jslet.ui.menuManager) {
+		jQuery(document).off('mousedown', jslet.ui.menuManager.hideAll);
+	}
+//	jslet.ui.onReady = null;
+};
+</pre>
+</body>
+</html>

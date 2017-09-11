@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js">jslet.ui.menuManager = {};
+/*
+ * Global menu id collection, array of string
+ */
+jslet.ui.menuManager._menus = [];
+
+/*
+ * Register menu id
+ * 
+ * @param {String} menuid Menu control id
+ */
+jslet.ui.menuManager.register = function (menuid) {
+	jslet.ui.menuManager._menus.push(menuid);
+};
+
+/*
+ * Unregister menu id
+ * 
+ * @param {String} menuid Menu control id
+ */
+jslet.ui.menuManager.unregister = function (menuid) {
+	for (var i = 0, len = this._menus.length; i &lt; len; i++) {
+		jslet.ui.menuManager._menus.splice(i, 1);
+	}
+};
+
+/*
+ * Hide all menu item.
+ */
+jslet.ui.menuManager.hideAll = function (event) {
+	var id, menu, menus = jslet.ui.menuManager._menus;
+	for (var i = 0, len = menus.length; i &lt; len; i++) {
+		id = menus[i];
+		menu = jslet('#'+id);
+		if (menu) {
+			menu.hide();
+		}
+	}
+	jslet.ui.menuManager.menuBarShown = false;
+	jslet.ui.menuManager._contextObject = null;
+};
+
+jQuery(document).on('mousedown', jslet.ui.menuManager.hideAll);
+
+<span id='jslet-ui-MenuBar'>/**
+</span> * @class
+ * @extend jslet.ui.Control
+ * 
+ * MenuBar. Example:
+ * 
+ *     @example
+ *     var jsletParam = {type: 'MenuBar', onItemClick: globalMenuItemClick, items: [
+ *       {name: 'File', items: [
+ *         {id: 'new', name: 'New Tab', iconClass: 'icon1' }]
+ *       }]};
+ *
+ *     //1. Declaring:
+ *      &lt;div data-jslet='jsletParam' /&gt;
+ *
+ *     //2. Binding
+ *      &lt;div id='ctrlId' /&gt;
+ *      //js snippet:
+ *      var el = document.getElementById('ctrlId');
+ *      jslet.ui.bindControl(el, jsletParam);
+ *
+ *     //3. Create dynamically
+ *      jslet.ui.createControl(jsletParam, document.body);
+ */
+jslet.ui.MenuBar = jslet.Class.create(jslet.ui.Control, {
+<span id='jslet-ui-MenuBar-method-initialize'>	/**
+</span>	 * @override
+	 */
+	initialize: function ($super, el, params) {
+		var Z = this;
+		Z.el = el;
+		Z.allProperties = 'styleClass,onItemClick,items';
+
+		Z._onItemClick = null;
+		
+		Z._items = null;
+		
+		$super(el, params);
+	},
+
+<span id='jslet-ui-MenuBar-event-onItemClick'>	/**
+</span>	 * @event
+	 * 
+	 * Set or get menuItem click event handler. Example:
+	 * 
+	 *     @example
+	 *     menubarObj.onItemClick(function(menuId){});
+	 * 
+	 * @param {Function | undefined} onItemClick MenuItem click event handler.
+	 * @param {String} onItemClick.menuId MenuItem click event handler.
+	 * 
+	 * @return {this | Function}
+	 */
+	onItemClick: function(onItemClick) {
+		if(onItemClick === undefined) {
+			return this._onItemClick;
+		}
+		jslet.Checker.test('MenuBar.onItemClick', onItemClick).isFunction();
+		this._onItemClick = onItemClick;
+		return this;
+	},
+	
+<span id='jslet-ui-MenuBar-property-items'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get menu items configuration.
+	 * 
+	 * @param {Object[] | undefined} items Menu items.
+	 * @param {String} items.id Menu item id.
+	 * @param {String} items.name Menu item name.
+	 * @param {Function} items.onClick Menu item onClick event, example: onClick: function(event) {}.
+	 * @param {MouseEvent} items.onClick.event Mouse event.
+	 * @param {Boolean} items.disabled True - Menu item is disabled, false - otherwise.
+	 * @param {Boolean} items.checked True - Menu item is checked, false - otherwise.
+	 * @param {String} items.iconClass Menu item icon class name.
+	 * @param {String} items.disabledIconClass Menu item icon disabled class name.
+	 * @param {String} items.itemType Menu item type, optional value: null, 'radio', 'check'.
+	 * @param {String} items.group Group name, only work when itemType equals 'radio'.
+	 * @param {Object[]} items.items Sub menu items.
+	 * 
+	 * @return {this | Object[]}
+	 */
+	items: function(items) {
+		if(items === undefined) {
+			return this._items;
+		}
+		if(!items) {
+			this._items = null;
+			return this;
+		}
+		jslet.Checker.test('MenuBar.items', items).isArray();
+		var item;
+		for(var i = 0, len = items.length; i &lt; len; i++) {
+			item = items[i];
+			jslet.Checker.test('MenuBar.items.name', item.name).isString().required();
+		}
+		this._items = items;
+		return this;
+	},
+	
+<span id='jslet-ui-MenuBar-method-bind'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	bind: function () {
+		var Z = this,
+			jqEl = jQuery(Z.el);
+		if (!jqEl.hasClass('jl-menubar')) {
+			jqEl.addClass('jl-menubar jl-unselectable jl-round5');
+		}
+
+		this.renderAll();
+		jqEl.on('mouseout',function (event) {
+			if (Z._preHoverItem &amp;&amp; !jslet.ui.menuManager.menuBarShown) {
+				jQuery(Z._preHoverItem).removeClass('jl-menubar-item-hover');
+			}
+		});
+	},
+
+<span id='jslet-ui-MenuBar-method-renderAll'>	/**
+</span>	 * @override
+	 */
+	renderAll: function () {
+		var Z = this,
+			jqEl = jQuery(Z.el);
+		jqEl.find('.jl-menubar-item').off();
+		this._createMenuBar();
+	},
+
+<span id='jslet-ui-MenuBar-method-setDisabled'>	/**
+</span>	 * Set a menu item to be disabled/enabled.
+	 * 
+	 * @param {String} menuId Menu id.
+	 * @param {Boolean} disabled True - the menu item is disabled, otherwise it's enabled.
+	 */
+	setDisabled: function (menuId, disabled) {
+		var operator = new jslet.ui.Menu.Operator(this);
+		operator.setDisabled(menuId, disabled);
+	},
+
+<span id='jslet-ui-MenuBar-method-setChecked'>	/**
+</span>	 * Set a menu item to be checked or non-checked.
+	 * 
+	 * @param {String} menuId Menu id.
+	 * @param {Boolean} checked True - the menu item is checked, otherwise it's non-checked.
+	 */
+	setChecked: function (menuId, checked) {
+		var operator = new jslet.ui.Menu.Operator(this);
+		operator.setChecked(menuId, checked);
+	},
+	
+	_createMenuBar: function () {
+		var Z = this;
+		if (Z.isPopup || !Z._items) {
+			return;
+		}
+		for (var i = 0, cnt = Z._items.length, item; i &lt; cnt; i++) {
+			item = Z._items[i];
+			Z._createBarItem(Z.el, item, Z._menubarclick);
+		}
+	},
+
+	_showSubMenu: function (omi) {
+		var Z = omi.parentNode.jslet,
+			itemCfg = omi.jsletvar;
+		if (!itemCfg.items) {
+			return;
+		}
+		if (!itemCfg.subMenu) {
+			var el = document.createElement('div');
+			document.body.appendChild(el);
+			itemCfg.subMenu = new jslet.ui.Menu(el, { onItemClick: Z._onItemClick, items: itemCfg.items });
+		}
+		var jqBody = jQuery(document.body),
+			bodyMTop = parseInt(jqBody.css('margin-top')),
+			bodyMleft = parseInt(jqBody.css('margin-left')),
+			jqMi = jQuery(omi), 
+			pos = jqMi.offset(), 
+			posX = pos.left;
+		if (jsletlocale.isRtl) {
+			posX +=  jqMi.width() + 10;
+		}
+		itemCfg.subMenu.show(posX, pos.top + jqMi.height());
+		jslet.ui.menuManager.menuBarShown = true;
+		Z._activeMenuItem = omi;
+		// this.parentNode.parentNode.jslet.ui._createMenuPopup(cfg);
+	},
+
+	_createBarItem: function (obar, itemCfg) {
+		if (itemCfg.visible !== undefined &amp;&amp; !itemCfg.visible) {
+			return;
+		}
+		var omi = document.createElement('div');
+		jQuery(omi).addClass('jl-menubar-item');
+		omi.jsletvar = itemCfg;
+		var Z = this, jqMi = jQuery(omi);
+		jqMi.on('click',function (event) {
+			var cfg = this.jsletvar;
+			if(!cfg.items) {
+				jslet.ui.menuManager.hideAll();
+				if (cfg.onClick) {
+					cfg.onClick.call(Z, cfg);
+				} else {
+					if (Z._onItemClick)
+						Z._onItemClick.call(Z, cfg);
+				}
+			} else {
+				//				if (Z._activeMenuItem != this || jslet.ui.menuManager.menuBarShown)
+				Z._showSubMenu(this);
+			}
+			event.stopPropagation();
+			event.preventDefault();
+		});
+
+		jqMi.on('mouseover', function (event) {
+			if (Z._preHoverItem) {
+				jQuery(Z._preHoverItem).removeClass('jl-menubar-item-hover');
+			}
+			Z._preHoverItem = this;
+			jQuery(this).addClass('jl-menubar-item-hover');
+			if (jslet.ui.menuManager.menuBarShown) {
+				jslet.ui.menuManager.hideAll();
+				Z._showSubMenu(this);
+				jslet.ui.menuManager._inPopupMenu = true;
+			}
+		});
+		
+		var template = [];
+		template.push('&lt;a class=&quot;jl-focusable-item&quot; href=&quot;javascript:void(0)&quot;&gt;');
+		template.push(itemCfg.name);
+		template.push('&lt;/a&gt;');
+		
+		omi.innerHTML = template.join('');
+		obar.appendChild(omi);
+	},
+	
+<span id='jslet-ui-MenuBar-method-destroy'>	/**
+</span>	 * @override
+	 */
+	destroy: function($super){
+		var Z = this;
+		Z._activeMenuItem = null;
+		Z._preHoverItem = null;
+		Z._menubarclick = null;
+		Z._onItemClick = null;
+		var jqEl = jQuery(Z.el);
+		jqEl.off();
+		jqEl.find('.jl-menubar-item').off();
+		jqEl.find('.jl-menubar-item').each(function(){
+			var omi = this;
+			if (omi.jsletvar){
+				omi.jsletvar.subMenu = null;
+				omi.jsletvar = null;
+			}
+		});
+		$super();
+	}
+});
+jslet.ui.register('MenuBar', jslet.ui.MenuBar);
+jslet.ui.MenuBar.htmlTemplate = '&lt;div&gt;&lt;/div&gt;';
+
+<span id='jslet-ui-Menu'>/**
+</span> * @class
+ * @extend jslet.ui.Control
+ * 
+ * Menu. Example:
+ * 
+ *     @example
+ *     var jsletParam = {type: 'Menu', onItemClick: globalMenuItemClick, items: [
+ *       {id: 'back', name: 'Backward', iconClass: 'icon1' },
+ *       {id: 'go', name: 'Forward', disabled: true },
+ *       {name: '-' }]};
+ *
+ *     //1. Declaring:
+ *       &lt;div data-jslet='jsletParam' /&gt;
+ *
+ *     //2. Binding
+ *       &lt;div id='menu1' /&gt;
+ *       //js snippet:
+ *       var el = document.getElementById('menu1');
+ *       jslet.ui.bindControl(el, jsletParam);
+ *
+ *     //3. Create dynamically
+ *       jslet.ui.createControl(jsletParam, document.body);
+ *       //Use the below code to show context menu
+ *       jslet('#ctrlId').showContextMenu(event);
+ *       //Show menu at the specified position
+ *       jslet('#ctrlId').show(left, top);
+ * 
+ */
+jslet.ui.Menu = jslet.Class.create(jslet.ui.Control, {
+	_onItemClick: undefined,
+	_items:undefined,
+	_invoker: null,
+<span id='jslet-ui-Menu-method-initialize'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	initialize: function ($super, el, params) {
+		var Z = this;
+		Z.el = el;
+		Z.allProperties = 'onItemClick,items,invoker'; //'invoker' is used for inner
+		//items is an array, menu item's properties: id, name, onClick,disabled,iconClass,disabledIconClass,itemType,checked,group,items
+		$super(el, params);
+		Z._activeSubMenu = null;
+	},
+
+<span id='jslet-ui-Menu-event-onItemClick'>	/**
+</span>	 * @event
+	 * 
+	 * Set or get menuItem click event handler. Example:
+	 * 
+	 *     @example
+	 *     menubarObj.onItemClick(function(menuId){});
+	 * 
+	 * @param {Function | undefined} onItemClick MenuItem click event handler.
+	 * @param {String} onItemClick.menuId MenuItem click event handler.
+	 * 
+	 * @return {this | Function}
+	 */
+	onItemClick: function(onItemClick) {
+		if(onItemClick === undefined) {
+			return this._onItemClick;
+		}
+		jslet.Checker.test('Menu.onItemClick', onItemClick).isFunction();
+		this._onItemClick = onItemClick;
+		return this;
+	},
+	
+<span id='jslet-ui-Menu-property-items'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get menu items configuration.
+	 * 
+	 * @param {Object[] | undefined} items Menu items.
+	 * @param {String} items.id Menu item id.
+	 * @param {String} items.name Menu item name.
+	 * @param {Function} items.onClick Menu item onClick event, example: onClick: function(event) {}.
+	 * @param {MouseEvent} items.onClick.event Mouse event.
+	 * @param {Boolean} items.disabled True - Menu item is disabled, false - otherwise.
+	 * @param {Boolean} items.checked True - Menu item is checked, false - otherwise.
+	 * @param {String} items.iconClass Menu item icon class name.
+	 * @param {String} items.disabledIconClass Menu item icon disabled class name.
+	 * @param {String} items.itemType Menu item type, optional value: null, 'radio', 'check'.
+	 * @param {String} items.group Group name, only work when itemType equals 'radio'.
+	 * @param {Object[]} Sub menu items.
+	 * 
+	 * @return {this | Object[]}
+	 */
+	items: function(items) {
+		if(items === undefined) {
+			return this._items;
+		}
+		jslet.Checker.test('Menu.items', items).isArray();
+		var item;
+		for(var i = 0, len = items.length; i &lt; len; i++) {
+			item = items[i];
+			jslet.Checker.test('Menu.items.name', item.name).isString().required();
+		}
+		this._items = items;
+		return this;
+	},
+	
+	invoker: function(invoker) {
+		if(invoker === undefined) {
+			return this._invoker;
+		}
+		this._invoker = invoker;
+	},
+	
+<span id='jslet-ui-Menu-method-bind'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	bind: function () {
+		this.renderAll();
+	},
+
+<span id='jslet-ui-Menu-method-renderAll'>	/**
+</span>	 * @override
+	 */
+	renderAll: function () {
+		var Z = this,
+			jqEl = jQuery(Z.el),
+			ele = Z.el;
+		if (!jqEl.hasClass('jl-menu')) {
+			jqEl.addClass('jl-menu');
+		}
+		ele.style.display = 'none';
+
+		if (!ele.id) {
+			ele.id = jslet.nextId();
+		}
+
+		jslet.ui.menuManager.register(ele.id);
+		Z._createMenuPopup();
+		jqEl.on('mousedown',function (event) {
+			event = jQuery.event.fix( event || window.event );
+			event.stopPropagation();
+			event.preventDefault();
+			return false;
+		});
+
+		jqEl.on('mouseover', function (event) {
+			jslet.ui.menuManager._inPopupMenu = true;
+			if (jslet.ui.menuManager.timerId) {
+				window.clearTimeout(jslet.ui.menuManager.timerId);
+			}
+		});
+
+		jqEl.on('mouseout', function (event) {
+			jslet.ui.menuManager._inPopupMenu = false;
+			jslet.ui.menuManager.timerId = window.setTimeout(function () {
+				if (!jslet.ui.menuManager._inPopupMenu) {
+					jslet.ui.menuManager.hideAll();
+				}
+				jslet.ui.menuManager.timerId = null;
+			}, 800);
+		});
+	},
+
+<span id='jslet-ui-Menu-method-setDisabled'>	/**
+</span>	 * Set a menu item to be disabled/enabled.
+	 * 
+	 * @param {String} menuId Menu id.
+	 * @param {Boolean} disabled True - the menu item is disabled, otherwise it's enabled.
+	 */
+	setDisabled: function (menuId, disabled) {
+		var operator = new jslet.ui.Menu.Operator(this);
+		operator.setDisabled(menuId, disabled);
+	},
+
+<span id='jslet-ui-Menu-method-setChecked'>	/**
+</span>	 * Set a menu item to be checked or non-checked.
+	 * 
+	 * @param {String} menuId Menu id.
+	 * @param {Boolean} checked True - the menu item is checked, otherwise it's non-checked.
+	 */
+	setChecked: function (menuId, checked) {
+		var operator = new jslet.ui.Menu.Operator(this);
+		operator.setChecked(menuId, checked);
+	},
+	
+<span id='jslet-ui-Menu-method-show'>	/**
+</span>	 * Show menu at specified position.
+	 * 
+	 * @param {Integer} left Position left.
+	 * @param {Integer} top Position top.
+	 */
+	show: function (left, top) {
+		var Z = this, 
+			jqEl = jQuery(Z.el),
+			width = jqEl.outerWidth(),
+			height = jqEl.outerHeight(),
+			jqWin = jQuery(window),
+			winWidth = jqWin.scrollLeft() + jqWin.width(),
+			winHeight = jqWin.scrollTop() + jqWin.height();
+			
+		left = left || Z.left || 10;
+		top = top || Z.top || 10;
+		if (jsletlocale.isRtl) {
+			left -= width;
+		}
+		if(left + width &gt; winWidth) {
+			left += winWidth - left - width - 1;
+		}
+		if(top + height &gt; winHeight) {
+			top += winHeight - top - height - 1;
+		}
+		if(left &lt; 0) {
+			left = 0;
+		}
+		if(top &lt; 0) {
+			top = 0;
+		}
+		Z.el.style.left = left + 'px';
+		Z.el.style.top = parseInt(top) + 'px';
+		Z.el.style.display = 'block';
+		if (!Z.shadow) {
+			Z.shadow = document.createElement('div');
+			jQuery(Z.shadow).addClass('jl-menu-shadow');
+			Z.shadow.style.width = width + 'px';
+			Z.shadow.style.height = height + 'px';
+			document.body.appendChild(Z.shadow);
+		}
+		Z.shadow.style.left = left + 1 + 'px';
+		Z.shadow.style.top = top + 1 + 'px';
+		Z.shadow.style.display = 'block';
+	},
+
+<span id='jslet-ui-Menu-method-showAt'>	/**
+</span>	 * Show menu at the position which specifed by a HTML element. Example:
+	 * 
+	 *     @example
+	 *     menuObj.showAt('#btn1'); //
+	 *     menuObj.showAt(document.getElementById('btn1'));
+	 * 
+	 * @param {String | HtmlElement} hostEl Host HTML element or jQuery query string.
+	 */
+	showAt: function(hostEl) {
+		var jqHost = jQuery(hostEl);
+		if(jqHost.length === 0) {
+			throw new Error('Host control NOT found When showing menu, check it first!');
+		}
+		var offset = jqHost.offset();
+		this.show(offset.left, offset.top + jqHost.outerHeight());
+	},
+	
+<span id='jslet-ui-Menu-method-hide'>	/**
+</span>	 * Hide menu item and all its sub menu item.
+	 */
+	hide: function () {
+		this.ctxElement = null;
+		this.el.style.display = 'none';
+		if (this.shadow) {
+			this.shadow.style.display = 'none';
+		}
+	},
+
+<span id='jslet-ui-Menu-method-showContextMenu'>	/**
+</span>	 * Show menu on context menu. Example:
+	 * 
+	 *     @example
+	 *     //Html
+	 *     &lt;div id=&quot;popmenu&quot; oncontextmenu=&quot;popMenu(event);&quot;&gt;
+	 *     //Js
+	 *	   function popMenu(event) {
+	 *	     jslet(&quot;#popmenu&quot;).showContextMenu(event);
+	 *     }
+	 */
+	showContextMenu: function (event, contextObj) {
+		jslet.ui.menuManager.hideAll();
+
+		event = jQuery.event.fix( event || window.event );
+		jslet.ui.menuManager._contextObject = contextObj;
+		this.show(event.pageX, event.pageY);
+		event.preventDefault();
+	},
+
+	_createMenuPopup: function () {
+		var panel = this.el,
+			items = this._items, itemCfg, name, i, cnt;
+		cnt = items.length;
+		for (i = 0; i &lt; cnt; i++) {
+			itemCfg = items[i];
+			if (!itemCfg.name) {
+				continue;
+			}
+			name = itemCfg.name.trim();
+			if (name != '-') {
+				this._createMenuItem(panel, itemCfg);
+			} else {
+				this._createLine(panel, itemCfg);
+			}
+		}
+
+		document.body.appendChild(panel);
+	},
+
+	_ItemClick: function (sender, cfg) {
+		//has sub menu items
+		if (cfg.items) {
+			this._showSubMenu(sender, cfg);
+			return;
+		}
+		if (cfg.disabled) {
+			return;
+		}
+		jslet.ui.menuManager.hideAll();
+		if (cfg.itemType == 'check' || cfg.itemType == 'radio') {
+			this.setChecked(sender.id, !cfg.checked);
+		}
+		var contextObj = jslet.ui.menuManager._contextObject || this;
+		if (cfg.onClick) {
+			cfg.onClick.call(contextObj, cfg);
+		} else {
+			if (this._onItemClick) {
+				this._onItemClick.call(contextObj, cfg);
+			}
+		}
+	},
+
+	_hideSubMenu: function () {
+		var Z = this;
+		if (Z._activeSubMenu) {
+			Z._activeSubMenu._hideSubMenu();
+			Z._activeSubMenu.hide();
+			Z._activeSubMenu.el.style.zIndex = parseInt(jQuery(Z.el).css('zIndex'));
+		}
+	},
+
+	_showSubMenu: function (sender, cfg, delayTime) {
+		var Z = this;
+		var func = function () {
+			Z._hideSubMenu();
+			if (!cfg.subMenu) {
+				return;
+			}
+			var jqPmi = jQuery(sender),
+				pos = jqPmi.offset(), 
+				x = pos.left;
+			if (!jsletlocale.isRtl) {
+				x += jqPmi.width();
+			}
+
+			cfg.subMenu.show(x - 2, pos.top);
+			cfg.subMenu.el.style.zIndex = parseInt(jQuery(Z.el).css('zIndex')) + 1;
+			Z._activeSubMenu = cfg.subMenu;
+		};
+		if (delayTime) {
+			window.setTimeout(func, delayTime);
+		} else {
+			func();
+		}
+	},
+
+	_ItemOver: function (sender, cfg) {
+		if (this._activeSubMenu) {
+			this._showSubMenu(sender, cfg, 200);
+		}
+	},
+
+	_createMenuItem: function (container, itemCfg, defaultClickHandler) {
+		//id, name, onClick,disabled,iconClass,disabledIconClass,itemType,checked,group,items,subMenuId
+		var isCheckBox = false, 
+			isRadioBox = false,
+			itemType = itemCfg.itemType;
+		if (itemType) {
+			isCheckBox = (itemType == 'check');
+			isRadioBox = (itemType == 'radio');
+		}
+		if (isCheckBox) {
+			itemCfg.iconClass = 'fa fa-check';//'jl-menu-check';
+		}
+		if (isRadioBox) {
+			itemCfg.iconClass = 'fa fa-circle'; //kjl-menu-radio';
+		}
+		if (itemCfg.items) {
+			itemCfg.disabled = false;
+		}
+		var mi = document.createElement('div'), Z = this, jqMi = jQuery(mi);
+		jqMi.addClass('jl-menu-item ' + (itemCfg.disabled ? 'jl-menu-disabled' : ''));
+
+		if (!itemCfg.id) {
+			itemCfg.id = jslet.nextId();
+		}
+		mi.id = itemCfg.id;
+		mi.jsletvar = itemCfg;
+		jqMi.on('click', function (event) {
+			Z._ItemClick(this, this.jsletvar);
+			event.stopPropagation();
+			event.preventDefault();
+		});
+
+		jqMi.on('mouseover', function (event) {
+			Z._ItemOver(this, this.jsletvar);
+			if (Z._preHoverItem) {
+				jQuery(Z._preHoverItem).removeClass('jl-menu-item-hover');
+			}
+			Z._preHoverItem = this;
+			if (!this.jsletvar.disabled) {
+				jQuery(this).addClass('jl-menu-item-hover');
+			}
+		});
+
+		jqMi.on('mouseout', function (event) {
+			if (!this.jsletvar.subMenu) {
+				jQuery(this).removeClass('jl-menu-item-hover');
+			}
+		});
+
+		var template = [];
+		template.push('&lt;span class=&quot;jl-menu-icon-placeholder ');
+		if ((isCheckBox || isRadioBox) &amp;&amp; !itemCfg.checked) {
+			//Empty 
+		} else {
+			if (itemCfg.iconClass) {
+				template.push((!itemCfg.disabled || !itemCfg.disabledIconClass) ? itemCfg.iconClass : itemCfg.disabledIconClass);
+			}
+		}
+		template.push('&quot;&gt;&lt;/span&gt;');
+
+		if (itemCfg.items) {
+			template.push('&lt;div class=&quot;jl-menu-arrow&quot;&gt;&lt;i class=&quot;fa fa-caret-right&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;/div&gt;');
+		}
+
+		template.push('&lt;a  href=&quot;javascript:void(0)&quot; class=&quot;jl-focusable-item jl-menu-content ');
+		template.push(' jl-menu-content-left jl-menu-content-right');
+		template.push('&quot;&gt;');
+		template.push(itemCfg.name + &quot;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&quot;);
+		template.push('&lt;/a&gt;');
+		mi.innerHTML = template.join('');
+		container.appendChild(mi);
+		if (itemCfg.items) {
+			var el = document.createElement('div');
+			document.body.appendChild(el);
+			itemCfg.subMenu = new jslet.ui.Menu(el, { onItemClick: Z._onItemClick, items: itemCfg.items, invoker: mi });
+		}
+	},
+
+	_createLine: function (container, itemCfg) {
+		var odiv = document.createElement('div');
+		jQuery(odiv).addClass('jl-menu-line');
+		container.appendChild(odiv);
+	},
+	
+<span id='jslet-ui-Menu-method-destroy'>	/**
+</span>	 * @override
+	 */
+	destroy: function($super){
+		var Z = this, 
+			jqEl = jQuery(Z.el);
+		Z._activeSubMenu = null;
+		jslet.ui.menuManager.unregister(Z.el.id);
+		jqEl.off();
+		jqEl.find('.jl-menu-item').each(function(){
+			this.onmouseover = null;
+			this.onclick = null;
+			this.onmouseout = null;
+		});
+		
+		$super();
+	}
+});
+
+jslet.ui.register('Menu', jslet.ui.Menu);
+jslet.ui.Menu.htmlTemplate = '&lt;div&gt;&lt;/div&gt;';
+
+
+jslet.ui.Menu.Operator = function(menuObj) {
+	this._menuObj = menuObj;
+};
+
+jslet.ui.Menu.Operator.prototype = {
+	getMenuItemById: function(id) {
+		jslet.Checker.test('getMenuItemById#id', id).required().isString();
+		
+		function getItem(items, id) {
+			var item, itemObj;
+			for(var i = 0, len = items.length; i &lt; len; i++) {
+				item = items[i];
+				if(item.id === id) {
+					return item;
+				}
+				if(item.items) {
+					item = getItem(item.items, id);
+					if(item) {
+						return item;
+					}
+				}
+			}
+			return null;
+		}
+		var items = this._menuObj.items();
+		if(!items) {
+			return null;
+		}
+		return getItem(items, id);
+	},
+		
+	getMenuGroup: function(id, excludeSelf) {
+		jslet.Checker.test('getMenuGroup#id', id).required().isString();
+		
+		function getItemGroup(items, id) {
+			var item, itemObj;
+			for(var i = 0, len = items.length; i &lt; len; i++) {
+				item = items[i];
+				if(item.id === id &amp;&amp; item.itemType === 'radio') {
+					var groupName = item.group,
+						result = [], itemCfg;
+					for(var j = 0, size = items.length; j &lt; size; j++) {
+						itemCfg = items[j];
+						if(excludeSelf &amp;&amp; itemCfg.id === id) {
+							continue;
+						}
+						if(itemCfg.itemType === 'radio' &amp;&amp; itemCfg.group === groupName) {
+							result.push(itemCfg);
+						}
+					}
+					return result;
+				}
+				if(item.items) {
+					var groupItems = getItemGroup(item.items, id);
+					if(groupItems) {
+						return groupItems;
+					}
+				}
+			}
+			return null;
+		}
+		var items = this._menuObj.items();
+		if(!items) {
+			return null;
+		}
+		return getItemGroup(items, id);
+	},
+		
+	setDisabled: function (menuId, disabled) {
+		var itemCfg = this.getMenuItemById(menuId);
+		itemCfg.disabled = disabled? true: false;
+		if (itemCfg.items) {
+			return;
+		}
+		var jqMi = jQuery('#'+menuId);
+		if(jqMi.length === 0) {
+			return;
+		}
+		if (disabled) {
+			jqMi.removeClass('jl-menu-enabled');
+			jqMi.addClass('jl-menu-disabled');
+		} else {
+			jqMi.removeClass('jl-menu-disabled');
+			jqMi.addClass('jl-menu-enabled');
+		}
+	},
+	
+	setChecked: function (menuId, checked) {
+		var itemCfg = this.getMenuItemById(menuId);
+		var itemType = itemCfg.itemType;
+		checked = itemType === 'radio'? true: checked; //Radio menu item can not be unchecked.
+		if (itemCfg.disabled || itemType != 'check' &amp;&amp; itemType != 'radio' || itemCfg.checked == checked) {	
+			return;
+		}
+		itemCfg.checked = checked;
+		var changedCfg = [itemCfg], i, len;
+		if(itemType == 'radio') {
+			var otherGroups = this.getMenuGroup(menuId, true);
+			for(i = 0, len = otherGroups.length; i &lt; len; i++) {
+				itemCfg = otherGroups[i];
+				if(itemCfg.checked) {
+					itemCfg.checked = false;
+					changedCfg.push(itemCfg);
+					break;
+				}
+			}
+		}
+		var jqIcon;
+		for(i = 0, len = changedCfg.length; i &lt; len; i++) {
+			itemCfg = changedCfg[i];
+			jqIcon = jQuery('#'+itemCfg.id).find('.jl-menu-icon-placeholder');
+			if (itemCfg.checked) {
+				jqIcon.addClass(itemCfg.iconClass);
+			} else {
+				jqIcon.removeClass(itemCfg.iconClass);
+			}
+		}
+	}
+};
+</pre>
+</body>
+</html>

@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="../../css/demo.css" />
+    
+    <title>Jslet - 进度条（Progress）</title>
+    <script type="text/javascript" data-main="../../config.js" src="../../lib/requirejs/require.min.js"></script>
+    <script type="text/javascript">
+	    require(['control/basic/progressbar']);
+    </script>
+</head>
+<body>
+    <div class="demo-header">
+    <h4 id="top">Jslet - 进度条（Progress）</h4>
+	</div>
+	<hr />
+	<div style="margin-bottom: 10px">
+	<div id="progressBar" data-jslet="type:'ProgressBar', value: 0, labelText: '导入数据。。。'" style="width: 500px"></div>
+	</div>
+    <p><button id="btnSetValue" class="btn btn-default btn-sm"> 设置值</button>可连续点击</p>
+    <div>与jslet.StepProcessor配合<button id="btnStart" class="btn btn-default btn-sm"> 开始 </button></div>
+	<hr />
+	<h4>源码</h4>
+    <pre class="prettyprint linenums"><code>
+	jslet.ui.install();
+	
+	//绑定按钮事件
+	$('#btnSetValue').click(function(){
+		//设置值
+		var progressObj = jslet('#progressBar');
+		var value = progressObj.value() + 10;
+		if(value > 100) {
+			value = 0;
+		}
+		progressObj.value(value);
+    });
+	
+	$('#btnStart').click(function(){
+		//与jslet.StepProcessor配合
+		var progressObj = jslet('#progressBar');
+		
+		var ProcessFn = function(start, end, percent) {
+			for(var i = start; i <= end; i++) {
+				//模拟耗时操作
+				for(var j = 0; j < 20; j++) {
+					console.log(j)
+				}
+			}
+			progressObj.value(percent);
+		};
+		//把5000条数据分为20部分来执行，每执行一部分就更新一次进度条
+		new jslet.StepProcessor(5000, ProcessFn, 20).run();
+	});
+	</code></pre>
+
+    <script type="text/javascript">
+		window.LOADER_BASE_URL = "../../lib/prettify";
+    </script>
+    <script type="text/javascript" src="../../lib/prettify/run_prettify.js"></script>
+		
+</body>
+</html>

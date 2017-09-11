@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="../../css/demo.css" />
+    
+    <title>Jslet - 窗口控件（Window）</title>
+    <script type="text/javascript" data-main="../../config.js" src="../../lib/requirejs/require.min.js"></script>
+    <script type="text/javascript">
+	    require(['control/layout/window']);
+    </script>
+</head>
+<body>
+    <div class="demo-header">
+    <h4 id="top">Jslet - 窗口控件（Window）</h4>
+	</div>
+	<hr />
+	<div class="content">
+		<ol>
+    <li>在Body中打开非模态窗口： <button id="btnOpenModelessInBody" class="btn btn-default btn-sm"> 打开 </button>
+	</li>
+    <li>在Body中打开模态窗口 <button id="btnOpenModelInBody" class="btn btn-default btn-sm"> 打开 </button><button id="btnOpenModelInBodyCenter" class="btn btn-default btn-sm"> 在屏幕中央打开 </button>
+	</li>
+    <li>在容器（DIV）中打开非模态窗口： <button class="btn btn-default btn-sm" id="btnOpenModelessInDiv"> 打开 </button>(多次点击可打开多个窗口)
+	</li>
+    <li>在容器（DIV）中打开非模态窗口： <button class="btn btn-default btn-sm" id="btnOpenModelInDiv"> 打开 </button>
+	</li>
+    <li>在窗口中打开网址： <b>http://jslet.github.com/jslet'</b> <button class="btn btn-default btn-sm" id="btnOpenGitHub"> 打开 </button>
+	</li>
+    <li>打开窗口后，可做操作: 最小化, 最大化, 双击标题栏最大化, 改变窗口大小, 移动窗口; </li>
+	</ol>
+	</div>
+    <div id="container" style="border:2px solid green;width:50%;height:200px;overflow:auto;position:relative;border-radius: 8px">Window container for test</div>
+	<hr />
+	<h4>源码</h4>
+    <pre class="prettyprint linenums"><code>
+    $('#btnOpenModelessInBody').click(function() {
+    	//在Body中打开非模态窗口
+    	var winCfg = {type: "Window", animation: 'slide', iconClass:"fa fa-diamond", 
+    			caption: "非模态窗口", width: 500, height: 500};
+        var owin = jslet.ui.createControl(winCfg);
+        owin.setContent("Body中打开非模态窗口!");
+        owin.show(350,250);
+    });
+    
+    
+    $('#btnOpenModelInBody').click(function() {
+    	//在Body中打开模态窗口
+    	var winCfg = {type: "Window", caption: "模态窗口", minimizable: false, maximizable:false, width: 500, height: 500};
+        var owin = jslet.ui.createControl(winCfg);
+        owin.setContent("Body中打开模态窗口!");
+        owin.showModal(150, 50);
+    });
+
+    $('#btnOpenModelInBodyCenter').click(function() {
+    	//在Body中打开模态窗口
+    	var winCfg = {type: "Window", caption: "模态窗口", animation: 'fade', minimizable: false, maximizable:false, isCenter: true};
+        var owin = jslet.ui.createControl(winCfg);
+        owin.setContent("Body中打开模态窗口!");
+        owin.showModal(150, 50);
+    });
+    
+    var left = 10;
+    var top = 10;
+    
+    $('#btnOpenModelessInDiv').click(function() {
+    	//在Body中打开非模态窗口
+    	var winCfg = {type: "Window", animation: 'slide', iconClass:"fa fa-diamond", 
+    			caption: "非模态窗口"};
+    	var container = $('#container')[0];
+        var owin = jslet.ui.createControl(winCfg, container);
+        owin.setContent("Body中打开非模态窗口!");
+        left += 20;
+        top += 20;
+        
+        owin.show(left, top);
+    });
+        
+    $('#btnOpenModelInDiv').click(function() {
+    	//在Body中打开模态窗口
+    	var winCfg = {type: "Window", caption: "模态窗口", minimizable: false, maximizable:false};
+    	var container = $('#container')[0];
+        var owin = jslet.ui.createControl(winCfg, container);
+        owin.setContent("Body中打开模态窗口!");
+        owin.showModal(50, 50);
+    });
+    
+    $('#btnOpenGitHub').click(function() {
+    	//在窗口中打开网址
+        owin = jslet.ui.createControl({ type: "Window", caption: "<i>child window</i>", width: 800, height: 600 });
+        owin.setContent("<iframe src='http://jslet.github.com/jslet' style='width: 100%;height: 98%; border:none' />");
+        owin.show(150, 50);
+    });
+    
+   jslet.ui.install();
+	</code></pre>
+
+    <script type="text/javascript">
+		window.LOADER_BASE_URL = "../../lib/prettify";
+    </script>
+    <script type="text/javascript" src="../../lib/prettify/run_prettify.js"></script>
+		
+</body>
+</html>

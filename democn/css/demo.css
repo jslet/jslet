@@ -1,0 +1,22 @@
+body {
+	padding: 10px;
+}
+
+* {
+font-family: tahoma,arial,"Hiragino Sans GB",\5b8b\4f53;
+}
+
+p, .demo-desc li {
+line-height: 2rem;
+margin-bottom: 10px;
+}
+
+.demo-header {
+	padding: 5px;
+	padding-top: 0;	
+}
+
+hr {
+	margin-top: 10px!important;
+	margin-bottom: 10px!important;
+}

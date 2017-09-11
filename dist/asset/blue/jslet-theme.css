@@ -1,0 +1,686 @@
+/*!
+ * Jslet JavaScript Framework v4.0.0
+ * http://www.jslet.com
+ *
+ * Copyright 2016 Jslet Team
+ * Released under GNU AGPL v3.0 license and commercial license
+ */
+
+ @CHARSET "UTF-8";
+ 
+/* =========================================== Calendar =========================================== */
+.jl-calendar {
+	background: #fff;
+	border: 1px solid #b4c0c8;
+}
+ 
+.jl-cal-header {
+	background-color: #e0ecff;
+}
+ 
+.jl-cal-btn {
+	color: #333;
+}
+ 
+.jl-cal-title {
+	color: #333;
+}
+
+.jl-cal-body thead {
+	background-color: #e0ecff;
+}
+
+.jl-cal-body a {
+	color: #333;
+}
+
+.jl-cal-body a:hover {
+	background-color: #e0ecff;
+}
+
+.jl-cal-weekend {
+	color: #f00;
+}
+
+.jl-cal-footer {
+	background-color: #e0ecff;
+}
+ 
+.jl-cal-today {
+	background-color: #333;
+}
+
+.jl-cal-current {
+	background-color: #b4c0c8;
+}
+ 
+.jl-cal-disable a{
+	color: #bbb!important;
+}
+
+.jl-cal-disable a:hover {
+	background-color: #e0ecff!important;
+}
+/* =========================================== End of Calendar =========================================== */
+
+
+/* =========================================== MessageBox =========================================== */
+
+.jl-msg-icon {
+	color: #fff;
+}
+
+.jl-msg-icon-info {
+	background-color: #5bc0de;
+	border-color: #5bc0de;
+}
+
+.jl-msg-icon-error {
+	background-color: #d9534f;
+	border-color: #d9534f;
+}
+
+.jl-msg-icon-question {
+	background-color: #5bc0de;
+	border-color: #5bc0de;
+}
+
+.jl-msg-icon-warning {
+	background-color: #f0ad4e;
+	border-color: #f0ad4e;
+}
+
+/* =========================================== End of MessageBox =========================================== */
+
+
+/* =========================================== Overlay Panel =========================================== */
+.jl-overlay {
+	background-color: #fff;
+}
+/* =========================================== End of Overlay Panel =========================================== */
+
+
+/* =========================================== Popup Panel =========================================== */
+.jl-popup-panel {
+	padding: 0!important;
+	position: absolute;
+	z-index: 99000;
+}
+/* =========================================== End of Popup Panel =========================================== */
+
+
+/* =========================================== Progress Bar =========================================== */
+.jl-progressbar {
+	border: 1px solid #c5c5c5;
+}
+
+.jl-progressbar .jl-progressbar-value {
+	background-color: #e0ecff;
+}
+/* =========================================== End of Progress Bar =========================================== */
+
+
+/* =========================================== Rating =========================================== */
+.jl-rating-value {
+	background-color: #fff;
+}  
+/* =========================================== End of Rating =========================================== */
+
+
+/* =========================================== Tips Panel =========================================== */
+.jl-tip-panel {
+	background-color: #ffffce;
+}
+/* =========================================== End of Tips Panel =========================================== */
+
+/* =========================================== Waiting Box =========================================== */
+.jl-waitingbox {
+	border: 1px solid #555;
+	box-shadow: 0 3px 9px rgba(0, 0, 0, .5);
+	background-color: #fff;   
+}
+
+.jl-waitingbox-text {
+	color: #000;
+}
+/* =========================================== End of Waiting Box =========================================== */
+
+
+.jl-focus {
+	border-color: #66afe9;
+	box-shadow: inset 0 1px 1px rgba(0,0,0,.075), 0 0 8px rgba(102, 175, 233, .6);
+}
+
+/* =========================================== DBEditPanel =========================================== */
+/* =========================================== End of DBEditPanel =========================================== */
+
+
+/* =========================================== DBInspector =========================================== */
+.jl-inspector {
+	border: 1px solid #a4bed4;
+}
+
+/* =========================================== End of DBInspector =========================================== */
+
+
+/* =========================================== Common =========================================== */
+.jl-ctrl-required {
+	background-color: rgba(244, 244, 149, 0.37)!important;
+}
+/* =========================================== End of Common =========================================== */
+
+/* =========================================== DBCheckBox, DBCheckBoxGroup, DBRadioGroup =========================================== */
+.jl-dbcheck, .jl-checkboxgroup input[type=checkbox] {
+	color: #555;
+	background-color: #fff;
+	background-image: none;
+	border: 1px solid #ccc;
+	box-shadow: inset 0 1px 1px rgba(0, 0, 0, .075);
+	transition: border-color ease-in-out .15s, box-shadow ease-in-out .15s;
+}
+
+.jl-dbcheck:focus, .jl-checkboxgroup input[type=checkbox]:focus {
+	border-color: #66afe9;
+	box-shadow: inset 0 1px 1px rgba(0,0,0,.075), 0 0 8px rgba(102, 175, 233, .6);
+}
+
+.jl-radiogroup input[type=radio] {
+	color: #555;
+	background-color: #fff;
+	background-image: none;
+	border: 1px solid #ccc;
+	box-shadow: inset 0 1px 1px rgba(0, 0, 0, .075);
+	transition: border-color ease-in-out .15s, box-shadow ease-in-out .15s;
+}
+
+.jl-radiogroup input[type=radio]:focus {
+	border-color: #66afe9;
+	box-shadow: inset 0 1px 1px rgba(0,0,0,.075), 0 0 8px rgba(102, 175, 233, .6);
+}
+/* =========================================== End of DBCheckBox, DBCheckBoxGroup, DBRadioGroup =========================================== */
+
+/* =========================================== DBCKEditor =========================================== */
+.jl-ckeditor {
+	border: 1px solid transparent;
+}
+
+.has-error .jl-ckeditor {
+	border-color: #a94442;
+	box-shadow: inset 0 1px 1px rgba(0, 0, 0, .075);
+}
+
+/* =========================================== End of DBCKEditor =========================================== */
+
+/* =========================================== DBComboSelect =========================================== */
+.jl-combopnl-tip {
+	background-color: rgba(244, 244, 149, 1);;
+}
+
+/* =========================================== End of DBComboSelect =========================================== */
+
+/* =========================================== DBLabel =========================================== */
+
+.jl-lbl-required {
+	color: red;
+}
+
+.jl-lbl-error {
+	color: red;
+}
+
+/* =========================================== End of DBLabel =========================================== */
+
+/* =========================================== DBUEditor =========================================== */
+.jl-ueditor {}
+
+.has-error .jl-ueditor {
+	border-color: #a94442;
+	box-shadow: inset 0 1px 1px rgba(0, 0, 0, .075);
+}
+/* =========================================== End of DBUEditor =========================================== */
+
+/* =========================================== Accordion =========================================== */
+.jl-accordion {
+	border: 1px solid #95b8e7;
+}
+
+/* =========================================== End of Accordion =========================================== */
+
+
+/* =========================================== Desktop =========================================== */
+.jl-desktop {
+	border: 1px solid #95b8e7;
+}
+
+.jl-dsk-menu-top {
+	border-bottom: 1px solid #95b8e7;
+}
+
+.jl-dsk-header {
+	border-bottom: 1px solid #fff;
+	border-right: 1px solid #95b8e7;
+	background-color: #fff;
+}
+
+/* =========================================== End of Desktop =========================================== */
+
+
+/* =========================================== FieldSet =========================================== */
+.jl-fieldset {
+	border: 1px solid #95b8e7;
+}
+
+.jl-fieldset-collapse {
+	border-left: 1px transparent dotted;
+	border-right: 1px transparent dotted;
+	border-bottom: 1px transparent dotted;
+}
+
+.jl-fieldset-legend {
+	color: #3c3c3c!important;
+}
+
+/* =========================================== End of FieldSet =========================================== */
+
+
+/* =========================================== Menu =========================================== */
+.jl-menubar, .jl-menubar-item a {
+	color:black;
+ }
+
+.jl-menubar-item-hover {
+	background-color: #e6e6e6;
+	color: #3c3c3c;
+}
+
+.jl-menubar-item-hover  a {
+	color: #3c3c3c;
+}
+
+/* popup menu */
+.jl-menu {
+	background-color: #fff;
+	border: 1px solid #c2c0c0;
+}
+
+.jl-menu-shadow {
+	background: gray;
+	box-shadow: 2px 2px 3px rgba(0, 0, 0, 0.2);
+}
+
+.jl-menu-item {
+   background-color: #fff;
+   border: 1px solid #fff;
+}
+
+.jl-menu-item-hover {
+   background-repeat: repeat-x;
+   background-color: #e6e6e6;
+   border: 1px solid #e5c365;
+   color: #3c3c3c;
+}
+
+.jl-menu-item a {
+	color: #3c3c3c;
+}
+
+.jl-menu-disabled, .jl-menu-disabled a, .jl-menu-disabled .jl-menu-item a {
+	color: gray!important;
+}
+
+.jl-menu-item-hover a {
+	color: #3c3c3c!important;
+}
+
+.jl-menu-line {
+	border-bottom: 1px solid #c2c0c0;
+}
+/* =========================================== End of Menu =========================================== */
+
+
+/* =========================================== SideMenu =========================================== */
+.jl-sidemenubar {
+	border: 1px solid #95b8e7;
+}
+
+.jl-smb-ul > li > a, .jl-smb-baritem {
+	background-color: #fff;
+	border-bottom: 1px solid #95b8e7;
+}
+
+.jl-smb-baritem:hover > i {
+	color: #d26565;
+}
+
+.jl-smb-box {
+	color: #da0e0e;
+	background: #fefefe;
+	border-bottom: 1px solid #e7e7e7;
+	border-top: 1px solid #e7e7e7;
+}
+
+.jl-smb-ul > li > a > span {
+	color: #3c3c3c;
+	text-shadow: 1px 1px 1px #ececec;
+	transition: all 100ms ease;
+}
+
+.jl-smb-ul > li > a:hover > span, .jl-smb-ul > li > a:focus > span, .jl-smb-ul > li.active > a > span {
+	color: #222 !important;
+}
+
+.jl-smb-ul > li > a:hover > i, .jl-smb-ul > li > a:focus > i, .jl-smb-ul > li.active > a > i {
+	color: #d26565 !important;
+}
+
+.jl-smb-icon {
+	color: #777;
+}
+
+.jl-smb-arrow {
+	color: #777;
+}
+
+.jl-smb-up a, .jl-smb-down a {
+	background-color: #efeff3;
+	background-image: linear-gradient(to left, #fff 0%, #efeff3 100%);
+}
+
+.jl-smb-popup {
+	border: 1px solid #95b8e7;
+	background: #fff;
+	box-shadow: 2px 2px 3px rgba(0, 0, 0, 0.2);
+}
+
+.jl-smb-line {
+	border-bottom: 1px dotted #95b8e7;
+}
+
+.jl-smb-subtitle {
+	color: #bbb;
+}
+
+.jl-smb-disabled {
+	color: #ddd!important;
+}
+
+.jl-smb-popup-ul > li > a:link,
+.jl-smb-popup-ul > li > a:visited {
+	color: #3c3c3c;
+	border-right: 1px solid #95b8e7;
+}
+
+.jl-smb-popup-ul > li > a:hover,
+.jl-smb-popup-ul > li > a:active {
+	color: #814b4b;
+}
+/* =========================================== End of SideMenu =========================================== */
+
+
+/* =========================================== Split Panel =========================================== */
+.jl-splitpanel {
+	border: 1px solid #95b8e7;
+}
+
+.jl-sp-splitter-tracker {
+	background-color: #b4b4b4;
+}
+
+.jl-sp-splitter-hori {
+	background-color: #eee;
+}
+
+.jl-sp-splitter-vert {
+	background-color: #eee;
+}
+
+.jl-sp-button {
+	background-color: transparent;
+	background-repeat: no-repeat !important;
+}
+
+/* =========================================== End of Split Panel =========================================== */
+
+
+/* =========================================== TabControl =========================================== */
+
+.jl-tab-list li {
+	border: 1px solid #95b8e7;
+}
+
+.jl-tab-list li a.jl-tab-inner {
+	color: #3c3c3c!important;
+	background-color: #efeff3;
+	background-image: linear-gradient(white 0px, #f5f5f5 50%, white 100%);
+}
+
+.jl-tab-list li.jl-tab-active {
+	border: 1px solid #95b8e7;
+	background-color: white;
+}
+
+.jl-tab-list li.jl-tab-active a.jl-tab-inner {
+	background-color: #fff;
+}
+
+.jl-tab-list li a:hover.jl-tab-inner {
+	background-color: #f5f5f5!important;
+}
+
+.jl-tab-list li.jl-tab-active a:hover{
+	background-color: #fff!important;
+}
+
+.jl-tab-list li.jl-tab-disabled a.jl-tab-inner, 
+.jl-tab-list li.jl-tab-disabled a:hover.jl-tab-inner {
+	color: #416aa3;
+	background-color: #95b8e7!important;
+}
+
+.jl-tab-loading {
+	background-color: #efeff3;
+	background-image: linear-gradient(white 0px, #f5f5f5 50%, white 100%);
+}
+
+.jl-tab-active .jl-tab-loading {
+	background-color: #fff!important;
+}
+
+.jl-nav-btn {
+	color: #555;
+}
+
+.jl-tab-panels {
+	border: 1px solid #95b8e7;
+}
+
+.jl-tab-close {
+	color: #95b8e7;
+}
+/* =========================================== End of TabControl =========================================== */
+
+
+/* =========================================== Window =========================================== */
+.jl-window {
+	background-color: #fff;
+	background-clip: padding-box;
+	border: 3px solid #e0ecff!important;
+	box-shadow: 0 3px 9px rgba(0, 0, 0, .5);
+}
+
+.jl-window-active {
+	background-color: #2d6ca2!important;
+}
+	
+.jl-win-header {
+	background-color: #f5f5f5;
+	background-image: linear-gradient(to bottom,#f5f5f5 0,#e8e8e8 100%);
+}
+
+.jl-win-tracker {
+	border: 1px dashed #15428b;
+}
+
+.jl-win-tracker-mask {
+	background: #fafafa;
+}
+/* =========================================== End of Window =========================================== */
+
+
+/* =========================================== DBError =========================================== */
+.jl-errorpanel {
+	color: red;
+}
+/* =========================================== End of DBError =========================================== */
+
+/*--------DBTable ClassName------------ */
+.jl-table {
+	border: 1px solid #428bca;
+}
+
+.jl-table input:focus, textarea:focus, select:focus {
+	outline: 1px solid rgba(102, 175, 233, 0.6)!important;
+}
+
+.jl-tbl-footer td {
+   border-right: 1px solid transparent;
+}
+
+.jl-scrollbar-col {
+	border-left: 1px solid #e0ecff;	
+}
+
+.jl-tbl-data td, .jl-tbl-data th {
+	border-right: 1px solid #e0ecff;
+	border-bottom: 1px solid #e0ecff;
+}
+
+.jl-tbl-border-bottom {
+	border-bottom: 1px solid #e0ecff;
+}
+
+.jl-tbl-col-over {
+	background-color: blue;
+	color: white;
+}
+
+.jl-tbl-col-over a {
+	color: white!important;
+}
+
+.jl-tbl-border-top {
+	border-top: 1px solid #e0ecff;
+}
+
+.jl-tbl-header-cell, .jl-scrollbar-width, .jl-tbl-vscroll-head {
+	box-shadow: 0 1px 1px #fff inset;
+	background-color: #e0ecff;
+	background-image: linear-gradient(to bottom,#eff5ff 0, #e0ecff 100%);
+	background-position: 0 1px;
+	background-repeat: repeat-x; 
+}
+
+.jl-tbl-current {
+	background-color: #e6f3f9!important;
+}
+
+.jl-tbl-row-hover {
+	background-color: rgba(224, 236, 255, 0.5)!important;
+}
+
+.jl-tbl-selected {
+	background-color: #cfeef8!important;
+}
+
+.jl-tbl-curr-cell {
+	outline: 1px dotted blue!important;	
+}
+
+.jl-tbl-sorter {
+	color: #669999;
+}
+
+.jl-tbl-splitter {
+	background-color: darkslategray;
+}
+
+.jl-tbl-norecord {
+	color: black;
+}
+
+/*tree grid*/
+.jl-tbltree-btn {
+	color: black;
+}
+
+a.jl-tbltree-btn:hover {
+	color: #aaa;
+}
+
+.jl-table .has-error,
+.jl-table .has-error .form-control {
+	background-color: #a94442!important;
+	color: white!important;
+}
+
+.jl-table .jl-tbl-filter {
+	background-color:transparent;
+	color:#ddd;
+}
+
+.jl-table .jl-tbl-filter:hover {
+	color: #000;
+}
+
+.jl-table .jl-tbl-filter-hasfilter {
+	color: blue;
+}
+
+.jl-table .jl-tbl-filter:focus{
+	color: green;
+}
+
+.jl-tbl-edittable td {
+	background-color: #fff;
+}
+
+.jl-tbl-insert, .jl-tbl-delete {
+	color: #333;	
+}
+
+.jl-filter-panel {
+	border: 1px solid #95b8e7;
+	box-shadow: 2px 2px 3px rgba(0, 0, 0, 0.2);
+}
+/* DBTreeView */
+.jl-tree {
+	border: 1px solid #ccc;
+	box-shadow: inset 0 1px 1px rgba(0, 0, 0,.075);
+	transition: border-color ease-in-out .15s,box-shadow ease-in-out .15s;
+}
+
+.jl-tree .has-error {
+	background-color: #a94442!important;
+	color: white!important;
+}
+
+.jl-tree-nodes-hover {
+	background-color: #f5f5f5;
+}
+
+.jl-tree-unit {
+	color: #777;
+}
+
+.jl-tree-mixedchecked i.fa-square{
+	color: #aaa;
+}
+
+.jl-tree-selected {
+	background-color: #ddd;
+}
+
+.jl-tree-plus .jl-tree-lines {
+	background-image: url('images/treeview/tree-line.png');
+	background-repeat: no-repeat;
+}

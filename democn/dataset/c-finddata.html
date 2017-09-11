@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="../css/demo.css" />
+    
+    <title>Jslet - 查找数据</title>
+    <script type="text/javascript" data-main="../config.js" src="../lib/requirejs/require.min.js"></script>
+    <script type="text/javascript">
+	    require(['dataset/c-finddata']);
+    </script>
+</head>
+<body>
+    <div class="demo-header">
+    <h4 id="top">Jslet - 查找数据</h4>
+	</div>
+	<hr />
+	<div data-jslet="type: 'DBTable', dataset: 'employee'"></div>
+	<div class="demo-desc">
+	<p>演示以下内容：</p>
+    <h4>1. 根据字段查找数据:</h4>
+	<div>
+		<span>根据员工Id查找数据:</span>
+		<input id="txtId" value="1003" size="20" />
+		<button id="btnFindById" class="btn btn-default btn-sm"> 查找 </button>
+		<br />
+		
+		<span>根据“员工ID”或者“员工名称”查找数据:</span>
+		<input id="txtName" value="Mike" />（可输入“员工ID”或者“员工名称”）
+		<button id="btnFindByName" class="btn btn-default btn-sm"> 查找 </button>
+		<br />
+		
+		<span>根据“部门”的“名称”查找数据:</span>
+		<input id="txtDeptName" value="市场部" />
+		<button id="btnFindByDeptName" class="btn btn-default btn-sm"> 查找 </button>
+		
+    </div>
+    <h4>2. 根据表达式式查找数据:</h4>
+    <div>查找年龄大于30的男性:
+		<input id="txtExpr" value="[gender]=='M' && [age]>30" size="32" />
+		<button id="btnFindByExpr" class="btn btn-default btn-sm"> 查找 </button>
+		<button id="btnFindByExprNext" class="btn btn-default btn-sm"> 查找下一条 </button>
+    </div>
+
+	</div>
+	<h4>源码</h4>
+    <pre class="prettyprint linenums"><code>
+	//datasetMetaStore定义在公共js:common/datasetmetastore.js中
+	//将数据集定义信息仓库加到datasetFactory中，创建Dataset时会仓库里去定义信息
+	jslet.data.datasetFactory.addMetaStore(window.datasetMetaStore);
+	//通过工厂方法，可以自动创建主数据集及相关的数据集
+    jslet.data.datasetFactory.createDataset('employee').done(function() {
+    	jslet.ui.install(function() {
+    		var dsEmployee = jslet.data.getDataset('employee');
+    		dsEmployee.query();
+    	});
+    });
+    
+    //绑定按钮事件
+	$('#btnFindById').click(function() {
+		var dsEmployee = jslet.data.getDataset('employee');
+		dsEmployee.first();
+		//找到以后，表格的光标会跳到相应位置
+		dsEmployee.findByField('id', $('#txtId').val());
+	});
+	
+	$('#btnFindByName').click(function() {
+		var dsEmployee = jslet.data.getDataset('employee');
+		dsEmployee.first();
+		//第一个参数如果传入数组，则会匹配数组里的所有字段
+		dsEmployee.findByField(['id', 'name'], $('#txtName').val());	
+	});
+	
+	$('#btnFindByDeptName').click(function() {
+		var dsEmployee = jslet.data.getDataset('employee');
+		dsEmployee.first();
+		//根据“部门”的“名称”查找
+		dsEmployee.findByField('department.name', $('#txtDeptName').val());	
+	});
+
+	//根据表达式式查找数据
+	$('#btnFindByExpr').click(function() {
+		var dsEmployee = jslet.data.getDataset('employee');
+		dsEmployee.first();
+		//找到以后，表格的光标会跳到相应位置
+		dsEmployee.find($('#txtExpr').val());	
+	});
+    
+	$('#btnFindByExprNext').click(function() {
+		var dsEmployee = jslet.data.getDataset('employee');
+		//传入第二个参数：true，则会查找下一条
+		if(!dsEmployee.find($('#txtExpr').val(), true)) {
+			dsEmployee.first();
+		};
+	});
+	</code></pre>
+
+    <script type="text/javascript">
+       window.LOADER_BASE_URL = "../lib/prettify";
+    </script>
+    <script type="text/javascript" src="../lib/prettify/run_prettify.js"></script>
+		
+</body>
+</html>

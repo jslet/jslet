@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js"><span id='jslet-ui-ExportDialog'>/**
+</span> * @class
+ * 
+ * Export dialog for specified Dataset object. Example:
+ * 
+ *     @example
+ *     var dlg = new jslet.ui.ExportDialog('employee');
+ *     //var dlg = new jslet.ui.ExportDialog(dsObj, {includeFields: ['fld1', 'fld2']});
+ *     dlg.show('employee.xml');
+ * 
+ * @param {jslet.data.Dataset | String} dataset Dataset object or dataset name.
+ * @param {Object} options (Optional)Export options. 
+ * @param {Boolean} options.hasSchemaSection Identify whether export schema section is visible or not. 
+ * @param {String[]} options.includeFields Specify which fields need export. 
+ * @param {String[]} options.excludeFields Specify which fields need not export. 
+ */
+jslet.ui.ExportDialog = function(dataset, options) {
+	this._dataset = jslet.data.getDataset(dataset);
+	
+	this._exportDataset = null;
+	
+	this._dlgId = null;
+	
+	this._onExported = null;
+
+	this._onQuerySchema = null;
+	
+	this._onSubmitSchema = null;
+	
+	this._progressBar = null;
+
+	this._hasSchemaSection = false;
+	
+	this._includeFields = null;
+	
+	this._excludeFields = null;
+	
+	if(options) {
+		this._hasSchemaSection = (options.hasSchemaSection? true: false);
+		this._includeFields = options.includeFields;
+		this._excludeFields = options.excludeFields;
+	}
+	this._initialize();
+};
+
+jslet.ui.ExportDialog.prototype = {
+<span id='jslet-ui-ExportDialog-method-show'>	/**
+</span>	 * Show export dialog.
+	 * 
+	 * @param {String} fileName Excel file name.
+	 */	
+	show: function(fileName) {
+		var Z = this;
+		Z._dataset.confirm();
+		if(Z._dataset.existDatasetError()) {
+	        jslet.ui.confirm(jsletlocale.ExportDialog.existedErrorData, null, function(button){
+	        	if(button == 'cancel') {
+	        		return;
+	        	}
+	    		return Z._innerShow(fileName);
+	        });
+		} else {
+			return Z._innerShow(fileName);
+		}
+        
+	},
+	
+	_innerShow: function(fileName) {
+		var Z = this;
+    	if(Z._hasSchemaSection) {
+	    	var exportDsClone = Z._exportDataset;
+			Z._querySchema();
+    	}
+		Z._hasDetailDataset = false;
+		Z._refreshFields();
+		var jqEl = jQuery('#' + this._dlgId);
+		var owin = jqEl[0].jslet;
+		fileName = (fileName || Z._dataset.description() + '.xlsx');
+		var jqExpportFile = jqEl.find('[name=&quot;jltxtExportFile&quot;]');
+		jqExpportFile.val(fileName);
+		if(Z._hasDetailDataset) {
+			jqEl.find('[name=&quot;jlOnlyOnceDiv&quot;]').show();
+		}
+		owin.showModal();
+		owin.setZIndex(999);
+		return owin;
+	},
+	
+<span id='jslet-ui-ExportDialog-event-onQuerySchema'>	/**
+</span>	 * @event
+	 * 
+	 * Query export schema event handler. Example:
+	 * 
+	 *     @example
+	 *     var exportDialog = new jslet.ui.ExportDialog(exportingDataset, {hasSchemaSection: true});
+	 *     var querySchemaFn = function(callBackFn) {
+	 * 	      var exportSchemaData = [{schema: '', fields: ['field1','field2']}];
+	 * 	      callBackFn(exportSchemaData); //For asynchronous operation.
+	 * 	     //return exportSchemaData; 	//For synchronous operation.
+	 *     };
+	 * 
+	 *     exportDialog.onQuerySchema(querySchemaFn);
+	 *     
+	 * @param {Function} onQuerySchema Query schema event handler.
+	 * @param {Function} onQuerySchema.callBackFn Query schema callback function.
+	 * @param {Function} onQuerySchema.callBackFn.exportSchemaData Query schema.
+	 * 
+	 * @return {this | Function}
+	 */
+	onQuerySchema: function(onQuerySchema) {
+		if(onQuerySchema === undefined) {
+			return this._onQuerySchema;
+		}
+		jslet.Checker.test('ImportDialog#onQuerySchema', onQuerySchema).isFunction();
+		this._onQuerySchema = onQuerySchema;
+		return this;
+	},	
+	
+<span id='jslet-ui-ExportDialog-event-onSubmitSchema'>	/**
+</span>	 * @event
+	 * 
+	 * Submit export schema event handler. Example:
+	 * 
+	 *     @example
+	 *     var exportDialog = new jslet.ui.ExportDialog(exportingDataset, {hasSchemaSection: true});
+	 *     var submitSchemaFn = function(action, changedRec) {
+	 * 	     if(action == 'insert') {}
+	 * 	     if(action == 'update') {}
+	 * 	     if(action == 'delete') {}
+	 *     };
+	 * 
+	 *     exportDialog.onSubmitSchema(submitSchemaFn);
+	 *     
+	 * @param {Function | undefined} onSubmitSchema Submitting schema event handler.
+	 * @param {String} onSubmitSchema.action Submit action, optional value: 'insert', 'update', 'delete'.
+	 * @param {Object} onSubmitSchema.changedRecord Changed record.
+	 * 
+	 * @return {this | Function}
+	 */
+	onSubmitSchema: function(onSubmitSchema) {
+		if(onSubmitSchema === undefined) {
+			return this._onSubmitSchema;
+		}
+		jslet.Checker.test('ImportDialog#onSubmitSchema', onSubmitSchema).isFunction();
+		this._onSubmitSchema = onSubmitSchema;
+		return this;
+	},
+	
+<span id='jslet-ui-ExportDialog-event-onExported'>	/**
+</span>	 * @event
+	 * 
+	 * Exported event handler. Example:
+	 * 
+	 *     @example
+	 *     var exportDialog = new jslet.ui.ExportDialog(exportingDataset);
+	 *     exportDialog.onExported(function(dataset) {});
+	 * 
+	 * @param {Function | undefined} onExported Exported event.
+	 * @param {jslet.data.Dataset} onExported.dataset Exporting dataset object.
+	 * 
+	 * @return {this | Function}
+	 */
+	onExported: function(onExported) {
+		if(onExported === undefined) {
+			return this._onExported;
+		}
+		jslet.Checker.test('ExportDialog#onExported', onExported).isFunction();
+		this._onExported = onExported;
+		return this;
+	},
+	
+	_initialize: function() {
+		var edLocale = jsletlocale.ExportDialog;
+		var fldCfg = [
+		    	      {name: 'field', type: 'S', length: 100, label: 'Field Name', nullText: 'default'}, 
+		    	      {name: 'label', type: 'S', length: 50, label: 'Field Label'},
+		    	      {name: 'parent', type: 'S', length: 100, label: 'Field Name'}, 
+		    	      {name: 'required', type: 'B', length: 8, visible: false} 
+		    	    ];
+		var exportLKDs = new jslet.data.Dataset({name: 'exportLKDs' + jslet.nextId(), fields: fldCfg, 
+				keyField: 'field', codeField: 'field', nameField: 'label', parentField: 'parent', isFireGlobalEvent: false});
+		exportLKDs.onCheckSelectable(function(){
+	        return !this.hasChildren(); 
+	    });
+		
+		var expFldCfg = [
+    	      {name: 'schema', type: 'S', length: 30, label: 'Export Schema'}, 
+    	      {name: 'fields', type: 'S', length: 500, label: 'Export Fields', visible: false, valueStyle: jslet.data.FieldValueStyle.MULTIPLE, lookup: {dataset: exportLKDs}}
+    	    ];
+		var Z = this;
+    	Z._exportDataset = new jslet.data.Dataset({name: 'exportDs' + jslet.nextId(), fields: expFldCfg, keyField: 'schema', nameField: 'schema', isFireGlobalEvent: false});
+		var opt = { type: 'window', caption: edLocale.caption, isCenter: true, resizable: false, minimizable: false, maximizable: false, animation: 'fade'};
+		var owin = jslet.ui.createControl(opt);
+		var expHtml = '';
+    	if(Z._hasSchemaSection) {
+    		expHtml = 
+	            '&lt;div class=&quot;input-group input-group-sm&quot; style=&quot;margin-bottom: 10px&quot;&gt;&lt;span class=&quot;input-group-addon&quot;&gt;' +
+	            edLocale.schemaName + 
+	            '&lt;/span&gt;' + 
+	            '&lt;select data-jslet=&quot;type:\'DBSelectView\', displayFields:\'schema\'&quot;&gt;&lt;/select&gt;' + 
+
+	            '&lt;span class=&quot;input-group-btn&quot;&gt;&lt;button class=&quot;btn btn-default btn-sm&quot; name=&quot;jlbtnSaveAs&quot;&gt;' + 
+	            edLocale.saveAsSchema + 
+	            '&lt;/button&gt;&lt;/span&gt;' +
+	            '&lt;span class=&quot;input-group-btn&quot;&gt;&lt;button class=&quot;btn btn-default btn-sm&quot; name=&quot;jlbtnSave&quot;&gt;' + 
+	            edLocale.saveSchema + 
+	            '&lt;/button&gt;&lt;/span&gt;' +
+	            '&lt;span class=&quot;input-group-btn&quot;&gt;&lt;button class=&quot;btn btn-default btn-sm&quot; name=&quot;jlbtnDelete&quot;&gt;' + 
+	            edLocale.deleteSchema + 
+	            '&lt;/button&gt;&lt;/span&gt;' +
+	            '&lt;/div&gt;';
+    	}
+		var html = ['&lt;div class=&quot;form-horizontal jl-expdlg-content&quot; data-jslet=&quot;dataset: \'', Z._exportDataset.name(),
+		            '\'&quot;&gt;',
+		            expHtml,
+		            '&lt;div class=&quot;input-group input-group-sm&quot; style=&quot;width: 100%;margin-bottom: 10px&quot;&gt;',
+		            '&lt;div class=&quot;col-sm-12 jl-expdlg-fields&quot; data-jslet=&quot;type:\'DBList\',field:\'fields\',correlateCheck:true&quot; style=&quot;padding:0px!important&quot;&gt;&lt;/div&gt;&lt;/div&gt;',
+
+		            '&lt;div class=&quot;input-group input-group-sm&quot;&gt;&lt;span class=&quot;input-group-addon&quot;&gt;',
+		            edLocale.fileName,
+		            '&lt;/span&gt;',
+					'&lt;input name=&quot;jltxtExportFile&quot; class=&quot;form-control&quot;&gt;&lt;/input&gt;',
+					'&lt;/div&gt;',
+
+					'&lt;div class=&quot;checkbox col-sm-6&quot;&gt;',
+					'&lt;label&gt;',
+					'&lt;input name=&quot;jlOnlySelected&quot; type=&quot;checkbox&quot;&gt;', edLocale.onlySelected,
+				    '&lt;/label&gt;',
+					'&lt;/div&gt;',
+
+					'&lt;div class=&quot;checkbox col-sm-6&quot; name=&quot;jlOnlyOnceDiv&quot; style=&quot;display:none&quot;&gt;',
+					'&lt;label&gt;',
+					'&lt;input name=&quot;jlOnlyOnce&quot; type=&quot;checkbox&quot; checked=&quot;true&quot;&gt;', edLocale.onlyOnce,
+				    '&lt;/label&gt;',
+					'&lt;/div&gt;',
+
+					'&lt;div class=&quot;col-sm-12&quot;&gt;&lt;/div&gt;',
+		            '&lt;div class=&quot;input-group input-group-sm jl-expdlg-toolbar&quot; style=&quot;margin-bottom: 0;width:100%&quot;&gt;',
+		            '&lt;div class=&quot;col-sm-8&quot;&gt;&lt;div name=&quot;jlProgressExport&quot; data-jslet=&quot;type:\'ProgressBar\', value: 50&quot; style=&quot;display:none;width:100%&quot;&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;col-sm-4&quot;&gt;&lt;button name=&quot;jlbtnCancel&quot; class=&quot;btn btn-default btn-sm jl-expdlg-toolbutton&quot;&gt;',
+		            edLocale.cancel,
+		            '&lt;/button&gt;&lt;button name=&quot;jlbtnExport&quot; class=&quot;btn btn-default btn-sm jl-expdlg-toolbutton&quot;&gt;',
+		            edLocale.exportData,
+		            '&lt;/button&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;',
+		            '&lt;/div&gt;'];
+		owin.setContent(html.join(''));
+		owin.onClosed(function () {
+			Z.destroy();
+		});
+		Z._dlgId = owin.el.id;
+		jslet.ui.install(owin.el);
+		var jqEl = jQuery(owin.el);
+		Z._progressBar = jqEl.find('[name=&quot;jlProgressExport&quot;]')[0].jslet;
+		
+		jqEl.find('[name=&quot;jlbtnExport&quot;]').click(function(event) {
+			Z._exportData();
+		});
+		jqEl.find('[name=&quot;jlbtnSave&quot;]').click(function(event) {
+			Z._saveSchema();
+		});
+		
+		jqEl.find('[name=&quot;jlbtnSaveAs&quot;]').click(function(event) {
+			Z._saveAsSchema();
+		});
+		
+		jqEl.find('[name=&quot;jlbtnDelete&quot;]').click(function(event) {
+			Z._deleteSchema();
+		});
+		
+		jqEl.find('[name=&quot;jlbtnCancel&quot;]').click(function(event) {
+			owin.close();
+		});
+	},
+	
+	_saveSchema: function() {
+		var dsExport = this._exportDataset;
+		if(!dsExport.getFieldValue('schema')) {
+			this._saveAsSchema();
+			return;
+		}
+		dsExport.confirm();
+		var currRec = dsExport.getRecord();
+		this._submitSchema('update', {schema: currRec.schema, fields: currRec.fields});
+	},
+	
+	_saveAsSchema: function() {
+		var Z = this;
+		jslet.ui.prompt(jsletlocale.ExportDialog.inuputSchemaLabel, null, function(button, value){
+			if(button === 'ok' &amp;&amp; value) {
+				var fields = Z._exportDataset.getFieldValue('fields');
+				var dsObj = Z._exportDataset;
+				dsObj.disableControls();
+				Z._isProgChanged = true;
+				try {
+					dsObj.cancel();
+					dsObj.appendRecord();
+					dsObj.setFieldValue('schema', value);
+					dsObj.setFieldValue('fields', fields);
+					dsObj.confirm();
+				} finally {
+					Z._isProgChanged = false;
+					dsObj.enableControls();
+				}
+				var currRec = Z._exportDataset.getRecord();
+				Z._submitSchema('insert', {schema: currRec.schema, fields: currRec.fields});
+			}
+		});
+	},
+	
+	_deleteSchema: function() {
+		var Z = this,
+			currRec = this._exportDataset.getRecord();
+		var result = this._submitSchema('delete', {schema: currRec.schema, fields: currRec.fields});
+		if(result &amp;&amp; jslet.isPromise(result)) {
+			result.done(function() {
+				Z._exportDataset.deleteRecord();
+				if(Z._exportDataset.recordCount() === 0) {
+					Z._refreshFields();
+				}
+			});
+		} else {
+			Z._exportDataset.deleteRecord();
+			if(Z._exportDataset.recordCount() === 0) {
+				Z._refreshFields();
+			}
+		}
+	},	
+
+	_querySchema: function() {
+		var Z = this,
+			queryFn = this._onQuerySchema || jslet.global.exportDialog.onQuerySchema;
+		if(!queryFn) {
+			console.warn('Event handler: onQuerySchema NOT set, can not query export schema!');
+			return;
+		}
+		
+		var result = queryFn();
+		if(jslet.isPromise(result)) {
+			result.done(function(schemaData) {
+				if(schemaData) {
+					Z._exportDataset.records(schemaData);
+				}
+				if(Z._exportDataset.recordCount() === 0) {
+					Z._refreshFields();
+				}
+			});
+		} else {
+			if(result) {
+				Z._exportDataset.records(result);
+			}
+			if(Z._exportDataset.recordCount() === 0) {
+				Z._refreshFields();
+			}
+		}
+	},
+	
+	_submitSchema: function(action, changedRecord) {
+		var Z = this,
+			actionFn = Z._onSubmitSchema || jslet.global.exportDialog.onSubmitSchema;
+		if(actionFn) {
+			return actionFn(action, changedRecord);
+		} else {
+			console.warn('Event handler: onSubmitSchema NOT set, can not save export schema!');
+			return null;
+		}
+	},
+	
+	_exportData: function() {
+		var Z = this;
+		var jqEl = jQuery('#' + Z._dlgId);
+		var jqExpportFile = jqEl.find('[name=&quot;jltxtExportFile&quot;]');
+		var fileName = jqExpportFile.val();
+		if(!fileName || !fileName.trim()) {
+			jslet.showInfo(jsletlocale.ExportDialog.fileAndFieldsRequired);
+			return false;
+		}
+		var fields = Z._exportDataset.getFieldValue('fields');
+		if(!fields || fields.length === 0) {
+			jslet.showInfo(jsletlocale.ExportDialog.fileAndFieldsRequired);
+			return false;
+		}
+		jqEl.find('[name=&quot;jlProgressExport&quot;]').css('display', '');
+		var onlySelected = jqEl.find('[name=&quot;jlOnlySelected&quot;]').prop('checked');
+		var onlyOnce = jqEl.find('[name=&quot;jlOnlyOnce&quot;]').prop('checked');
+		jslet.data.defaultXPorter.excelXPorter().exportData(Z._dataset, fileName, 
+				{includeFields: fields, onlySelected: onlySelected, onlyOnce: onlyOnce, exportAggregated: true, 
+			onExporting: jQuery.proxy(Z._doExporting, Z), 
+			onExported: jQuery.proxy(Z._doExported, Z)});
+		return true;
+	},
+	
+	_doExported: function() {
+		var Z = this;
+		if(Z._onExported) {
+			Z._onExported.call(Z, Z._dataset);
+		}
+		jslet('#' + Z._dlgId).close();
+	},
+	
+	_doExporting: function(percent) {
+		this._progressBar.value(percent);
+	},
+	
+	_refreshFields: function() {
+		var Z = this,
+			fieldRecords = [{field: '_all_', label: jsletlocale.ExportDialog.all}],
+			fieldNames = [],
+			includeFields = Z._includeFields,
+			excludeFields = Z._excludeFields;
+		
+		function addFields(fieldRecords, fieldNames, fields, parentField, isDetailDs) {
+			var fldObj, fldName, dataType;
+			for(var i = 0, len = fields.length; i &lt; len; i++) {
+				fldObj = fields[i];
+				dataType = fldObj.dataType();
+				var isActionCol = (dataType === jslet.data.DataType.ACTION);
+				var isEdtActCol = (dataType === jslet.data.DataType.EDITACTION);
+				if(isActionCol || isEdtActCol) {
+					continue;
+				}
+				fldName = fldObj.name();
+				if(parentField &amp;&amp; isDetailDs) {
+					fldName = parentField + '.' + fldName;
+				}
+				var detailDs = fldObj.detailDataset();
+				if(detailDs) {
+					Z._hasDetailDataset = true;
+					fieldRecords.push({field: fldName, label: fldObj.label(), parent: parentField || '_all_'});
+					addFields(fieldRecords, fieldNames, detailDs.getNormalFields(), fldName, true);
+					continue;
+				}
+				if(includeFields) {
+					if(includeFields.indexOf(fldName) &lt; 0) {
+						continue;
+					}
+				} else {
+					if(!fldObj.visible()) {
+						continue;
+					}	
+				}
+				if(excludeFields &amp;&amp; excludeFields.indexOf(fldName) &gt;= 0) {
+					continue;
+				}
+				
+				var required = fldObj.required();
+				fieldRecords.push({field: fldName, label: fldObj.label() + (required? '&lt;span class=&quot;jl-lbl-required&quot;&gt;*&lt;/span&gt;': ''), 
+					parent: parentField || '_all_', required: required});
+				var fldChildren = fldObj.children();
+				if(fldChildren) {
+					addFields(fieldRecords, fieldNames, fldChildren, fldName);
+				} else {
+					fieldNames.push(fldName);
+				}
+			}
+		}
+		addFields(fieldRecords, fieldNames, this._dataset.getFields());
+		var exportLKDs = this._exportDataset.getField('fields').lookup().dataset();
+		exportLKDs.records(fieldRecords);
+		this._exportDataset.setFieldValue('fields', fieldNames);
+		exportLKDs.first();
+	},
+
+	destroy: function() {
+    	if(this._exportDataset) {
+    		var lkds = this._exportDataset.getField('fields').lookup().dataset();
+    		lkds.destroy();
+    		this._exportDataset.destroy();
+    		this._exportDataset = null;
+    	}
+    	this._dataset = null;
+    	this._progressBar = null;
+	}
+};
+</pre>
+</body>
+</html>

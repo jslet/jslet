@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js"><span id='jslet-ui-PopupPanel'>/**
+</span> * @private
+ * @class
+ * 
+ * Popup Panel. Example: 
+ * 
+ *     @example
+ *     var popPnl = new jslet.ui.PopupPanel();
+ *     popPnl.contentElement(document.getElementById('id'));
+ *     popPnl.show(10, 10, 100, 100);
+ * 
+ *     popPnl.hide(); //or
+ *     popPnl.destroy();
+ *  
+ */
+jslet.ui.PopupPanel = function (excludedEl) {
+	this._onHidePopup = null;
+	this._excludedEl = excludedEl;
+	this._contentEl = null;
+};
+
+jslet.ui.PopupPanel.prototype = {
+<span id='jslet-ui-PopupPanel-method-onHidePopup'>	/**
+</span>	 * Event handler when hide popup panel: function(){}
+	 */
+	onHidePopup: function(onHidePopup) {
+		if(onHidePopup === undefined) {
+			return this._onHidePopup;
+		}
+		this._onHidePopup = onHidePopup;
+		return this;
+	},
+	
+	excludedElement: function(excludedEl) {
+		if(excludedEl === undefined) {
+			return this._excludedEl;
+		}
+		this._excludedEl = excludedEl;
+		return this;
+	},
+	
+	contentElement: function(contentEl) {
+		if(contentEl === undefined) {
+			return this._contentEl;
+		}
+		this._contentEl = contentEl;
+		return this;
+	},
+	
+	show: function(left, top, width, height, ajustX, ajustY) {
+		jslet.ui.PopupPanel.popupElement.show(this, left, top, width, height, ajustX, ajustY);
+	},
+	
+	hide: function() {
+		jslet.ui.PopupPanel.popupElement.hide();
+	},
+	
+	destroy: function() {
+		this._onHidePopup = null;
+		this._excludedEl = null;
+		this._contentEl = null;
+	}
+};
+
+(function () {
+	var PopupElement = function() {
+		var sharedPopPnl = null;
+		var activePopup = null;
+		
+		var inPopupPanel = function (htmlElement) {
+			if (!htmlElement || htmlElement === document) {
+				return false;
+			}
+			if (jQuery(htmlElement).hasClass('jl-popup-panel')) {
+				return true;
+			} else {
+				return inPopupPanel(htmlElement.parentNode);
+			}
+		};
+		var self = this;
+		var documentClickHandler = function (event) {
+			if(!activePopup) {
+				return;
+			}
+			event = jQuery.event.fix( event || window.event );
+			var srcEle = event.target;
+			self.checkAndHide(srcEle);
+		};
+		
+		function createPanel() {
+			if(sharedPopPnl) {
+				return;
+			}
+			var p = document.createElement('div');
+			p.style.display = 'none';
+			p.className = 'jl-popup-panel jl-opaque jl-border-box dropdown-menu';
+			p.style.position = 'absolute';
+			p.style.zIndex = 99000;
+			document.body.appendChild(p);
+			
+			jQuery(document).on('click', documentClickHandler);
+			sharedPopPnl = p;
+		}
+		
+		function changeContent(newPopup) {
+			var oldContent = sharedPopPnl.childNodes[0];
+			if (oldContent) {
+				sharedPopPnl.removeChild(oldContent);
+			}
+			if(newPopup) {
+				var content = newPopup.contentElement();
+				if(!content) {
+					return;
+				}
+				sharedPopPnl.appendChild(content);
+				content.style.border = 'none';
+			}
+		}
+		
+		this.show = function(activePop, left, top, width, height, ajustX, ajustY) {
+			createPanel();
+			if(activePopup !== activePop) {
+				this.hide();
+				changeContent(activePop);
+			}
+			activePopup = activePop;
+			
+			left = parseInt(left);
+			top = parseInt(top);
+			
+			if (height) {
+				sharedPopPnl.style.height = parseInt(height) + 'px';
+			}
+			if (width) {
+				sharedPopPnl.style.width = parseInt(width) + 'px';
+			}
+			var jqWin = jQuery(window),
+				winWidth = jqWin.scrollLeft() + jqWin.width(),
+				winHeight = jqWin.scrollTop() + jqWin.height(),
+				panel = jQuery(sharedPopPnl),
+				w = panel.outerWidth(),
+				h = panel.outerHeight();
+			if (jsletlocale.isRtl) {
+				left -= w;
+			}
+			if(left + w &gt; winWidth) {
+				left += winWidth - left - w - 1;
+			}
+			if(top + h &gt; winHeight) {
+				top -= (h + 2 + ajustY);
+			}
+			if(left &lt; 0) {
+				left = 1;
+			}
+			if(top &lt; 0) {
+				top = 1;
+			}
+			
+			if (top) {
+				sharedPopPnl.style.top = top + 'px';
+			}
+			if (left) {
+				sharedPopPnl.style.left = left + 'px';
+			}
+			sharedPopPnl.style.display = 'block';
+		};
+		
+		this.hide = function() {
+			if(activePopup) {
+				if (sharedPopPnl) {
+					sharedPopPnl.style.display = 'none';
+				}
+				var hideCallBack = activePopup.onHidePopup();
+				if(hideCallBack) {
+					hideCallBack.call(activePopup);
+				}
+				activePopup = null;
+			}
+		};
+		
+<span id='jslet-ui-PopupPanel-method-checkAndHide'>		/**
+</span>		 * Check the specified element is in the active popup panel or not. If it is not in the popup panel, hide the popup panel. 
+		 */
+		this.checkAndHide = function(el) {
+			if(!activePopup) {
+				return true;
+			}
+			if (jslet.ui.isChild(activePopup.excludedElement(), el) ||
+					inPopupPanel(el)) {
+					return false;
+			}
+			this.hide();
+			return true;
+		};
+		
+		this.destroy = function() {
+			if(!sharedPopPnl) {
+				return;
+			}
+			document.body.removeChild(sharedPopPnl);
+			jQuery(sharedPopPnl).off();
+			jQuery(document).off('click', documentClickHandler);
+		}; 
+	};
+	
+	jslet.ui.PopupPanel.popupElement = new PopupElement();
+})();
+
+</pre>
+</body>
+</html>

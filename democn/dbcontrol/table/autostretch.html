@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="../../css/demo.css" />
+    
+    <title>Jslet - 表格高度自动伸缩</title>
+    <script type="text/javascript" data-main="../../config.js" src="../../lib/requirejs/require.min.js"></script>
+    <script type="text/javascript">
+	    require(['dbcontrol/table/autostretch']);
+    </script>
+</head>
+<body>
+    <div class="demo-header">
+    <h4 id="top">Jslet - 表格高度自动伸缩</h4>
+	</div>
+	<hr />
+	<div class="form-group">
+	<button id="btnAppend"> 新增 </button><button id="btnDelete"> 删除 </button>
+	</div>
+	<div id="tblEmployee" data-jslet="type: 'DBTable', dataset: 'employee', autoStretch: true, minVisibleRows: 1, maxVisibleRows: 5"></div>
+	<div class="demo-desc">
+	<p>演示内容：</p>
+    <p>一般情况，表格的高度应该固定，以免造成界面跳动。但在一些紧凑的录入界面上，也需要表格能够根据数据量自动伸缩，以免界面上有空白区域。</p>
+    <p>表格控件有3个属性用于表格的自动伸缩：autoStretch， minVisibleRows，maxVisibleRows。</p>
+    <p>点击“删除”或者“新增”，观察表格高度的变化。</p>
+	</div>
+	<hr />
+	<h4>源码</h4>
+	<h5>HTML</h5>
+    <pre class="prettyprint linenums"><code>
+    &lt;div data-jslet="type: 'DBTable', dataset: 'employee', autoStretch: true, minVisibleRows: 1, maxVisibleRows: 5">&lt;/div>
+	</code></pre>
+	<h5>Javascript</h5>
+    <pre class="prettyprint linenums"><code>
+	//datasetMetaStore定义在公共js:common/datasetmetastore.js中
+	//将数据集定义信息仓库加到datasetFactory中，创建Dataset时会仓库里去定义信息
+	jslet.data.datasetFactory.addMetaStore(window.datasetMetaStore);
+	//通过工厂方法，可以自动创建主数据集及相关的数据集
+    jslet.data.datasetFactory.createDataset('employee').done(function() {
+		var dsEmployee = jslet.data.getDataset('employee');
+		dsEmployee.query();
+    	jslet.ui.install();
+    });
+    
+	</code></pre>
+
+    <script type="text/javascript">
+       window.LOADER_BASE_URL = "../../lib/prettify";
+    </script>
+    <script type="text/javascript" src="../../lib/prettify/run_prettify.js"></script>
+		
+</body>
+</html>

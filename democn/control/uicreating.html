@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="../css/demo.css" />
+    
+    <title>Jslet - 创建UI控件</title>
+    <script type="text/javascript" data-main="../config.js" src="../lib/requirejs/require.min.js"></script>
+    <script type="text/javascript">
+	    require(['control/uicreating']);
+    </script>
+</head>
+<body>
+    <div class="demo-header">
+    <h4 id="top">Jslet - 创建UI控件</h4>
+	</div>
+	<hr />
+	<div class="container-fluid">
+	<div class="form-horizontal">
+	<div class="col-sm-12">
+	<p>1、HTML声明式： 在HTML元素上配置data-jslet属性</p>
+	<div><select data-jslet="type: 'DBSelect', dataset: 'employee', field: 'department'" style="width: 100px"></select></div>
+	</div>
+
+	<div class="col-sm-12">
+	<p><span>2、动态HTML声明式（一般适合弹出式的对话框的创建）&nbsp;&nbsp;</span><button id="btnDyncHtml" class="btn btn-default btn-sm">创建</button></p>
+	<div id="dyncContrainer" style="width: 100%;height: 100%"></div>
+	</div>
+
+	<div class="col-sm-12">
+	<p><span>3、绑定式: 适合配置比较复杂的控件&nbsp;&nbsp;</span><button id="btnBind" class="btn btn-default btn-sm">创建</button></p>
+	<div><div id="tblEmployeeBind" style="height: 100px;margin-bottom:10px"></div></div>
+	</div>
+
+	<div class="col-sm-12">
+	<p><span>4、代码创建&nbsp;&nbsp;</span><button id="btnCreate" class="btn btn-default btn-sm">创建</button></p>
+	<div id="ctrlContainer" style="height: 100px"></div>
+	</div>
+
+	</div>
+	</div>	
+
+	<hr />
+	<h4>源码</h4>
+    <pre class="prettyprint linenums"><code>
+	//datasetMetaStore定义在公共js:common/datasetmetastore.js中
+	//将数据集定义信息仓库加到datasetFactory中，创建Dataset时会仓库里去定义信息
+	jslet.data.datasetFactory.addMetaStore(window.datasetMetaStore);
+	//通过工厂方法，可以自动创建主数据集及相关的数据集
+    jslet.data.datasetFactory.createDataset('employee').done(function() {
+    	//HTML声明式必须要运行以下代码
+    	jslet.ui.install();
+    });
+	
+    //动态HTML声明式（一般适合弹出式的对话框的创建）
+	$('#btnDyncHtml').click(function() {
+		var html = '&lt;select data-jslet="type: \'DBSelect\', dataset: \'employee\', field: \'department\'" style="width: 100px">&lt;/select>';
+		$('#dyncContrainer').html(html);
+		//只安装指定容器下的控件
+		jslet.ui.install($('#dyncContrainer')[0]);
+	});
+	
+    //绑定式: 适合配置比较复杂的控件
+	$('#btnBind').click(function() {
+		var ctrlCfg = {type: 'DBTable', dataset: 'employee', hasSelectCol: true, onRowClick: function() {
+			jslet.ui.info('点击！');
+		}};
+		
+		jslet.ui.bindControl($('#tblEmployeeBind')[0], ctrlCfg);
+	});
+	
+    //代码创建: 在某个容器中创建控件
+	$('#btnCreate').click(function() {
+		var ctrlCfg = {type: 'DBTable', dataset: 'employee', hasSelectCol: true};
+		
+		jslet.ui.createControl(ctrlCfg, $('#ctrlContainer')[0], '100%', '100%');
+	});
+	</code></pre>
+
+    <script type="text/javascript">
+		window.LOADER_BASE_URL = "../lib/prettify";
+    </script>
+    <script type="text/javascript" src="../lib/prettify/run_prettify.js"></script>
+		
+</body>
+</html>

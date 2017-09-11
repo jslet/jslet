@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="../css/demo.css" />
+    
+    <title>Jslet - 分页查询</title>
+    <script type="text/javascript" data-main="../config.js" src="../lib/requirejs/require.min.js"></script>
+    <script type="text/javascript">
+	    require(['dataset/d-paging', 'lib/mock/jquery.mockjax', 'mock/bom-mock']);
+    </script>
+</head>
+<body>
+    <div class="demo-header">
+    <h4 id="top">Jslet - 分页查询</h4>
+	</div>
+	<hr />
+	<!-- 顶部分页条 -->
+	<div data-jslet="type: 'DBPageBar', dataset: 'bom',pageSizeList:[500,1000,5000]"></div>
+	<!-- 表格控件 -->
+	<div data-jslet="type: 'DBTable', dataset: 'bom'" style="width: 500px; height: 180px;margin-top:10px;margin-bottom:10px"></div>
+	<!-- 底部分页条 -->
+    <div data-jslet='type:"DBPageBar",dataset:"bom",showPageSize:false'></div>
+	<div class="demo-desc">
+	<p>Jslet对于数据量本身没有限制，可以支持无限的数据量。</p>
+	<p>如上所示，Jslet每页的记录数都是非常大，每页5,000条数据在其它组件是不可想象的，事实上对于Jslet来说，每页10,000都毫无压力，不过服务端可能够呛了。</p>
+	<p>实际开发中，如果在服务端限制返回的记录数，比如最多返回10,000条，那么所有的界面完全无需分页控件。</p>
+	</div>
+	<h4>源码</h4>
+	<p>JavaScript</p>
+    <pre class="prettyprint linenums"><code>
+    var dsBOM = new jslet.data.Dataset({name: "bom", fields: [
+         { "name": "itemid", "type": "S", "length": 10, "label": "Item ID", "displayWidth": 20, aggraded: true }, 
+         { "name": "quantity", "type": "N", "length": 9, "label": "Quantity", "displayWidth": 15}], keyField: "itemid"});
+		 
+	dsBOM.queryUrl('/demo/bom/find');
+	//代码少的无法想象？是的，与分页有关的代码仅仅以下2行
+	dsBOM.pageNo(1);
+	//设置每页记录数
+	dsBOM.pageSize(500);
+	dsBOM.query();
+	jslet.ui.install();
+	</code></pre>
+	<p>HTML</p>
+	
+    <pre class="prettyprint linenums"><code>
+	&lt;!-- 顶部分页条 -->
+	&lt;div data-jslet="type: 'DBPageBar', dataset: 'bom',pageSizeList:[500,1000,5000]">&lt;/div>
+	&lt;!-- 表格控件 -->
+	&lt;div data-jslet="type: 'DBTable', dataset: 'bom'">&lt;/div>
+	&lt;!-- 底部分页条 -->
+	&lt;div data-jslet='type:"DBPageBar",dataset:"bom",showPageSize:false'>&lt;/div>
+	</code></pre>
+
+    <script type="text/javascript">
+       window.LOADER_BASE_URL = "../lib/prettify";
+    </script>
+    <script type="text/javascript" src="../lib/prettify/run_prettify.js"></script>
+		
+</body>
+</html>

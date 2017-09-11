@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="../css/demo.css" />
+    
+    <title>Jslet - 基于模型库创建数据集</title>
+    <script type="text/javascript" data-main="../config.js" src="../lib/requirejs/require.min.js"></script>
+    <script type="text/javascript">
+	    require(['dataset/a-datasetfactory']);
+    </script>
+</head>
+<body>
+    <div class="demo-header">
+    <h4 id="top">Jslet - 基于模型库创建数据集</h4>
+	</div>
+	<hr />
+	<div class="demo-desc">
+	<p>此方式是Jslet根据数据集定义，自动创建相关联的数据集。</p>
+	<p>模型库存放所有的数据集定义，模型库可以为普通JavaScript文件，也可以为数据库，还可以为IndexedDB库。实际开发时，一般两者结合，模型库存放在数据库，登录成功后，将模型库刷新到浏览器缓存中（IndexedDB）。</p>
+	<p>基于模型库创建数据集有两大优点：</p>
+	<ol>
+	<li>代码极少，代码少意味着后续维护工作量少。看看源码，只需要两行代码就可以创建数据集，而且可以绑定到界面上；</li>
+	<li>可配置，由于模型库存放在数据库中，如果要增加一个字段，直接在数据库修改一下即可，不用修改任何代码。特别是云时代，每个租户的字段总有细微差别，代码必须要求很高的可配置性。</li>
+	</ol>
+	</div>
+
+	<div data-jslet="type: 'DBTable', dataset: 'employee',editable: true"></div>
+	<h4>源码</h4>
+    <pre class="prettyprint linenums"><code>
+	//datasetMetaStore定义在公共js:common/datasetmetastore.js中
+	//将数据集定义信息仓库加到datasetFactory中，创建Dataset时会仓库里去定义信息
+	jslet.data.datasetFactory.addMetaStore(window.datasetMetaStore);
+
+	//通过工厂方法，可以自动创建主数据集及相关的数据集, 
+	//比如：employee数据集关联了6个数据集集：department, gender, position, currency, salutation, province
+	//通过以下代码可以一次性地创建完毕
+	jslet.data.datasetFactory.createDataset('employee').done(function() {
+		jslet.data.getDataset('employee').query();
+		jslet.ui.install();
+    };
+	</code></pre>
+
+    <script type="text/javascript">
+       window.LOADER_BASE_URL = "../lib/prettify";
+    </script>
+    <script type="text/javascript" src="../lib/prettify/run_prettify.js"></script>
+		
+</body>
+</html>

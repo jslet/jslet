@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js"><span id='jslet-ui-DatasetDesigner'>/**
+</span> * @class 
+ * @extend jslet.ui.Control
+ * 
+ * Dataset designer, it can be used to design a dataset object. &lt;br /&gt;  
+ * Example:
+ * 
+ *     @example
+ *     var jsletParam = {type:&quot;DatasetDesigner&quot;};
+ * 
+ *     //1. Declaring:
+ *     &lt;div id=&quot;chartId&quot; data-jslet='type:&quot;DatasetDesigner&quot;' /&gt;
+ *     or
+ *     &lt;div data-jslet='jsletParam' /&gt;
+ *
+ *     //2. Binding
+ *     &lt;div id=&quot;ctrlId&quot;  /&gt;
+ *     //Js snippet
+ *     var el = document.getElementById('ctrlId');
+ *     jslet.ui.bindControl(el, jsletParam);
+ *
+ *     //3. Create dynamically
+ *     jslet.ui.createControl(jsletParam, document.body);
+ *
+ */
+jslet.ui.DatasetDesigner = jslet.Class.create(jslet.ui.Control, {
+	
+<span id='jslet-ui-DatasetDesigner-method-initialize'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	initialize: function ($super, el, params) {
+		var Z = this;
+		Z.allProperties = 'onLoadDatasetMeta, onSaveDatasetMeta';
+		Z.requiredProperties = 'onLoadDatasetMeta, onSaveDatasetMeta';
+		
+		Z._datasetMetas = null;
+		
+		Z._onLoadDatasetMeta = null;
+		
+		Z._onSaveDatasetMeta = null;
+		
+		Z._prepareDataset();
+		$super(el, params);
+	},
+	
+<span id='jslet-ui-DatasetDesigner-event-onLoadDatasetMeta'>	/**
+</span>	 * @event
+	 * 
+	 * Dataset meta loading event. It can be a Function or a global function name.
+	 * 
+	 * @param {Function | String} onLoadDatasetMeta Dataset meta loading event handler.
+	 * 
+	 * @return {this}
+	 */
+	onLoadDatasetMeta: function(onLoadDatasetMeta) {
+		jslet.Checker.test('DatasetDesigner.onLoadDatasetMeta', onLoadDatasetMeta).required();
+		this._onLoadDatasetMeta = onLoadDatasetMeta;
+		return this;
+	},
+	
+<span id='jslet-ui-DatasetDesigner-event-onSaveDatasetMeta'>	/**
+</span>	 * @event
+	 * 
+	 * Dataset meta saving event. It can be a Function or a global function name.
+	 * 
+	 * @param {Function | String} onSaveDatasetMeta Dataset meta saving event handler.
+	 * 
+	 * @return {this}
+	 */
+	onSaveDatasetMeta: function(onSaveDatasetMeta) {
+		jslet.Checker.test('DatasetDesigner.onSaveDatasetMeta', onSaveDatasetMeta).required();
+		this._onSaveDatasetMeta = onSaveDatasetMeta;
+		return this;
+	},
+	
+	_prepareDataset: function() {
+		var dsgnLocale = jsletlocale.DatasetDesigner;
+		new jslet.data.Dataset({name: 'dsgnDatatype', isEnum: true, records: 
+			'S:' + dsgnLocale.dtString + 
+			',N:' + dsgnLocale.dtNumber + 
+			',D:' + dsgnLocale.dtDate + 
+			',B:' + dsgnLocale.dtBoolean +
+			',V:' + dsgnLocale.dtDataset +
+			',A:' + dsgnLocale.dtAction +
+			',E:' + dsgnLocale.dtEdit
+			});
+		
+		new jslet.data.Dataset({name: 'dsgnAlignment', isEnum: true, records: 
+			'left:' + dsgnLocale.alLeft + 
+			',center:' + dsgnLocale.alCenter + 
+			',right:' + dsgnLocale.alRight}); 
+		
+		new jslet.data.Dataset({name: 'dsgnValueStyle', isEnum: true, records: 
+			'0:' + dsgnLocale.vsNormal + 
+			',1:' + dsgnLocale.vsBetween + 
+			',2:' + dsgnLocale.vsMultiple});
+
+		new jslet.data.Dataset({name: 'dsgnEditor', fields: [{name: 'code', type: 'S'}], keyField: 'code', 
+			records: 
+		[{code: 'DBText'}, {code: 'DBCheckBox'}, {code: 'DBSelect'}, {code: 'DBComboSelect'},
+		{code: 'DBAutoComplete'}, {code: 'DBDatePicker'}, {code: 'DBPassword'}, {code: 'DBTextArea'},
+		{code: 'DBSpinEdit'}, {code: 'DBBetweenEdit'}, {code: 'DBCheckBoxGroup'}, {code: 'DBRadioGroup'},
+		{code: 'DBRangeSelect'}, {code: 'DBDataLabel'}, {code: 'DBTimePicker'}, {code: 'DBImage'},
+		{code: 'DBRating'}, {code: 'DBHtml'}, {code: 'DBCKEditor'}, {code: 'DBUEditor'}]
+		});
+
+		var objAccessor = {
+			getValue: function(dataRec, fldName) {
+				if(dataRec) {
+					var origValue = dataRec[fldName];
+					if(origValue) {
+						return JSON.stringify(origValue);
+					}
+				}
+				return null;
+			},
+			
+			setValue: function(dataRec, fldName, value) {
+				if(!dataRec) {
+					return;
+				} 
+				if(value &amp;&amp; jslet.isString(value)) {
+					dataRec[fldName] = JSON.parse(value);
+				}
+			}
+		};
+			
+		var fldCfg = [
+          	{name: 'name', type: 'S', length: 30, label: dsgnLocale.fName, displayWidth: 20, required: true, unique: true},
+          	{name: 'shortName', type: 'S', length: 10, label: dsgnLocale.fShortName, displayWidth: 10},
+          	{name: 'label', type: 'S', length: 30, label: dsgnLocale.fLabel, displayWidth: 20},
+          	{name: 'displayLabel', type: 'S', length: 30, label: dsgnLocale.fDisplayLabel, displayWidth: 20},
+          	{name: 'tip', type: 'S', length: 30, label: dsgnLocale.fTip, displayWidth: 20},
+          	{name: 'dataType', type: 'S', length: 1, label: dsgnLocale.fDateType, lookup: {dataset:&quot;dsgnDatatype&quot;}, displayWidth: 10, defaultValue:'S'},
+            {name: 'detailDataset', type: 'S', length: 30, label: dsgnLocale.fDetailDataset, displayWidth: 10},
+          	{name: 'length', type: 'N', length: 3, label: dsgnLocale.fLength, displayWidth: 10, diaplayFormat: '##0', editControl: 'DBSpinEdit', dataRange: {min: 0, max: 10000}, defaultValue: 10},
+          	{name: 'scale', type: 'N', length: 3, label: dsgnLocale.fScale, displayWidth: 6, diaplayFormat: '##0', editControl:'DBSpinEdit', dataRange: {min: 0, max: 10}},
+          	{name: 'defaultExpr', type: 'S', length: 100, label: dsgnLocale.fDefaultExpr, displayWidth: 10},
+          	{name: 'defaultValue', type: 'S', length: 100, label: dsgnLocale.fDefaultValue, displayWidth: 10, customValueAccessor: objAccessor},
+          	{name: 'valueStyle', type: 'S', label: dsgnLocale.fValueStyle, displayWidth: 10, lookup: {dataset:&quot;dsgnValueStyle&quot;}, defaultValue: 0},
+
+          	{name: 'displayWidth', type: 'N', length: 3, label: dsgnLocale.fDisplayWidth, displayWidth: 10, dataRange: {min: 0, max: 10000}, diaplayFormat: '##0',editControl:'DBSpinEdit'},
+          	{name: 'displayOrder', type: 'N', length: 3, label: dsgnLocale.fDisplayOrder, displayWidth: 6, defaultValue: 0, diaplayFormat: '##0', editControl:'DBSpinEdit', dataRange: {min: 0, max: 10000}},
+          	{name: 'alignment', type: 'S', length: 3, label: dsgnLocale.fAlignment, displayWidth: 10, lookup: {dataset:&quot;dsgnAlignment&quot;}},
+          	{name: 'displayFormat', type: 'S', length: 30, label: dsgnLocale.fDisplayFormat, displayWidth: 10},
+          	{name: 'editControl', type: 'S', length: 100, label: dsgnLocale.fEditControl, displayWidth: 10, lookup: {dataset: &quot;dsgnEditor&quot;}, nullText: dsgnLocale.fvEditControl},
+          	{name: 'nullText', type: 'S', label: dsgnLocale.fNullText, displayWidth: 10, defaultValue: dsgnLocale.fvNullText},
+
+          	{name: 'formula', type: 'S', length: 100, label: dsgnLocale.fFormula, displayWidth: 50},
+          	{name: 'readOnly', type: 'B', label: dsgnLocale.fReadOnly, displayWidth: 10},
+          	{name: 'visible', type: 'B', label: dsgnLocale.fVisible, displayWidth: 10},
+          	{name: 'unitConverted', type: 'B', label: dsgnLocale.fUnitConverted, displayWidth: 10},
+
+          	{name: 'required', type: 'B', label: dsgnLocale.fRequired, displayWidth: 10},
+          	{name: 'dataRange', type: 'S', length: 50, label: dsgnLocale.fDataRange, displayWidth: 10, customValueAccessor: objAccessor},
+          	{name: 'regularExpr', type: 'S', length: 50, label: dsgnLocale.fRegularExpr, displayWidth: 10, customValueAccessor: objAccessor},
+          	{name: 'unique', type: 'B', label: dsgnLocale.fUnique, displayWidth: 10},
+          	{name: 'editMask', type: 'S', label: dsgnLocale.fEditMask, displayWidth: 10},
+          	{name: 'valueCountLimit', type: 'N', length: 3, label: dsgnLocale.fValueCountLimit, displayWidth: 8, dataRange: {min: 0, max: 10}, diaplayFormat: '##0', editControl:'DBSpinEdit'},
+          	{name: 'validChars', type: 'S', label: dsgnLocale.fValidChars, displayWidth: 10},
+          	
+          	{name: 'mergeSame', type: 'B', label: dsgnLocale.fMergeSame, displayWidth: 10},
+          	{name: 'mergeSameBy', type: 'S', label: dsgnLocale.fMmergeSameBy, displayWidth: 10},
+          	{name: 'aggraded', type: 'B', label: dsgnLocale.fAggraded, displayWidth: 10},
+          	{name: 'aggradedBy', type: 'S', label: dsgnLocale.fAggradedBy, displayWidth: 10},
+          	{name: 'valueFollow', type: 'B', label: dsgnLocale.fValueFollow, displayWidth: 10},
+          	{name: 'focused', type: 'B', label: dsgnLocale.fFocused, displayWidth: 10},
+          	{name: 'fixedValue', type: 'S', label: dsgnLocale.fFixedValue, displayWidth: 10},
+          	{name: 'antiXss', type: 'B', label: dsgnLocale.fAntiXss, displayWidth: 10},
+
+          	{name: 'trueValue', type: 'S', label: dsgnLocale.fTrueValue, displayWidth: 10},
+          	{name: 'falseValue', type: 'S', label: dsgnLocale.fFalseValue, displayWidth: 10},
+          	{name: 'trueText', type: 'S', label: dsgnLocale.fTrueText, displayWidth: 10},
+          	{name: 'falseText', type: 'S', label: dsgnLocale.fFalseText, displayWidth: 10},
+          	
+          	{name: 'lookup', type: 'S', length: 100, label: dsgnLocale.fLookup, displayWidth: 10, customValueAccessor: objAccessor}
+          ];
+		
+		var Z = this;
+		var dsgnField = new jslet.data.Dataset({name: 'dsgnField', fields: fldCfg});
+		dsgnField.onFieldChanged(function(fldName, fldValue) {
+			if(fldName === 'dataType') {
+				Z._doDataTypeChanged(fldValue);
+			}
+		});
+		var contextRules = [
+		    {condition: '[valueStyle] === 2',
+				rules: [
+				    {field: 'valueCountLimit', meta: {disabled: false}}
+				],
+				otherwise: [
+					{field: 'valueCountLimit', meta: {disabled: true}, value: null}
+				]
+			},
+			{condition: '[dataType] === &quot;B&quot;',
+				rules: [
+				    {field: 'editControl', lookup: {fixedFilter: 'inlist([code], &quot;DBCheckBox&quot;, &quot;DBText&quot;, &quot;DBDataLabel&quot;) '}},
+				    {field: 'valueStyle', meta: {disabled: true}},
+				    {field: 'displayFormat', meta: {disabled: true}},
+				    {field: 'editMask', meta: {disabled: true}}
+				],
+				otherwise: [
+				    {field: 'valueStyle', meta: {disabled: false}},
+				    {field: 'displayFormat', meta: {disabled: false}},
+				    {field: 'editMask', meta: {disabled: false}}
+				]
+			},
+			{condition: '[dataType] === &quot;D&quot;',
+				rules: [
+				    {field: 'editControl', lookup: {fixedFilter: 'inlist([code], &quot;DBDatePicker&quot;, &quot;DBText&quot;, &quot;DBDataLabel&quot;) '}}
+				]
+			},
+			{condition: '[lookup]',
+				rules: [
+				    {field: 'editControl', lookup: {fixedFilter: 'inlist([code], &quot;DBComboSelect&quot;, &quot;DBSelect&quot;, &quot;DBAutoComplete&quot;, &quot;DBCheckBoxGroup&quot;, &quot;DBRadioGroup&quot;,&quot;DBText&quot;, &quot;DBDataLabel&quot;)'}}
+				]
+			},
+			{condition: '[dataType] === &quot;N&quot; &amp;&amp; ![lookup]',
+				rules: [
+				    {field: 'editControl', lookup: {fixedFilter: 'inlist([code], &quot;DBText&quot;, &quot;DBSpinEdit&quot;, &quot;DBRangeSelect&quot;, &quot;DBRating&quot;, &quot;DBDataLabel&quot;) '}}
+				]
+			},
+			{condition: '[dataType] === &quot;S&quot; &amp;&amp; ![lookup]',
+				rules: [
+				    {field: 'editControl', lookup: {fixedFilter: 'inlist([code], &quot;DBText&quot;, &quot;DBTextArea&quot;, &quot;DBPassword&quot;, &quot;DBHtml&quot;, &quot;DBImage&quot;, &quot;DBCKEditor&quot;, &quot;DBUEditor&quot;, &quot;DBDataLabel&quot;) '}}
+				]
+			}
+		];
+		
+		dsgnField.contextRules(contextRules);
+		
+		fldCfg = [
+	      	{name: 'name', type: 'S', length: 30, label: dsgnLocale.dsName, displayWidth: 20, required: true, unique: true},
+	      	{name: 'description', type: 'S', length: 100, label: dsgnLocale.dsDesc, displayWidth: 20},
+	      	
+	      	{name: 'isEnum', type: 'B', defaultValue: false},
+	      	{name: 'records', type: 'S', length: 2000, editControl: 'DBTextArea'},
+	      	{name: 'keyField', type: 'S', length: 30, label: dsgnLocale.dsKeyField, displayWidth: 10},
+	      	{name: 'codeField', type: 'S', length: 30, label: dsgnLocale.dsCodeField, displayWidth: 10},
+	      	{name: 'nameField', type: 'S', length: 30, label: dsgnLocale.dsNameField, displayWidth: 10},
+	      	{name: 'parentField', type: 'S', length: 30, label: dsgnLocale.dsParentField, displayWidth: 10},
+	      	{name: 'selectField', type: 'S', length: 30, label: dsgnLocale.dsSelectField, displayWidth: 10, visible: false},
+	      	{name: 'statusField', type: 'S', length: 30, label: dsgnLocale.dsStatusField, displayWidth: 10, visible: false},
+	      	{name: 'contextRules', type: 'S', length: 3000, label: dsgnLocale.dsContextRules, displayWidth: 10},
+	      	{name: 'queryUrl', type: 'S', length: 300, label: dsgnLocale.dsQueryUrl, displayWidth: 10, visible: false},
+	      	{name: 'submitUrl', type: 'S', length: 300, label: dsgnLocale.dsSubmitUrl, displayWidth: 10, visible: false},
+	      	{name: 'recordClass', type: 'S', length: 50, label: dsgnLocale.dsRecordClass, displayWidth: 10, visible: false},
+	      	{name: 'pageSize', type: 'N', length: 5, label: dsgnLocale.dsPageSize, displayWidth: 10, visible: false},
+	      	
+	      	{name: 'fixedIndexFields', type: 'S', length: 100, label: dsgnLocale.dsFixedIndexFields, displayWidth: 10},
+	      	{name: 'indexFields', type: 'S', length: 100, label: dsgnLocale.dsIndexFields, displayWidth: 10},
+	      	{name: 'fixedFilter', type: 'S', length: 200, label: dsgnLocale.dsFixedFilter, displayWidth: 10},
+	      	{name: 'filter', type: 'S', length: 200, label: dsgnLocale.dsFilter, displayWidth: 10},
+	      	
+	      	{name: 'filtered', type: 'B', label: dsgnLocale.dsFiltered, displayWidth: 10, visible: false},
+	      	{name: 'readOnly', type: 'B', label: dsgnLocale.dsReadOnly, displayWidth: 10, visible: false},
+	      	{name: 'auditLogEnabled', type: 'B', label: dsgnLocale.dsAuditLogEnabled, displayWidth: 10, visible: false},
+			{name: 'fields', type: 'V', label: 'Fields', detailDataset:'dsgnField', visible:false}
+	    ];
+		
+		var dsgnDataset = new jslet.data.Dataset({name: 'dsgnDataset', fields: fldCfg});
+		
+		fldCfg = [
+	      	{name: 'id', type: 'S', length: 30},
+	      	{name: 'objCode', type: 'S', length: 50},
+	      	{name: 'objName', type: 'S', length: 50},
+	      	{name: 'objType', type: 'S', length: 2},
+	      	{name: 'parentId', type: 'S', length: 30},
+	      	{name: 'changed', type: 'B'},
+	      	{name: 'isEnum', type: 'B'},
+	      	{name: 'dsName', type: 'S'},
+	      	{name: 'fldName', type: 'S'}
+		];
+		var dsObject = new jslet.data.Dataset({name: 'dsgnObject', fields: fldCfg, keyField: 'id', codeField: 'objCode', nameField: 'objName', parentField: 'parentId', logChanges: false});
+		dsObject.on(jslet.data.DatasetEvent.AFTERSCROLL, function() {
+			Z._doObjectChanged();
+		});
+	},
+		
+<span id='jslet-ui-DatasetDesigner-method-isValidTemplateTag'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	isValidTemplateTag: function (el) {
+		return el.tagName.toLowerCase() == 'div';
+	},
+
+<span id='jslet-ui-DatasetDesigner-method-bind'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	bind: function () {
+		if(!this.el.id) {
+			this.el.id = jslet.nextId();
+		}
+		var jqEl = jQuery(this.el);
+		if(jqEl.hasClass('jl-dsgn-ds')) {
+			jqEl.addClass('form-group form-group-sm jl-dsgn-ds');
+		}
+		this.renderAll();
+	},
+
+<span id='jslet-ui-DatasetDesigner-method-renderAll'>	/**
+</span>	 * @override
+	 */
+	renderAll: function () {
+		var Z = this,
+			jqEl = jQuery(this.el);
+		var html = '&lt;div class=&quot;col-xs-3&quot; style=&quot;height: 100%&quot;&gt;&lt;div style=&quot;height: 100%&quot; name=&quot;dsgnObject&quot; ' + 
+			'data-jslet=&quot;type: \'DBTreeView\', dataset: \'dsgnObject\', displayFields: \'[objName] + %22(%22 + [objCode] + %22)%22\', expandLevel: 1&quot;' +
+			'&gt;&lt;/div&gt;&lt;/div&gt;' + 
+			'&lt;div class=&quot;col-xs-9&quot;&gt;' + 
+			'&lt;div name=&quot;dsgnDs&quot; style=&quot;display: none&quot;&gt;' + 
+			'&lt;div name=&quot;dsgnDsBase&quot; data-jslet=&quot;type:\'DBEditPanel\', dataset: \'dsgnDataset\', labelCols: 2, columnCount: 3, onlySpecifiedFields: true,' + 
+			'fields: [{field: \'name\'}, {field: \'description\', dataCols: 6}]&quot;&gt;&lt;/div&gt;' + 
+
+			'&lt;div name=&quot;dsgnEnumValues&quot; style=&quot;display: none&quot; data-jslet=&quot;type:\'DBEditPanel\', dataset: \'dsgnDataset\', labelCols: 2, columnCount: 3, onlySpecifiedFields: true,' + 
+			'fields: [{field: \'records\'}]&quot;&gt;&lt;/div&gt;' + 
+			
+			'&lt;div name=&quot;dsgnDsLookup&quot; style=&quot;display: none&quot; data-jslet=&quot;type:\'DBEditPanel\', dataset: \'dsgnDataset\', labelCols: 2, columnCount: 3, onlySpecifiedFields: true,' + 
+			'fields: [{field: \'keyField\'}, {field: \'codeField\'}, {field: \'nameField\'}, {field: \'parentField\'}]&quot;&gt;&lt;/div&gt;' + 
+			
+			'&lt;div name=&quot;dsgnDsFilter&quot; style=&quot;display: none&quot; data-jslet=&quot;type:\'DBEditPanel\', dataset: \'dsgnDataset\', labelCols: 2, columnCount: 3, onlySpecifiedFields: true,' + 
+			'fields: [{field: \'fixedIndexFields\'}, {field: \'indexFields\'}, {field: \'fixedFilter\'}, {field: \'filter\'}]&quot;&gt;&lt;/div&gt;' + 
+			'&lt;/div&gt;' + 
+			
+			'&lt;div name=&quot;dsgnFld&quot; style=&quot;display: none&quot;&gt;' + 
+			'&lt;div name=&quot;dsgnFldBase&quot; data-jslet=&quot;type:\'DBEditPanel\', dataset: \'dsgnField\', labelCols: 2, columnCount: 3, onlySpecifiedFields: true,' + 
+			'fields: [{field: \'name\'}, {field: \'label\'}, {field: \'shortName\'}, {field: \'dataType\'}]&quot;&gt;&lt;/div&gt;' +
+			
+			'&lt;div name=&quot;dsgnFldDetail&quot; data-jslet=&quot;type:\'DBEditPanel\', dataset: \'dsgnField\', labelCols: 2, columnCount: 3, onlySpecifiedFields: true,' + 
+			'fields: [{field: \'detailDataset\', dataCols: 6}]&quot;&gt;&lt;/div&gt;' +
+
+			'&lt;div name=&quot;dsgnFldCommon&quot; data-jslet=&quot;type:\'DBEditPanel\', dataset: \'dsgnField\', labelCols: 2, columnCount: 3, onlySpecifiedFields: true,' + 
+			'fields: [{field: \'displayOrder\'},{field: \'displayWidth\'}, {field: \'alignment\'}, {field: \'visible\'}]&quot;&gt;&lt;/div&gt;' +
+			
+			'&lt;div name=&quot;dsgnFldLookup&quot; data-jslet=&quot;type:\'DBEditPanel\', dataset: \'dsgnField\', labelCols: 2, columnCount: 3, onlySpecifiedFields: true,' + 
+			'fields: [{field: \'lookup\', dataCols: 6}]&quot;&gt;&lt;/div&gt;' +
+			
+			'&lt;div name=&quot;dsgnFldEditable&quot; data-jslet=&quot;type:\'DBEditPanel\', dataset: \'dsgnField\', labelCols: 2, columnCount: 3, onlySpecifiedFields: true,' + 
+			'fields: [{field: \'editControl\'}, {field: \'readOnly\'}, {field: \'required\'}, {field: \'unique\'}, {field: \'nullText\'}, {field: \'valueStyle\'}, {field: \'valueCountLimit\'}, ' + 
+			'{field: \'defaultValue\'}, {field: \'displayFormat\'}, {field: \'editMask\'}, {field: \'focused\'}, ' + 
+			'{field: \'valueFollow\'}, {field: \'dataRange\'}, {field: \'regularExpr\'}, {field: \'mergeSame\', inFirstCol: true}, {field: \'mergeSameBy\', dataCols: 6}]&quot;&gt;&lt;/div&gt;' +
+			
+			'&lt;div name=&quot;dsgnFldAction&quot; data-jslet=&quot;type:\'DBEditPanel\', dataset: \'dsgnField\', labelCols: 2, columnCount: 3, onlySpecifiedFields: true,' + 
+			'fields: [{field: \'fixedValue\', dataCols: 6}]&quot;&gt;&lt;/div&gt;' +
+			
+			'&lt;div name=&quot;dsgnFldBool&quot; data-jslet=&quot;type:\'DBEditPanel\', dataset: \'dsgnField\', labelCols: 2, columnCount: 3, onlySpecifiedFields: true,' + 
+			'fields: [{field: \'trueValue\'}, {field: \'falseValue\'}, {field: \'trueText\'}, {field: \'falseText\'}]&quot;&gt;&lt;/div&gt;' +
+			
+			'&lt;div name=&quot;dsgnFldString&quot; data-jslet=&quot;type:\'DBEditPanel\', dataset: \'dsgnField\', labelCols: 2, columnCount: 3, onlySpecifiedFields: true,' + 
+			'fields: [{field: \'antiXss\'}]&quot;&gt;&lt;/div&gt;' +
+			
+			'&lt;div name=&quot;dsgnFldNumber&quot; data-jslet=&quot;type:\'DBEditPanel\', dataset: \'dsgnField\', labelCols: 2, columnCount: 3, onlySpecifiedFields: true,' + 
+			'fields: [{field: \'aggraded\'}, {field: \'aggradedBy\', dataCols: 6}]&quot;&gt;&lt;/div&gt;' +
+			
+			'&lt;/div&gt;';
+		console.log(html);
+		
+		jqEl.html(html);
+		jslet.ui.install(Z.el);
+		jslet(jqEl.find('[name=&quot;dsgnObject&quot;]')).onGetIconClass(function() {
+			var dsObj = this.dataset();
+			if(dsObj.getFieldValue('objType') === 'd') {
+				return 'fa fa-table';
+			} else {
+				return 'fa fa-dot-circle-o';
+			}
+		});
+		Z.queryDatasetMeta();
+	},
+	
+	queryDatasetMeta: function () {
+		var Z = this;
+		if(!Z._onLoadDatasetMeta) {
+			return;
+		}
+		var dsMetas = Z._onLoadDatasetMeta();
+		if(!dsMetas) {
+			return;
+		}
+		if(dsMetas.done) {
+			dsMetas.done(function(result) {
+				Z._parse(result);
+			});
+		} else {
+			Z._parse(dsMetas);
+		}
+	},
+	
+	addDatasetMeta: function() {
+		var dsObject = jslet.data.getDataset('dsgnObject');
+		dsObject.appendRecord();
+		dsObject.setFieldValue('isEnum', true);
+	},
+	
+	addEnumDatasetMeta: function() {
+		var dsObject = jslet.data.getDataset('dsgnObject');
+		dsObject.appendRecord();
+		dsObject.setFieldValue('isEnum', false);
+	},
+	
+	deleteDatasetMeta: function() {
+		var dsObject = jslet.data.getDataset('dsgnObject');
+		dsObject.deleteRecord();
+	},
+	
+	_parse: function (dsMetas) {
+		this._datasetMetas = dsMetas;
+		jslet.data.getDataset('dsgnDataset').records(dsMetas);
+		if(!dsMetas || dsMetas.length === 0) {
+			return;
+		}
+		
+		var dsMeta, arrObj = [];
+		
+		function addFields(fields, parentId, dsName) {
+			var fldMeta, fldId, fldName;
+			for(var j = 0, fldLen = fields.length; j &lt; fldLen; j++) {
+				fldMeta = fields[j];
+				fldName = fldMeta.name;
+				fldId = 'f-' + fldName;
+				arrObj.push({id: fldId, objCode: fldName, objName: fldMeta.label || fldMeta.name, objType: 'f', parentId: parentId, dsName: dsName, fldName: fldName});
+				if(fldMeta.children) {
+					addFields(fldMeta.children, fldId);
+				}
+			}
+		}
+		
+		var dsId, isEnum, dsName;
+		for(var i = 0, len = dsMetas.length; i &lt; len; i++) {
+			dsMeta = dsMetas[i];
+			dsName = dsMeta.name;
+			dsId = 'd-' + dsName;
+			isEnum = dsMeta.isEnum? true: false;
+			arrObj.push({id: dsId, objCode: dsName, objName: dsMeta.description || dsName, objType: 'd', isEnum: isEnum, dsName: dsName});
+			if(!isEnum) {
+				addFields(dsMeta.fields, dsId, dsName);
+			}
+		}
+		jslet.data.getDataset('dsgnObject').records(arrObj);
+	},
+	
+	_doObjectChanged: function() {
+		var Z = this,
+			dsObject = jslet.data.getDataset('dsgnObject'),
+			objType = dsObject.getFieldValue('objType'),
+			dsName = dsObject.getFieldValue('dsName'),
+			fldName = dsObject.getFieldValue('fldName'),
+			jqEl = jQuery(Z.el),
+			jqDataset = jqEl.find('[name=dsgnDs]'),
+			jqDsLookup = jqEl.find('[name=dsgnDsLookup]'),
+			jqDsFilter = jqEl.find('[name=dsgnDsFilter]'),
+			
+			jqField = jqEl.find('[name=dsgnFld]'),
+			dsgnDataset = jslet.data.getDataset('dsgnDataset'),
+			dsgnField = jslet.data.getDataset('dsgnField');
+		if(objType === 'd' ) {
+			dsgnDataset.findByField('name', dsName);
+			var isEnum = dsObject.getFieldValue('isEnum');
+			if(isEnum) {
+				jqDsLookup.hide();
+				jqDsFilter.hide();
+			} else {
+				jqDsLookup.show();
+				jqDsFilter.show();
+			}
+			jqField.hide();
+			jqDataset.show();
+		} else {
+			dsgnDataset.findByField('name', dsName);
+			dsgnField.findByField('name', fldName);
+			var dataType = dsgnField.getFieldValue('dataType');
+			Z._doDataTypeChanged(dataType);
+			jqDataset.hide();
+			jqField.show();
+		}
+	},
+	
+	_doDataTypeChanged: function(dataType) {
+		var Z = this,
+			jqEl = jQuery(Z.el),
+			dsgnField = jslet.data.getDataset('dsgnField'),
+			jqFldDetail = jqEl.find('[name=dsgnFldDetail]'),
+			jqFldCommon = jqEl.find('[name=dsgnFldCommon]'),
+			jqFldAction = jqEl.find('[name=dsgnFldAction]'),
+			jqFldEditAction = jqEl.find('[name=dsgnFldEditAction]'),
+
+			jqFldEditable = jqEl.find('[name=dsgnFldEditable]'),
+			jqFldBool = jqEl.find('[name=dsgnFldBool]'),
+			jqFldLookup = jqEl.find('[name=dsgnFldLookup]'),
+			jqFldString = jqEl.find('[name=dsgnFldString]'),
+			jqFldNumber = jqEl.find('[name=dsgnFldNumber]');
+		
+		jqFldDetail.hide();
+		jqFldCommon.hide();
+		jqFldAction.hide();
+		jqFldEditAction.hide();
+		jqFldBool.hide();
+		jqFldEditable.hide();
+		jqFldLookup.hide();
+		jqFldString.hide();
+		jqFldNumber.hide();
+		if(dataType === jslet.data.DataType.DATASET) {
+			jqFldDetail.show();
+			dsgnField.getField('detailDataset').required(true);
+			return;
+		}
+		dsgnField.getField('detailDataset').required(false);
+		
+		jqFldCommon.show();
+		if(dataType === jslet.data.DataType.EDITACTION) {
+			return;
+		}
+		if(dataType === jslet.data.DataType.ACTION) {
+			jqFldAction.show();
+			dsgnField.getField('fixedValue').required(true);
+			return;
+		} else {
+			dsgnField.getField('fixedValue').required(false);
+		}
+		
+		jqFldEditable.show();
+		if(dataType === jslet.data.DataType.BOOLEAN) {
+			jqFldBool.show();
+			return;
+		}
+		
+		if(dataType === jslet.data.DataType.DATE) {
+			return;
+		}
+		jqFldLookup.show();
+		if(dataType === jslet.data.DataType.STRING) {
+			jqFldString.show();
+		}
+		
+		if(dataType === jslet.data.DataType.NUMBER) {
+			jqFldNumber.show();
+		}
+	},
+	
+<span id='jslet-ui-DatasetDesigner-method-destroy'>	/**
+</span>	 * @override
+	 */
+	destroy: function($super){
+		$super();
+	}
+});
+
+jslet.ui.register('DatasetDesigner', jslet.ui.DatasetDesigner);
+jslet.ui.DatasetDesigner.htmlTemplate = '&lt;div&gt;&lt;/div&gt;';
+</pre>
+</body>
+</html>

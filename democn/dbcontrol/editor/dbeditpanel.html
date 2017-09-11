@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="../../css/demo.css" />
+    
+    <title>Jslet - 数据编辑面板</title>
+    <script type="text/javascript" data-main="../../config.js" src="../../lib/requirejs/require.min.js"></script>
+    <script type="text/javascript">
+	    require(['dbcontrol/editor/dbeditpanel']);
+    </script>
+</head>
+<body>
+    <div class="demo-header">
+    <h4 id="top">Jslet - 数据编辑面板</h4>
+	</div>
+	<hr />
+
+<!-- 	<div data-jslet="type: 'DBTable', dataset: 'employee'" style="margin-bottom: 10px"></div> -->
+	<div style="padding-left: 5px;margin-bottom: 10px">
+	    <button class="btn btn-default btn-sm" id="btnQuery"> 查询 </button>
+	    <div class="btn-group">
+	    <button class="btn btn-default btn-sm" id="btnAppend"> 新增 </button>
+	    <button class="btn btn-default btn-sm" id="btnDelete"> 删除 </button>
+	    </div>
+	</div>
+	<p><b>1、缺省设置（3栏）</b></p>
+	<div data-jslet="type: 'DBEditPanel', dataset: 'employee'" style="margin-bottom: 10px"></div>
+	<p><b>2、按4栏显示，Label占1列（Bootstrap网格列，共12列）</b></p>
+	<div data-jslet="type: 'DBEditPanel', dataset: 'employee', columnCount: 4" style="margin-bottom: 10px"></div>
+	<p><b>3、按4栏显示，毕业院校跨5列，备注列占整行，并设置高度50px</b></p>
+	<div data-jslet="type: 'DBEditPanel', dataset: 'employee', columnCount: 4, layout: [{field: 'university', dataCols: 5}, {field: 'summary', dataCols: 11, height: 50}]" style="margin-bottom: 10px"></div>
+	<p><b>4、职位前显示分隔线</b></p>
+	<div data-jslet="type: 'DBEditPanel', dataset: 'employee', columnCount: 4, layout: [{field: 'position', showLine: true}, {field: 'summary', dataCols: 11, height: 50}]" style="margin-bottom: 10px"></div>
+	<p><b>5、工资字段显示前后缀</b></p>
+	<div data-jslet="type: 'DBEditPanel', dataset: 'employee', columnCount: 4, excludeFields: ['currency'], layout: [{field:'salary', prefix: [{content: '税后', width: '30px'}], suffix:[{field: 'currency', width: '80px'}]}]" style="margin-bottom: 10px"></div>
+	<hr />
+	<h4>源码</h4>
+	<h5>HTML</h5>
+    <pre class="prettyprint linenums"><code>
+    //1、缺省设置
+    &lt;div data-jslet="type: 'DBEditPanel', dataset: 'employee'" style="margin-bottom: 10px">&lt;/div>
+    
+    //2、按4栏显示，Label占1列（Bootstrap网格列，共12列）
+    &lt;div data-jslet="type: 'DBEditPanel', dataset: 'employee', columnCount: 4" style="margin-bottom: 10px">&lt;/div>
+    
+    //3、按4栏显示，毕业院校跨5列，备注列占整行，并设置高度50px
+    &lt;div data-jslet="type: 'DBEditPanel', dataset: 'employee', columnCount: 4, layout: [{field: 'position', showLine: true}, {field: 'summary', dataCols: 11, height: 50}]" style="margin-bottom: 10px">&lt;/div>
+    
+    //4、职位前显示分隔线
+    &lt;div data-jslet="type: 'DBEditPanel', dataset: 'employee', columnCount: 4, layout: [{field: 'position', showLine: true}, {field: 'summary', dataCols: 11, height: 50}]" style="margin-bottom: 10px">&lt;/div>
+
+    //5、工资字段显示前后缀
+    &lt;div data-jslet="type: 'DBEditPanel', dataset: 'employee', columnCount: 4, excludeFields: ['currency'], layout: [{field:'salary', prefix: [{content: '税后', width: '30px'}], suffix:[{field: 'currency', width: '80px'}]}]" style="margin-bottom: 10px">&lt;/div>
+    
+	</code></pre>
+    
+	<h5>JavaScript</h5>
+    <pre class="prettyprint linenums"><code>
+	//datasetMetaStore定义在公共js:common/datasetmetastore.js中
+	//将数据集定义信息仓库加到datasetFactory中，创建Dataset时会仓库里去定义信息
+	jslet.data.datasetFactory.addMetaStore(window.datasetMetaStore);
+	//通过工厂方法，可以自动创建主数据集及相关的数据集
+    jslet.data.datasetFactory.createDataset('employee').done(function() {
+    	initialize();
+    	jslet.ui.install();
+    });
+    
+    function initialize() {
+		var dsEmployee = jslet.data.getDataset('employee');
+		dsEmployee.query();
+
+		//隐藏多余字段
+		dsEmployee.getField('province').visible(false);
+		dsEmployee.getField('photo').visible(false);
+		dsEmployee.getField('officePhone').visible(false);
+		dsEmployee.getField('cellPhone').visible(false);
+		dsEmployee.getField('email').visible(false);
+		dsEmployee.getField('idcard').visible(false);
+    }
+
+    //绑定按钮事件
+	$('#btnQuery').click(function() {
+		var dsEmployee = jslet.data.getDataset('employee');
+		dsEmployee.query();	
+	});
+	$('#btnAppend').click(function() {
+		var dsEmployee = jslet.data.getDataset('employee');
+		dsEmployee.appendRecord();	
+	});
+	$('#btnDelete').click(function() {
+		var dsEmployee = jslet.data.getDataset('employee');
+        jslet.ui.confirm('确实要删除吗?', '确认', function(button) {
+        	if(button === 'ok') {
+        		dsEmployee.deleteRecord();	
+        	}
+        });
+	});
+	</code></pre>
+
+    <script type="text/javascript">
+       window.LOADER_BASE_URL = "../../lib/prettify";
+    </script>
+    <script type="text/javascript" src="../../lib/prettify/run_prettify.js"></script>
+		
+</body>
+</html>

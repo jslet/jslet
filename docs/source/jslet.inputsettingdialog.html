@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js"><span id='jslet-ui-InputSettingDialog'>/**
+</span> * @class
+ * 
+ * A dialog to configure input settings like 'defaultValue', 'valueFollowed', 'focused'. &lt;br /&gt;
+ * It's used for ender user to configure their own preferences. Example:
+ * 
+ *     @example
+ *     jslet.ui.defaultInputSettingDialog.show(dataset); 
+ */
+jslet.ui.InputSettingDialog = function() {
+	this._inputSettingDs = null;
+	
+	this._hostDataset = null;
+	
+	this._onClosed = null;
+	
+	this._onRestoreDefault = null;
+	
+	this._settings = null;
+	var Z = this;
+	
+	function doProxyFieldChanged(dataRec, proxyFldName, proxyFldObj) {
+		var hostFldObj = jslet.data.getDataset(dataRec.dataset).getField(proxyFldName);
+		proxyFldObj.dataType(hostFldObj.dataType());
+		proxyFldObj.length(hostFldObj.length());
+		proxyFldObj.scale(hostFldObj.scale());
+		proxyFldObj.editMask(hostFldObj.editMask());
+
+		proxyFldObj.displayFormat(hostFldObj.displayFormat());
+		proxyFldObj.dateFormat(hostFldObj.dateFormat());
+		proxyFldObj.displayControl(hostFldObj.displayControl());
+		proxyFldObj.validChars(hostFldObj.validChars());
+		if(hostFldObj.lookup()) {
+			var hostLkObj = hostFldObj.lookup();
+			var lkObj = hostLkObj.toPlanObject();
+			lkObj.onlyLeafLevel = false;
+			
+			proxyFldObj.lookup(lkObj);
+			proxyFldObj.editControl('DBComboSelect');
+		} else {
+			proxyFldObj.lookup(null);
+			var editorObj = hostFldObj.editControl();
+			var fldType = hostFldObj.getType();
+			if(fldType !== jslet.data.DataType.DATE &amp;&amp; fldType !== jslet.data.DataType.BOOLEAN) {
+				editorObj = {type: 'DBText'};
+			}
+			proxyFldObj.editControl(editorObj);
+		}
+		proxyFldObj.valueStyle(jslet.data.FieldValueStyle.NORMAL);
+	}
+
+	function initialize() {
+		var fldCfg = [{name: 'dataset', type: 'S', length: 30, visible: false},
+		              {name: 'field', type: 'S', length: 30, displayWidth: 20, visible: false},
+		              {name: 'label', type: 'S', label: jsletlocale.InputSettingDialog.labelLabel, length: 50, displayWidth: 15, disabled: true},
+		              {name: 'parentField', type: 'S', length: 30, visible: false},
+		              {name: 'tabIndex', type: 'N', label: 'tabIndex', length: 3, visible: false},
+		              {name: 'focused', type: 'B', label: jsletlocale.InputSettingDialog.labelFocused, displayWidth: 6},
+		              {name: 'valueFollow', type: 'B', label: jsletlocale.InputSettingDialog.labelValueFollow, displayWidth: 6},
+		              {name: 'defaultValue', type: 'P', label: jsletlocale.InputSettingDialog.labelDefaultValue, length: 200, displayWidth:30, proxyHostFieldName: 'field', proxyFieldChanged: doProxyFieldChanged},
+		              {name: 'isDatasetField', type: 'B', label: '', visible: false}
+		              ];
+		
+		Z._inputSettingDs = new jslet.data.Dataset({name: 'custDs' + jslet.nextId(), fields: fldCfg, 
+				keyField: 'field', nameField: 'label', parentField: 'parentField', logChanges: false, indexFields: 'tabIndex', isFireGlobalEvent: false});
+		
+		var custContextFn = function(fldObj, changingFldName){
+			var dataset = fldObj.dataset();
+			fldObj.disabled(dataset.getFieldValue('isDatasetField'));
+		};
+		
+		Z._inputSettingDs.contextRules([{&quot;condition&quot;: &quot;true&quot;, &quot;rules&quot;: [
+		     {&quot;field&quot;: 'defaultValue', &quot;customized&quot;: custContextFn},
+		     {&quot;field&quot;: 'focused', &quot;customized&quot;: custContextFn},
+		     {&quot;field&quot;: 'valueFollow', &quot;customized&quot;: custContextFn}
+		]}]);
+		Z._inputSettingDs.enableContextRule();
+		Z._inputSettingDs.onFieldChanged(function(propName, propValue){
+			if(Z._isInit) {
+				return;
+			}
+			if(!Z._settings) {
+				Z._settings = {};
+			}
+			var hostDsName = this.getFieldValue('dataset'),
+				hostFldName = this.getFieldValue('field'),
+				dsSetting = Z._settings[hostDsName];
+			if(!dsSetting) {
+				dsSetting = {};
+				Z._settings[hostDsName] = dsSetting;
+			}
+			var fldSetting = dsSetting[hostFldName];
+			if(!fldSetting) {
+				fldSetting = {};
+				dsSetting[hostFldName] = fldSetting; 
+			}
+			fldSetting[propName] = propValue;
+		});
+	}
+	
+	initialize.call(this);
+};
+
+jslet.ui.InputSettingDialog.prototype = {
+		
+	hostDataset: function(hostDataset) {
+		if(hostDataset === undefined) {
+			return this._hostDataset;
+		}
+		this._hostDataset = hostDataset;
+		return this;
+	},
+	
+<span id='jslet-ui-InputSettingDialog-method-onClosed'>	/**
+</span>	 * Close event, you can use this event to store input settings. Example:
+	 * 
+	 *     @example
+	 *     jslet.ui.defaultInputSettingDialog.show(dataset);
+	 *     jslet.ui.defaultInputSettingDialog.onClosed(function(settings) {
+	 *        //Save into DB
+	 *     });
+	 * 
+	 * @param {Function | undefined} onClosed Close event.
+	 * @param {Object} onClosed.settings Input settings.
+	 * 
+	 * @return {this | Function}
+	 */
+	onClosed: function(onClosedFn) {
+		if(onClosedFn === undefined) {
+			return this._onClosed;
+		}
+		this._onClosed = onClosedFn;
+		return this;
+	},
+	
+	onRestoreDefault: function(onRestoreDefaultFn) {
+		if(onRestoreDefaultFn === undefined) {
+			return this._onRestoreDefault;
+		}
+		this._onRestoreDefault = onRestoreDefaultFn;
+		return this;
+	},
+	
+<span id='jslet-ui-InputSettingDialog-method-show'>	/**
+</span>	 * Show dialog.
+	 * 
+	 * @param {jslet.data.Dataset | String} hostDataset The dataset will be changed input setting.
+	 */
+	show: function(hostDataset) {
+		jslet.Checker.test('InputSettingDialog.show#hostDataset', hostDataset).required();
+		var Z = this;
+		Z._hostDataset = jslet.data.getDataset(hostDataset);
+		Z._isInit = true;
+		Z._settings = null;
+		Z._inputSettingDs.disableControls();
+		try {
+			Z._initializeFields();
+		} finally {
+			Z._isInit = false;
+			Z._inputSettingDs.first();
+			Z._inputSettingDs.enableControls();
+		}
+		var creating = false;
+		if(!Z._dlgId) {
+			Z._createDialog();
+			creating = true;
+		}
+		var tblFields = jQuery('#' + Z._dlgId).find('.jl-isdlg-fields')[0].jslet;
+		tblFields.expandAll();
+		var tableWidth = tblFields.getTotalWidth() + tblFields.getTotalWidth(true);
+		if(creating) {
+			tblFields.onRowClick(function() {
+				if(this.dataset().getFieldValue('isDatasetField')) {
+					this.toggle();
+				}
+			});
+		}
+		var owin = jslet('#' + Z._dlgId);
+		owin.changeSize(tableWidth + 60);
+		owin.showModal();
+		owin.setZIndex(999);
+	},
+	
+	_initializeFields: function(hostDs, isKeepFields, parentField) {
+		var Z = this,
+			dataset = Z._inputSettingDs,
+			fldObj;
+		if(!hostDs) {
+			hostDs = jslet.data.getDataset(Z._hostDataset);
+		}
+		var fields = hostDs.getNormalFields();
+		if(!isKeepFields) {
+			dataset.records(null);
+		}
+		var isDsFld;
+		for(var i = 0, len = fields.length; i &lt; len; i++) {
+			fldObj = fields[i];
+			isDsFld = fldObj.detailDataset()? true: false;
+			var dataType = fldObj.dataType;
+			if(!isDsFld &amp;&amp; !fldObj.visible() || 
+					dataType === jslet.data.DataType.ACTION || 
+					dataType === jslet.data.DataType.EDITACTION) {
+				continue;
+			}
+			dataset.appendRecord();
+			dataset.setFieldValue('isDatasetField', isDsFld);
+			
+			dataset.setFieldValue('dataset', hostDs.name());
+			dataset.setFieldValue('field', fldObj.name());
+			dataset.setFieldValue('label', fldObj.label());
+			dataset.setFieldValue('tabIndex', fldObj.tabIndex());
+			if(parentField) {
+				dataset.setFieldValue('parentField', parentField);
+			}
+			if(!isDsFld) {
+				dataset.setFieldValue('defaultValue', fldObj.defaultValue());
+				dataset.setFieldValue('focused', fldObj.focused());
+				dataset.setFieldValue('valueFollow', fldObj.valueFollow());
+			}
+			dataset.confirm();
+			if(isDsFld) {
+				this._initializeFields(fldObj.detailDataset(), true, fldObj.name());
+			}
+		}
+	},
+	
+	_createDialog: function() {
+		var opt = { type: 'window', caption: jsletlocale.InputSettingDialog.caption, isCenter: true, resizable: true, minimizable: false, maximizable: false, animation: 'fade', styleClass: 'jl-isdlg'};
+		var owin = jslet.ui.createControl(opt);
+		var html = [
+		            '&lt;div class=&quot;input-group input-group-sm&quot; style=&quot;margin-bottom: 10px&quot;&gt;',
+		            '&lt;div class=&quot;jl-isdlg-fields&quot; data-jslet=&quot;type:\'DBTable\',dataset:\'', this._inputSettingDs.name(), 
+		            '\',treeField:\'label\',readOnly:false,hasFilterDialog:false&quot;&gt;&lt;/div&gt;&lt;/div&gt;',
+
+//		            '&lt;div class=&quot;input-group input-group-sm&quot;&gt;',
+//		            '&lt;div class=&quot;col-sm-3&quot;&gt;&lt;button id=&quot;jlbtnSave&quot; class=&quot;btn btn-default btn-sm&quot;&gt;',
+//		            '&lt;button id=&quot;jlbtnUp&quot; class=&quot;btn btn-default btn-sm&quot;&gt;', jsletlocale.InputSettingDialog.save, '&lt;/button&gt;',
+//		            '&lt;button id=&quot;jlbtnDown&quot; class=&quot;btn btn-default btn-sm&quot;&gt;', jsletlocale.InputSettingDialog.save, '&lt;/button&gt;',
+//		            '&lt;/div&gt;',
+//		            '&lt;label class=&quot;control-label col-sm-6&quot;&gt;&amp;nbsp&lt;/label&gt;',
+//		            '&lt;div class=&quot;col-sm-3&quot;&gt;&lt;button id=&quot;jlbtnSave&quot; class=&quot;btn btn-default btn-sm&quot;&gt;',
+//		            '&lt;hr class=&quot;col-sm-11&quot; /&gt;',
+		            '&lt;div class=&quot;input-group input-group-sm jl-isdlg-toolbar&quot;&gt;&lt;label class=&quot;control-label col-sm-9&quot;&gt;&amp;nbsp&lt;/label&gt;',
+		            '&lt;div class=&quot;col-sm-3&quot;&gt;&lt;button id=&quot;jlbtnSave&quot; class=&quot;btn btn-default btn-sm&quot;&gt;',		            
+		            jsletlocale.InputSettingDialog.save,
+		            '&lt;/button&gt;&lt;button id=&quot;jlbtnCancel&quot; class=&quot;btn btn-default btn-sm&quot;&gt;',
+		            jsletlocale.InputSettingDialog.cancel,
+		            '&lt;/button&gt;&lt;/div&gt;&lt;/div&gt;',
+		            '&lt;/div&gt;'];
+		owin.setContent(html.join(''));
+		owin.onClosed(function () {
+			return 'hidden';
+		});
+		this._dlgId = owin.el.id;
+		var jqEl = jQuery(owin.el), 
+			Z = this;
+		
+//		jqEl.find('#jlbtnUp').on('click', function(event) {
+//			var dataset = Z._inputSettingDs;
+//			if(dataset.recordCount() === 0) {
+//				return;
+//			}
+//			var idx = dataset.getFieldValue('tabIndex');
+//			if(!idx) {
+//				idx = dataset.recno();
+//			}
+//			if(idx === 0) {
+//				return;
+//			}
+//			var context = dataset.startSilenceMove();
+//			try {
+//				dataset.setFieldValue('tabIndex', idx - 1);
+//				dataset.prior();
+//				dataset.setFieldValue('tabIndex', idx);
+//				dataset.confirm();
+//			} finally {
+//				dataset.endSilenceMove(context);
+//			}
+//			dataset.indexFields(dataset.indexFields());
+//		});
+		
+		jqEl.find('#jlbtnSave').on('click', function(event) {
+			if(Z._settings) {
+				var hostDs, fldObj, fldSetting, propSetting;
+				for(var dsName in Z._settings) {
+					hostDs = jslet.data.getDataset(dsName);
+					fldSetting = Z._settings[dsName]; 
+					for(var fldName in fldSetting) {
+						fldObj = hostDs.getField(fldName);
+						propSetting = fldSetting[fldName];
+						for(var propName in propSetting) {
+							fldObj[propName](propSetting[propName]);
+						}
+					}
+				}
+				if(Z._onClosed) {
+					Z._onClosed(Z._settings);
+				}
+			}
+			owin.close();
+		});
+		jqEl.find('#jlbtnCancel').on('click', function(event) {
+			owin.close();
+		});
+		
+		jslet.ui.install(owin.el);
+	}
+};
+
+<span id='jslet-ui-property-defaultInputSettingDialog'>/**
+</span> * Default input setting dialog. Example:
+ * 
+ *     @example
+ *     jslet.ui.defaultInputSettingDialog.show(dataset);
+ *      
+ * @member jslet.ui
+ * @type {jslet.ui.InputSettingDialog}
+ * 
+ */
+jslet.ui.defaultInputSettingDialog = new jslet.ui.InputSettingDialog();
+</pre>
+</body>
+</html>

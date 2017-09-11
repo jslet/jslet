@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js"><span id='jslet-ui-DBText'>/**
+</span> * @class
+ * @extend jslet.ui.DBFieldControl
+ * 
+ * DBText is a powerful control, it can input any data type, like: Number, Date etc. Example:
+ * 
+ *     @example
+ *      var jsletParam = {type:“DBText“,field:“name“};
+ *     //1. Declaring:
+ *      &lt;input id=“ctrlId“ type=“text“ data-jslet='jsletParam' /&amp;gt;
+ *      or
+ *      &lt;input id=“ctrlId“ type=“text“ data-jslet='{type:“DBText“,field:“name“}' /&amp;gt;
+ * 
+ *     //2. Binding
+ *      &lt;input id=“ctrlId“ type=“text“ data-jslet='jsletParam' /&amp;gt;
+ *      //Js snippet
+ *      var el = document.getElementById('ctrlId');
+ *      jslet.ui.bindControl(el, jsletParam);
+ * 
+ *     //3. Create dynamically
+ *      jslet.ui.createControl(jsletParam, document.body);
+ */
+jslet.ui.DBText = jslet.Class.create(jslet.ui.DBFieldControl, {
+<span id='jslet-ui-DBText-method-initialize'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	initialize: function ($super, el, params) {
+		var Z = this;
+		Z.allProperties = 'styleClass,dataset,field,beforeUpdateToDataset,enableInvalidTip,onKeyDown,autoSelectAll,readOnly';
+
+<span id='jslet-ui-DBText-property-_beforeUpdateToDataset'>		/**
+</span>		 * @protected
+		 */
+		Z._beforeUpdateToDataset = null;
+		
+		Z._enableInvalidTip = true;
+		
+		Z._enterProcessed = false;
+		
+		Z._autoSelectAll = true;
+
+		Z._readOnly = false;
+		
+		Z.oldValue = null;
+		Z.editMask = null;
+		Z._position = null;
+		$super(el, params);
+	},
+
+	beforeUpdateToDataset: function(beforeUpdateToDataset) {
+		if(beforeUpdateToDataset === undefined) {
+			return this._beforeUpdateToDataset;
+		}
+		jslet.Checker.test('DBText.beforeUpdateToDataset', beforeUpdateToDataset).isFunction();
+		this._beforeUpdateToDataset = beforeUpdateToDataset;
+		return this;
+	},
+
+	enableInvalidTip: function(enableInvalidTip) {
+		if(enableInvalidTip === undefined) {
+			return this._enableInvalidTip;
+		}
+		this._enableInvalidTip = enableInvalidTip? true: false;
+		return this;
+	},
+
+	readOnly: function(readOnly) {
+		if(readOnly === undefined) {
+			return this._readOnly;
+		}
+		this._readOnly = readOnly? true: false;
+		if(readOnly) {
+			this.el.readOnly = true;
+		}
+		return this;
+	},
+
+<span id='jslet-ui-DBText-property-autoSelectAll'>	/**
+</span>	 * @property
+	 * 
+	 * Identify whether selecting all text when the text box got focus.
+	 * 
+	 * @param {Boolean | undefined} autoSelectAll True - select all text, false - otherwise.
+	 * 
+	 * @return {this | Boolean}
+	 */
+	autoSelectAll: function(autoSelectAll) {
+		if(autoSelectAll === undefined) {
+			return this._autoSelectAll;
+		}
+		this._autoSelectAll = autoSelectAll? true: false;
+		return this;
+	},
+
+<span id='jslet-ui-DBText-method-isValidTemplateTag'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	isValidTemplateTag: function (el) {
+		return el.tagName.toLowerCase() == 'input' &amp;&amp; 
+				el.type.toLowerCase() == 'text';
+	},
+
+<span id='jslet-ui-DBText-method-bind'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	bind: function () {
+		var Z = this;
+		Z.renderAll();
+		var jqEl = jQuery(Z.el);
+		jqEl.addClass('form-control input-sm');
+		Z.el.name = Z._field;
+		if (Z.doFocus) {
+			jqEl.on('focus', jQuery.proxy(Z.doFocus, Z));
+		}
+		if (Z.doBlur) {
+			jqEl.on('blur', jQuery.proxy(Z.doBlur, Z));
+		}
+		if (Z.doKeydown) {
+			jqEl.on('keydown', Z.doKeydown);
+		}
+		if (Z.doKeypress) {
+			jqEl.on('keypress', Z.doKeypress);
+		}
+		Z.doMetaChanged('required');
+	}, // end bind
+
+<span id='jslet-ui-DBText-method-doFocus'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	doFocus: function () {
+		var Z = this;
+		if (Z._skipFocusEvent) {
+			return;
+		}
+		jslet.ui.globalFocusManager.activeDataset(Z._dataset.name()).activeField(Z._field).activeValueIndex(Z._valueIndex);
+		Z.doValueChanged();
+		Z.oldValue = Z.el.value;
+		if(Z._autoSelectAll) {
+			jslet.ui.TextUtil.selectText(Z.el);
+		}
+	},
+
+<span id='jslet-ui-DBText-method-doBlur'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	doBlur: function () {
+		var Z = this,
+			fldObj = Z._dataset.getField(Z._field);
+		jslet.ui.globalFocusManager.activeDataset(null).activeField(null).activeValueIndex(null);
+		Z._position = jslet.ui.TextUtil.getCursorPos(Z.el);
+		if (fldObj.readOnly() || fldObj.disabled()) {
+			return;
+		}
+		var jqEl = jQuery(this.el);
+		if(jqEl.attr('readOnly') || jqEl.attr('disabled')) {
+			return;
+		}
+		Z.updateToDataset();
+		Z._isBluring = true;
+		try {
+			Z.doValueChanged();
+		} finally {
+			Z._isBluring = false;
+		}
+	},
+	
+<span id='jslet-ui-DBText-method-doKeydown'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	doKeydown: function(event) {
+		event = jQuery.event.fix( event || window.event );
+		var keyCode = event.which;
+		//When press 'enter', write data to dataset.
+		var Z = this.jslet,
+			K = jslet.ui.KeyCode;
+		if(keyCode === K.ENTER) {
+			Z._enterProcessed = true;
+			Z.updateToDataset();
+		}
+		//Process 'ArrowUp', 'ArrowDown', 'PageUp', 'PageDown' key when it is editing. 
+		var isEditing = Z._dataset.status() &gt; 0;
+		if(isEditing &amp;&amp; (keyCode === K.UP || keyCode === K.DOWN || keyCode === K.PAGEUP || keyCode === K.PAGEDOWN)) {
+			Z._enterProcessed = true;
+			Z.updateToDataset();
+		}
+		var fldObj = Z._dataset.getField(Z._field);
+		if (!fldObj.readOnly() &amp;&amp; !fldObj.disabled() &amp;&amp; (keyCode === K.BACKSPACE || keyCode === K.DELETE)) {
+			Z._dataset.editRecord();
+		}
+		if(keyCode === K.LEFT || keyCode === K.RIGHT) { //Arrow-left, Arrow-right
+			var pos = jslet.ui.TextUtil.getCursorPos(Z.el);
+			if((keyCode === K.LEFT &amp;&amp; pos.begin &gt; 0) || 
+					(keyCode === 39 &amp;&amp; pos.begin &lt; Z.el.value.length)) {
+	       		event.stopImmediatePropagation();
+			}
+		}
+	},
+
+<span id='jslet-ui-DBText-method-doKeypress'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	doKeypress: function (event) {
+		var Z = this.jslet,
+			fldObj = Z._dataset.getField(Z._field);
+		if (fldObj.readOnly() || fldObj.disabled()) {
+			return;
+		}
+		event = jQuery.event.fix( event || window.event );
+		var keyCode = event.which,
+			existStr = jslet.cutString(Z.el.value, jslet.ui.TextUtil.getSelectedText(Z.el)),
+			cursorPos = jslet.ui.TextUtil.getCursorPos(Z.el);
+		if (!Z._dataset.fieldValidator().checkInputChar(fldObj, String.fromCharCode(keyCode), existStr, cursorPos.begin)) {
+			event.preventDefault();
+			return false;
+		}
+		Z._dataset.editRecord();
+		//When press 'enter', write data to dataset.
+		if(keyCode === jslet.ui.KeyCode.ENTER) {
+			if(!Z._enterProcessed) {
+				Z.updateToDataset();
+			} else {
+				Z._enterProcessed = false;
+			}
+		}
+	},
+
+<span id='jslet-ui-DBText-method-selectText'>	/**
+</span>	 * Select text.
+	 * 
+	 * @param {Integer} start (Optional) Start of cursor position.
+	 * @param {Integer} end (Optional) End of cursor position.
+	 * 
+	 * @return {this}
+	 */
+	selectText: function(start, end){
+		jslet.ui.TextUtil.selectText(this.el, start, end);
+		return this;
+	},
+	
+<span id='jslet-ui-DBText-method-inputText'>	/**
+</span>	 * Input a text into text control at current cursor position.
+	 * 
+	 * @param {String} text The text need to be input.
+	 * 
+	 * @return {this}
+	 */
+	inputText: function(text) {
+		if(!text) {
+			return;
+		}
+		jslet.Checker.test('DBText.inputText#text', text).isString();
+		
+		var Z = this,
+			fldObj = Z._dataset.getField(Z._field);
+		if(fldObj.getType() !== jslet.data.DataType.STRING) {
+			console.warn('Only String Field can be input!');
+			return;
+		}
+		var ch, chs = [];
+		for(var i = 0, len = text.length; i &lt; len; i++) {
+			ch = text[i];
+			if (Z._dataset.fieldValidator().checkInputChar(fldObj, ch)) {
+				chs.push(ch);
+			}
+		}
+		if(!Z._position) {
+			Z._position = jslet.ui.TextUtil.getCursorPos(Z.el);
+		}
+		var subStr = chs.join(''),
+			value =Z.el.value,
+			begin = Z._position.begin,
+			end = Z._position.end;
+		var prefix = value.substring(0, begin), 
+			suffix = value.substring(end); 
+		Z.el.value = prefix + text + suffix;
+		Z._position = jslet.ui.TextUtil.getCursorPos(Z.el);		
+		Z.updateToDataset();
+		return this;
+	},
+	
+<span id='jslet-ui-DBText-method-refreshControl'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	refreshControl: function ($super, evt, isForce) {
+		if($super(evt, isForce) &amp;&amp; this.afterRefreshControl) {
+			this.afterRefreshControl(evt);
+		}
+	}, 
+
+<span id='jslet-ui-DBText-method-doMetaChanged'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	doMetaChanged: function($super, metaName){
+		$super(metaName);
+		var Z = this,
+			fldObj = Z._dataset.getField(Z._field);
+		if(!Z._readOnly &amp;&amp; (!metaName || metaName == &quot;disabled&quot; || metaName == &quot;readOnly&quot;)) {
+			jslet.ui.setEditableStyle(Z.el, fldObj.disabled(), fldObj.readOnly(), false, fldObj.required());
+		}
+		
+		if(metaName &amp;&amp; metaName == 'required') {
+			var jqEl = jQuery(Z.el);
+			if (fldObj.required()) {
+				jqEl.addClass('jl-ctrl-required');
+			} else {
+				jqEl.removeClass('jl-ctrl-required');
+			}
+		}
+		if(!metaName || metaName == 'editMask') {
+			var editMaskCfg = fldObj.editMask();
+			if (editMaskCfg) {
+				if(!Z.editMask) {
+					Z.editMask = new jslet.ui.EditMask();
+					Z.editMask.attach(Z.el);
+				}
+				var mask = editMaskCfg.mask,
+					keepChar = editMaskCfg.keepChar,
+					transform = editMaskCfg.transform;
+				Z.editMask.setMask(mask, keepChar, transform);
+			} else {
+				if(Z.editMask) {
+					Z.editMask.detach();
+					Z.editMask = null;
+				}
+			}
+		}
+		
+		if(!metaName || metaName == 'tabIndex') {
+			Z.setTabIndex();
+		}
+		
+		Z.el.maxLength = fldObj.getEditLength();
+	},
+	
+<span id='jslet-ui-DBText-method-doValueChanged'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	doValueChanged: function() {
+		var Z = this;
+		if (Z._keep_silence_) {
+			return;
+		}
+		var errObj = Z.getFieldError();
+		if(errObj &amp;&amp; errObj.message) {
+			Z.el.value = errObj.inputText || Z._dataset.getFieldText(Z._field);
+			Z.renderInvalid(errObj);
+			return;
+		} else {
+			Z.renderInvalid(null);
+		}
+		var fldObj = Z._dataset.getField(Z._field);
+		var align = fldObj.alignment();
+	
+		if (jsletlocale.isRtl){
+			if (align == 'left') {
+				align= 'right';
+			} else {
+				align = 'left';
+			}
+		}
+		Z.el.style.textAlign = align;
+		var value;
+		if (Z.editMask){
+			value = Z.getText();
+			Z.editMask.setValue(value);
+		} else {
+			if (document.activeElement != Z.el || Z.el.readOnly || Z._isBluring) {
+				value = Z.getText(false);
+			} else {
+				value = Z.getText(true);
+			}
+			if(fldObj.getType() === jslet.data.DataType.STRING &amp;&amp; fldObj.antiXss()) {
+				value = jslet.htmlDecode(value);
+			}
+			Z.el.value = value;
+		}
+		Z.oldValue = Z.el.value;
+	},
+
+<span id='jslet-ui-DBText-method-doLookupChanged'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	doLookupChanged: function() {
+		this.doValueChanged();
+	},
+
+<span id='jslet-ui-DBText-method-renderAll'>	/**
+</span>	 * @override
+	 */
+	renderAll: function () {
+		this.refreshControl(jslet.data.RefreshEvent.updateAllEvent(), true);
+		return this;
+	}, // end renderAll
+
+	updateToDataset: function () {
+		var Z = this;
+		if (Z._keep_silence_) {
+			return true;
+		}
+		var value = Z.el.value;
+		if(Z.oldValue == value) {
+			return true;
+		}
+		Z._dataset.editRecord();
+		if (this.editMask &amp;&amp; !this.editMask.validateValue()) {
+			return false;
+		}
+		if (Z._beforeUpdateToDataset) {
+			if (!Z._beforeUpdateToDataset.call(Z)) {
+				return false;
+			}
+		}
+
+		Z._keep_silence_ = true;
+		try {
+			if (Z.editMask) {
+				value = Z.editMask.getValue();
+			}
+			Z._dataset.setFieldText(Z._field, value, Z._valueIndex);
+		} finally {
+			Z._keep_silence_ = false;
+		}
+		Z.refreshControl(jslet.data.RefreshEvent.updateRecordEvent(Z._field));
+		return true;
+	}, // end updateToDataset
+
+<span id='jslet-ui-DBText-method-destroy'>	/**
+</span>	 * @override
+	 */
+	destroy: function($super){
+		var Z = this;
+		jQuery(Z.el).off();
+		if (Z.editMask){
+			Z.editMask.detach();
+			Z.editMask = null;
+		}
+		Z._beforeUpdateToDataset = null;
+		Z.onKeyDown = null;
+		$super();
+	}
+});
+jslet.ui.register('DBText', jslet.ui.DBText);
+jslet.ui.DBText.htmlTemplate = '&lt;input type=&quot;text&quot;&gt;&lt;/input&gt;';
+
+<span id='jslet-ui-DBPassword'>/**
+</span> * @class
+ * @extend jslet.ui.DBText
+ * 
+ * DBPassword.
+ */
+jslet.ui.DBPassword = jslet.Class.create(jslet.ui.DBText, {
+<span id='jslet-ui-DBPassword-method-initialize'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	initialize: function ($super, el, params) {
+		jQuery(el).attr('type', 'password');
+		$super(el, params);
+	},
+
+<span id='jslet-ui-DBPassword-method-isValidTemplateTag'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	isValidTemplateTag: function (el) {
+		return el.tagName.toLowerCase() == 'input';
+	}
+});
+
+jslet.ui.register('DBPassword', jslet.ui.DBPassword);
+jslet.ui.DBPassword.htmlTemplate = '&lt;input type=&quot;password&quot;&gt;&lt;/input&gt;';
+
+<span id='jslet-ui-DBTextArea'>/**
+</span> * @class
+ * @extend jslet.ui.DBText
+ * 
+ * DBTextArea.
+ */
+jslet.ui.DBTextArea = jslet.Class.create(jslet.ui.DBText, {
+<span id='jslet-ui-DBTextArea-method-initialize'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	initialize: function ($super, el, params) {
+		$super(el, params);
+	},
+
+<span id='jslet-ui-DBTextArea-method-isValidTemplateTag'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	isValidTemplateTag: function (el) {
+		return el.tagName.toLowerCase() == 'textarea';
+	}
+});
+
+jslet.ui.register('DBTextArea', jslet.ui.DBTextArea);
+jslet.ui.DBTextArea.htmlTemplate = '&lt;textarea&gt;&lt;/textarea&gt;';
+
+</pre>
+</body>
+</html>

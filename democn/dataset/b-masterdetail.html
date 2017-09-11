@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="../css/demo.css" />
+    
+    <title>Jslet - Master/Detail数据集</title>
+    <script type="text/javascript" data-main="../config.js" src="../lib/requirejs/require.min.js"></script>
+    <script type="text/javascript">
+	    require(['dataset/b-masterdetail']);
+    </script>
+</head>
+<body>
+    <div class="demo-header">
+    <h4 id="top">Jslet - Master/Detail数据集</h4>
+	</div>
+	<hr />
+	<div class="demo-desc">
+	<p>Master/Detail，对应到对象关系中的一对多关系，其有以下特性：
+	<ol>
+	<li>定义非常简单，在主表里增加一个DataType = 'V' 类型的字段即可;</li>
+	<li>Master表变化时，Detail表会同步变化;</li>
+	<li>提交修改时，只能调用Master数据集的submit方法；</li>
+	<li>提交修改时，可以选择只提交Detail表修改的数据，或者提交Detail表全部的数据；</li>
+	</ol>
+	</div>
+	<h4>销售主表</h4>
+	<div id="tblMaster" data-jslet="type: 'DBTable', dataset: 'salesMaster', editable: true" style="height: 150px"></div>
+	<h4>销售明细表</h4>
+	<div id="tblDetail" data-jslet="type: 'DBTable', dataset: 'salesDetail', editable: true" style="height: 150px"></div>
+	<h4>源码</h4>
+    <pre class="prettyprint linenums"><code>
+		//"PaymentTerm"
+		new jslet.data.Dataset({name: "paymentTerm", isEnum: true, records: {'01':'M/T','02':'T/T'}});
+	
+		//"Customer"
+		new jslet.data.Dataset({name: "customer", isEnum: true, records: {'01':'ABC','02':'Oil Group LTD','03':'Mail Group LTD'}});
+	
+		var detailFldCfg = [
+			{name: 'action', dataType: 'E'},
+			{name: 'seqno', dataType: 'N', label: '序号'},
+			{name: 'product', dataType: 'S', label: '货物名称', length: 20},
+			{name: 'qty', dataType: 'N', label: '数量', length: 11, defaultValue: 2},
+			{name: 'price', dataType: 'N', label: '价格', length: 11, scale: 2},
+			{name: 'amount', dataType: 'N', label: '金额', length: 11, scale: 2, 
+				formula: '[qty]*[price]', aggraded: true, displayFormat: '#,##0.00'}
+		];
+		
+		new jslet.data.Dataset({name: 'salesDetail', fields: detailFldCfg});
+		//销售主表字段定义
+		var fieldCfg = [{name: 'action', dataType: 'E'},
+			{name: 'saleid', dataType: 'S', label: 'Sales ID'},
+			{name: 'saledate', dataType: 'D', label: 'Sales Date', displayFormat: 'yyyy-MM-dd'},
+			{name: 'customer', dataType: 'S', label: 'Customer', length: 20, lookup: {dataset: 'customer'}},
+			{name: 'paymentterm', dataType: 'S', label: 'Payment Term', lookup: {dataset: 'paymentTerm'}},
+			//主表中增加一个DataType为'V'类型的字段details，用来指向明细数据集：salesDetail
+			{name: 'details', dataType: 'V', label: 'details', detailDataset: 'salesDetail'},
+			{name: 'comment', dataType: 'S', length: 20, label: 'comment'}
+		];
+	
+		var dsMaster = new jslet.data.Dataset({name: 'salesMaster', fields: fieldCfg});
+		
+		//提交修改的数据
+		dsMaster.submit();
+
+		//提交主表修改的数据，明细表的所有的数据
+		dsMaster.submit(null, {detailRange: jslet.data.RecordRange.ALL});
+    
+		//提交主表修改的数据，明细表的修改的数据
+		dsMaster.submit(null, {detailRange: jslet.data.RecordRange.CHANGED});
+	</code></pre>
+
+    <script type="text/javascript">
+		window.LOADER_BASE_URL = "../lib/prettify";
+    </script>
+    <script type="text/javascript" src="../lib/prettify/run_prettify.js"></script>
+		
+</body>
+</html>

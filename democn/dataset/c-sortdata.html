@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="../css/demo.css" />
+    
+    <title>Jslet - 排序数据</title>
+    <script type="text/javascript" data-main="../config.js" src="../lib/requirejs/require.min.js"></script>
+    <script type="text/javascript">
+	    require(['dataset/c-sortdata']);
+    </script>
+</head>
+<body>
+    <div class="demo-header">
+    <h4 id="top">Jslet - 排序数据</h4>
+	</div>
+	<hr />
+	<div data-jslet="type: 'DBTable', dataset: 'employee'"></div>
+	<div class="demo-desc">
+	<p>演示以下内容：</p>
+		<h4>1. 单字段排序:</h4>
+		<p>
+        按“年龄”排序(升序):<input type="text" id="txtField1" value="age" />
+			<button id="btnSort1" class="btn btn-default btn-sm"> 排序 </button><br />
+        按“部门”排序(降序):<input type="text" id="txtField2" value="department desc" />
+			<button id="btnSort2" class="btn btn-default btn-sm"> 排序 </button><br />
+			<span style="color:blue">注意：“部门”字段的值虽然是部门Id，但排序时是以部门编码来排序的。 </span>
+		</p>
+		
+        <h4>多字段排序:</h4>
+		<p>
+         按“部门”(升序)和“年龄”(升序)排序:<input type="text" id="txtField3" value="department,age" />
+			<button id="btnSort3" class="btn btn-default btn-sm"> 排序 </button><br />
+         按“部门”(升序)和“年龄”(降序)排序:<input type="text" id="txtField4" value="department,age desc" />
+			<button id="btnSort4" class="btn btn-default btn-sm"> 排序 </button>
+		</p>			
+	</div>
+	<h4>源码</h4>
+    <pre class="prettyprint linenums"><code>
+	//datasetMetaStore定义在公共js:common/datasetmetastore.js中
+	//将数据集定义信息仓库加到datasetFactory中，创建Dataset时会仓库里去定义信息
+	jslet.data.datasetFactory.addMetaStore(window.datasetMetaStore);
+	//通过工厂方法，可以自动创建主数据集及相关的数据集
+    jslet.data.datasetFactory.createDataset('employee').done(function() {
+    	jslet.ui.install(function() {
+    		var dsEmployee = jslet.data.getDataset('employee');
+    		dsEmployee.query();
+    	});
+    });
+    
+    //绑定按钮事件
+	$('#btnSort1').click(function() {
+		var dsEmployee = jslet.data.getDataset('employee');
+		dsEmployee.indexFields($('#txtField1').val());
+	});
+	
+	$('#btnSort2').click(function() {
+		var dsEmployee = jslet.data.getDataset('employee');
+		dsEmployee.indexFields($('#txtField2').val());
+	});
+	
+	$('#btnSort3').click(function() {
+		var dsEmployee = jslet.data.getDataset('employee');
+		dsEmployee.indexFields($('#txtField3').val());
+	});
+	
+	$('#btnSort4').click(function() {
+		var dsEmployee = jslet.data.getDataset('employee');
+		dsEmployee.indexFields($('#txtField4').val());
+	});
+	</code></pre>
+
+    <script type="text/javascript">
+       window.LOADER_BASE_URL = "../lib/prettify";
+    </script>
+    <script type="text/javascript" src="../lib/prettify/run_prettify.js"></script>
+		
+</body>
+</html>

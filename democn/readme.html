@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Take a glance at Jslet framework">
+    <link rel="stylesheet" type="text/css" href="css/demo.css" />
+    
+    <title>Jslet - 演示说明</title>
+    <script type="text/javascript" data-main="config.js" src="lib/requirejs/require.min.js"></script>
+    <script type="text/javascript">
+	    requirejs(['config'], function() {
+	    	requirejs(['jslet']);
+	    });
+    </script>
+</head>
+<body style="font-size: 20px">
+    <div class="demo-header">
+    <h3 id="top">Jslet - 演示说明</h3>
+	</div>
+	<hr />
+	<div style="line-height: 2rem" class="demo-desc">
+	<p>Jslet秉承的原则是专业的人做专业的事，因此使用多个业界著名的免费开源的JavaScript组件包，具体如下：
+	<ol>
+	<li>基础组件：<a href="http://jquery.com/" target="_blank">jQuery</a>，DOM操作神器，不用对不住自己呀；</li>
+	<li>样式和布局: <a href="http://getbootstrap.com/" target="_blank">BootStrap</a>，Jslet本身的样式均是以“jl-”开头，其它基本上是BootStrap的样式，大家遇到了可去查文档；</li>
+	<li>字体图标: <a href="http://fontawesome.io" target="_blank">FontAwesome</a>, 样式以“fa-”开头；</li>
+	<li>图表得感谢百度的同学们: <a href="http://echarts.baidu.com" target="_blank">ECharts</a>，这套图表功能非常强大，不过Jslet只选取了几种最常用的图表；</li>
+	<li>Excel导入导出：<a href="https://github.com/sheetjs/js-xlsx" target="_blank">Xlsx</a>；</li>
+	<li>演示程序的模块加载: <a href="http://www.requirejs.org/" target="_blank">RequireJS</a></li>
+	</ol>
+	<p>以上对于专业的前端人员可能根本不算事儿，早就烂熟于心了，但对于刚接触前端开发的人来说，还是有些难度，还是需要做些功课的，至少要知道谁是谁。</p>
+	<p>如果实在没有精力去了解也无妨，Jslet的演示程序本来就是基于标准的产品模式来做的，把演示程序改一改就可以立马发布了。</p>
+	<hr />
+	<p>Jslet是基于现代的浏览器开发的，版本低的，比如IE10以下的就不要试了，目前浏览器还是以Chrome性能最佳，建议使用它。</p>
+	<p>准备好了吗？那就 先<a href="javascript:void(0)" onclick='start()'">看一眼</a> 吧!</p>
+	</div>
+	
+	<script>
+		function start() {
+			jslet.ui.desktopUtil.openMenuById('glance');
+		}
+	</script>
+</body>
+</html>

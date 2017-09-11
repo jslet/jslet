@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="../css/demo.css" />
+    
+    <title>Jslet - 数据集基本操作</title>
+    <script type="text/javascript" data-main="../config.js" src="../lib/requirejs/require.min.js"></script>
+    <script type="text/javascript">
+	    require(['dataset/c-editdata']);
+    </script>
+</head>
+<body>
+    <div class="demo-header">
+    <h4 id="top">Jslet - 数据集基本操作</h4>
+	</div>
+	<hr />
+	<div class="demo-desc">
+	<p>演示以下内容：1、通过records()方法初始化数据；&nbsp;&nbsp; 2、增加、删除、修改；&nbsp;&nbsp;3、数据集事件；&nbsp;&nbsp;4、字段值变化事件。</p>
+	</div>
+
+	<div style="padding-left: 5px;margin-bottom: 10px">
+	    <button class="btn btn-default btn-sm" id="btnQuery"> 查询 </button>
+	    <div class="btn-group">
+	    <button class="btn btn-default btn-sm" id="btnAppend"> 新增 </button>
+	    <button class="btn btn-default btn-sm" id="btnDelete"> 删除 </button>
+	    </div>
+	</div>
+	<div data-jslet="type: 'DBTable', dataset: 'employee', editable: true" style="height: 180px"></div>
+	<hr />
+	<h4>数据集事件</h4>
+	<textarea id="txtLogs" rows="5" style="width: 100%"></textarea>
+	<h4>源码</h4>
+    <pre class="prettyprint linenums"><code>
+	//datasetMetaStore定义在公共js:common/datasetmetastore.js中
+	//将数据集定义信息仓库加到datasetFactory中，创建Dataset时会仓库里去定义信息
+	jslet.data.datasetFactory.addMetaStore(window.datasetMetaStore);
+	//通过工厂方法，可以自动创建主数据集及相关的数据集
+    jslet.data.datasetFactory.createDataset('employee').done(function() {
+    	jslet.ui.install(initialize);
+    });
+    
+    function initialize() {
+		var dsEmployee = jslet.data.getDataset('employee');
+		dsEmployee.query();
+
+		//设置数据集事件
+		dsEmployee.datasetListener(function (evtType) {
+	        $('#txtLogs').val($('#txtLogs').val() + evtType + '; ');
+
+	        if (evtType == jslet.data.DatasetEvent.AFTERINSERT) {
+	            //Set default value 
+	        }
+	    });
+		//设置字段值修改时的事件
+		dsEmployee.onFieldChanged(function(fldName, fldValue) {
+			$('#txtLogs').val($('#txtLogs').val() + '字段名：' + fldName + 
+					'的值改为：' + fldValue + ' ; ');
+		});
+    }
+    
+    //绑定按钮事件
+	$('#btnQuery').click(function() {
+		var dsEmployee = jslet.data.getDataset('employee');
+		dsEmployee.query();	
+	});
+	$('#btnAppend').click(function() {
+		var dsEmployee = jslet.data.getDataset('employee');
+		dsEmployee.appendRecord();	
+	});
+	$('#btnDelete').click(function() {
+		var dsEmployee = jslet.data.getDataset('employee');
+        jslet.ui.confirm('确实要删除吗?', '确认', function(button) {
+        	if(button === 'ok') {
+        		dsEmployee.deleteRecord();	
+        	}
+        });
+	});
+	</code></pre>
+
+    <script type="text/javascript">
+       window.LOADER_BASE_URL = "../lib/prettify";
+    </script>
+    <script type="text/javascript" src="../lib/prettify/run_prettify.js"></script>
+		
+</body>
+</html>

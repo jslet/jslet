@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js"><span id='jslet-ui-WaitingBox'>/**
+</span> * @class 
+ * 
+ * WaitingBox. Example:
+ * 
+ *     @example
+ *     var wb = new jslet.ui.WaitingBox(document.getElementById(&quot;test&quot;), &quot;Gray&quot;, true);
+ *	   wb.show(&quot;Please wait a moment...&quot;);
+ * 
+ * @param {HtmlElement} container The container which waiting box resides on.
+ * @param {String} overlayColor Overlay color.
+ * @param {Boolean} tipsAtNewLine Tips is at new line or not. If false, tips and waiting icon is at the same line.
+ */
+jslet.ui.WaitingBox = function (container, overlayColor, tipsAtNewLine) {
+	var overlay = new jslet.ui.OverlayPanel(container);
+	var s = '&lt;div class=&quot;jl-waitingbox jl-round4&quot;&gt;&lt;i class=&quot;fa fa-spinner fa-pulse fa-2x fa-fw jl-waitingbox-icon&quot;&gt;&lt;/i&gt;';
+		s += '&lt;span class=&quot;jl-waitingbox-text&quot;&gt;&lt;/span&gt;&lt;/div&gt;';
+
+	jQuery(overlay.overlayPanel).html(s);
+
+<span id='jslet-ui-WaitingBox-method-show'>	/**
+</span>	 * Show waiting box.
+	 * 
+	 * @param {String} tips Tips.
+	 */
+	this.show = function (tips) {
+		var p = overlay.overlayPanel,
+			box = p.firstChild,
+			tipPanel = box.childNodes[1];
+		tipPanel.innerHTML = tips ? tips : '';
+		var jqPnl = jQuery(p),
+			ph = jqPnl.height(),
+			pw = jqPnl.width();
+
+		setTimeout(function () {
+			var jqBox = jQuery(box);
+			box.style.top = Math.round((ph - jqBox.height()) / 2) + 'px';
+			box.style.left = Math.round((pw - jqBox.width()) / 2) + 'px';
+		}, 10);
+
+		overlay.show();
+	};
+
+<span id='jslet-ui-WaitingBox-method-hide'>	/**
+</span>	 * Hide waiting box.
+	 */
+	this.hide = function () {
+		overlay.hide();
+	};
+
+<span id='jslet-ui-WaitingBox-method-destroy'>	/**
+</span>	 * Destroy waiting box.
+	 */
+	this.destroy = function () {
+		overlay.overlayPanel.innerHTML = '';
+		overlay.destroy();
+	};
+};
+</pre>
+</body>
+</html>

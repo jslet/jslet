@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js"><span id='jslet-ui-EditMask'>/**
+</span> * @class
+ * 
+ * EditMask.
+ * 
+ * Create edit mask class and attach to a HTML text element. Example:
+ * 
+ *     @example
+ *     var htmlText = jQuery('#textId')[0];
+ *     var mask = new jslet.ui.EditMask();
+ *     mask.attach(htmlText);
+ *     mask.setMask('L00-000');
+ * 
+ */
+jslet.ui.EditMask = function () {
+	this._mask = null;
+	this._keepChar = true;
+	this._transform = null;
+
+	this._literalChars = null;
+	this._parsedMask = null;
+	this._format = null;
+	this._target = null;
+	this._buffer = null;
+};
+
+jslet.ui.EditMask.prototype = {
+	maskChars: {
+		'#': { regexpr: new RegExp('[0-9\\-]'), required: false }, 
+		'0': { regexpr: new RegExp('[0-9]'), required: true },
+		'9': { regexpr: new RegExp('[0-9]'), required: false },
+		'L': { regexpr: new RegExp('[A-Za-z]'), required: true },
+		'l': { regexpr: new RegExp('[A-Za-z]'), required: false },
+		'A': { regexpr: new RegExp('[0-9a-zA-Z]'), required: true },
+		'a': { regexpr: new RegExp('[0-9a-zA-Z]'), required: false },
+		'C': { regexpr: null, required: true },
+		'c': { regexpr: null, required: false }
+	},
+	
+	transforms: ['upper','lower'],
+
+<span id='jslet-ui-EditMask-method-setMask'>	/**
+</span>	 * Set edit mask. Example:
+	 * 
+	 *     @example
+	 *     var htmlText = jQuery('#textId')[0];
+	 *     var mask = new jslet.ui.EditMask();
+	 *     mask.attach(htmlText);
+	 *     mask.setMask('L00-000');
+	 * 
+	 * @param {String} mask Mask string, rule: &lt;br /&gt;
+	 *  '#': char set: 0-9 and -, not required. &lt;br /&gt;
+	 *  '0': char set: 0-9, required. &lt;br /&gt;
+	 *  '9': char set: 0-9, not required. &lt;br /&gt;
+	 *  'L': char set: A-Z,a-z, required. &lt;br /&gt;
+	 *  'l': char set: A-Z,a-z, not required. &lt;br /&gt;
+	 *  'A': char set: 0-9,a-z,A-Z, required. &lt;br /&gt;
+	 *  'a': char set: 0-9,a-z,A-Z, not required. &lt;br /&gt;
+	 *  'C': char set: any char, required. &lt;br /&gt;
+	 *  'c': char set: any char, not required.
+	 *
+	 * @param {Boolean} keepChar Keep the literal character or not.
+	 * @param {String} transform Transform character into UpperCase or LowerCase, optional value: 'upper', 'lower' or null.
+	 */
+	setMask: function(mask, keepChar, transform){
+		mask = jQuery.trim(mask);
+		jslet.Checker.test('EditMask#mask', mask).isString();
+		this._mask = mask;
+		this._keepChar = keepChar ? true: false;
+		
+		this._transform = null;
+		if(transform){
+			var checker = jslet.Checker.test('EditMask#transform', transform).isString();
+			transform = jQuery.trim(transform);
+			transform = transform.toLowerCase();
+			checker.inArray(this.transforms);
+			this._transform = transform;
+		}
+		this._parseMask();
+	},
+	
+<span id='jslet-ui-EditMask-method-attach'>	/**
+</span>	 * Attach edit mask to a HTML text element.
+	 * 
+	 * @param {HtmlElement} target HTML text element.
+	 */
+	attach: function (target) {
+		jslet.Checker.test('EditMask.attach#target', target).required();
+		var Z = this, jqText = jQuery(target);
+		Z._target = target;
+		jqText.on('keypress.editmask', function (event) {
+			if(this.readOnly || !Z._mask) {
+				return true;
+			}
+			var c = event.which;
+			if (c === 0) {
+				return true;
+			}
+			if (!Z._doKeypress(c)) {
+				event.preventDefault();
+			} else {
+				return true;
+			}
+		});
+		jqText.on('keydown.editmask', function (event) {
+			if(this.readOnly || !Z._mask) {
+				return true;
+			}
+			if (!Z._doKeydown(event.which)) {
+				event.preventDefault();
+			} else {
+				return true;
+			}
+		});
+
+		jqText.on('blur.editmask', function (event) {
+			if(this.readOnly || !Z._mask) {
+				return true;
+			}
+			if (!Z._doBur()) {
+				event.preventDefault();
+				event.currentTarget.focus();
+			} else {
+				return true;
+			}
+		});
+
+		jqText.on('cut.editmask', function (event) {
+			if(this.readOnly || !Z._mask) {
+				return true;
+			}
+			Z._doCut(event.originalEvent.clipboardData || window.clipboardData);
+			event.preventDefault();
+			return false;
+		});
+
+		jqText.on('paste.editmask', function (event) {
+			if(this.readOnly || !Z._mask) {
+				return true;
+			}
+			if (!Z._doPaste(event.originalEvent.clipboardData || window.clipboardData)) {
+				event.preventDefault();
+			}
+		});
+	},
+
+<span id='jslet-ui-EditMask-method-detach'>	/**
+</span>	 * Detach edit mask from a HTML text element
+	 */
+	detach: function(){
+		var jqText = jQuery(this._target);
+		jqText.off('keypress.editmask');
+		jqText.off('keydown.editmask');
+		jqText.off('blur.editmask');
+		jqText.off('cut.editmask');
+		jqText.off('paste.editmask');
+		this._target = null; 
+	},
+	
+<span id='jslet-ui-EditMask-method-setValue'>	/**
+</span>	 * Set value to text box.
+	 * 
+	 * @param {String} value New value.
+	 */
+	setValue: function (value) {
+		jslet.Checker.test('EditMask.setValue#value', value).isString();
+		value = jQuery.trim(value);
+		value = value ? value : '';
+		if(!this._mask) {
+			this._target.value = value;
+			return;
+		}
+		
+		var Z = this;
+		Z._clearBuffer(0);
+		var prePos = 0, pos, preValuePos = 0, k, i, 
+			ch, vch, valuePos = 0, fixedChar, 
+			maskLen = Z._parsedMask.length;
+		while (true) {
+			fixedChar = Z._getFixedCharAndPos(prePos);
+			pos = fixedChar.pos;
+			ch = fixedChar.ch;
+			if (pos &lt; 0) {
+				pos = prePos;
+			}
+			if (ch) {
+				valuePos = value.indexOf(ch, preValuePos);
+				if (valuePos &lt; 0) {
+					valuePos = value.length;
+				}
+				k = -1;
+				for (i = valuePos - 1; i &gt;= preValuePos; i--) {
+					vch = value.charAt(i);
+					Z._buffer[k + pos] = vch;
+					k--;
+				}
+				preValuePos = valuePos + 1;
+			} else {
+				k = 0;
+				var c, cnt = Z._buffer.length;
+				for (i = prePos; i &lt; cnt; i++) {
+					c = value.charAt(preValuePos + k);
+					if (!c) {
+						break;
+					}
+					Z._buffer[i] = c;
+					k++;
+				}
+				break;
+			}
+			prePos = pos + 1;
+		}
+		Z._showValue();
+	},
+	
+<span id='jslet-ui-EditMask-method-getValue'>	/**
+</span>	 * Get unmasked value.
+	 * 
+	 * @return {String} Unmasked value.
+	 */
+	getValue: function(){
+		var value = this._target.value;
+		if(this._keepChar) {
+			return value;
+		} else {
+			var result = [], maskObj;
+			for(var i = 0, cnt = value.length; i&lt; cnt; i++){
+				maskObj = this._parsedMask[i];
+				if(maskObj.isMask) {
+					result.push(value.charAt(i));
+				}
+			}
+			return result.join('');
+		}
+	},
+	
+<span id='jslet-ui-EditMask-method-validateValue'>	/**
+</span>	 * Check the value is valid or not.
+	 * 
+	 * @return {Boolean} True - the value is valid, false - otherwise.
+	 */
+	validateValue: function(){
+		var Z = this, len = Z._parsedMask.length, cfg;
+		for(var i = 0; i&lt; len; i++){
+			cfg = Z._parsedMask[i];
+			if(cfg.isMask &amp;&amp; Z.maskChars[cfg.ch].required){
+				if(Z._buffer[i] == Z._format[i]) {
+					return false;
+				}
+			}
+		}
+		return true;
+	},
+	
+	_getFixedCharAndPos: function (begin) {
+		var Z = this;
+		if (!Z._literalChars || Z._literalChars.length === 0) {
+			return { pos: 0, ch: null };
+		}
+		if (!begin) {
+			begin = 0;
+		}
+		var ch, mask;
+		for (var i = begin, cnt = Z._parsedMask.length; i &lt; cnt; i++) {
+			mask = Z._parsedMask[i];
+			if (mask.isMask) {
+				continue;
+			}
+			ch = mask.ch;
+			if (Z._literalChars.indexOf(ch) &gt;= 0) {
+				return { ch: ch, pos: i };
+			}
+		}
+		return { pos: -1, ch: null };
+	},
+
+	_parseMask: function () {
+		var Z = this;
+		if(!Z._mask) {
+			Z._parsedMask = null;
+			return;
+		}
+		Z._parsedMask = [];
+		
+		Z._format = [];
+		var c, prevChar = null, isMask;
+
+		for (var i = 0, cnt = Z._mask.length; i &lt; cnt; i++) {
+			c = Z._mask.charAt(i);
+			if (c == '\\') {
+				prevChar = c;
+				continue;
+			}
+			isMask = false;
+			if (Z.maskChars[c] === undefined) {
+				if (prevChar) {
+					Z._parsedMask.push({ ch: prevChar, isMask: isMask });
+				}
+				Z._parsedMask.push({ ch: c, isMask: isMask });
+			} else {
+				isMask = prevChar ? false : true;
+				Z._parsedMask.push({ ch: c, isMask: isMask });
+			}
+			if(Z._keepChar &amp;&amp; !isMask){
+				if(!Z._literalChars) {
+					Z._literalChars = [];
+				}
+				var notFound = true;
+				for(var k = 0, iteralCnt = Z._literalChars.length; k &lt; iteralCnt; k++){
+					if(Z._literalChars[k] == c){
+						notFound = false;
+						break;
+					}
+				}
+				if(notFound) {
+					Z._literalChars.push(c);
+				}
+			}
+			prevChar = null;
+			Z._format.push(isMask ? '_' : c);
+		} //end for
+
+		Z._buffer = Z._format.slice(0);
+		if(Z._target) {
+			Z._target.value = Z._format.join('');
+		}
+	},
+	
+	_validateChar: function (maskChar, inputChar) {
+		var maskCfg = this.maskChars[maskChar];
+		var regExpr = maskCfg.regexpr;
+		if (regExpr) {
+			return regExpr.test(inputChar);
+		} else {
+			return true;
+		}
+	},
+
+	_getValidPos: function (pos, toLeft) {
+		var Z = this, 
+			cnt = Z._parsedMask.length, i;
+		if (pos &gt;= cnt) {
+			return cnt - 1;
+		}
+		if (!toLeft) {
+			for (i = pos; i &lt; cnt; i++) {
+				if (Z._parsedMask[i].isMask) {
+					return i;
+				}
+			}
+			for (i = pos; i &gt;= 0; i--) {
+				if (Z._parsedMask[i].isMask) {
+					return i;
+				}
+			}
+
+		} else {
+			for (i = pos; i &gt;= 0; i--) {
+				if (Z._parsedMask[i].isMask) {
+					return i;
+				}
+			}
+			for (i = pos; i &lt; cnt; i++) {
+				if (Z._parsedMask[i].isMask) {
+					return i;
+				}
+			}
+		}
+		return -1;
+	},
+
+	_clearBuffer: function (begin, end) {
+		if(!this._buffer) {
+			return;
+		}
+		if (!end) {
+			end = this._buffer.length - 1;
+		}
+		for (var i = begin; i &lt;= end; i++) {
+			this._buffer[i] = this._format[i];
+		}
+	},
+
+	_packEmpty: function (begin, end) {
+		var c, k = 0, Z = this, i;
+		for (i = begin; i &gt;= 0; i--) {
+			c = Z._format[i];
+			if (Z._literalChars &amp;&amp; Z._literalChars.indexOf(c) &gt;= 0) {
+				k = i;
+				break;
+			}
+		}
+		begin = k;
+		var str = [];
+		for (i = begin; i &lt; end; i++) {
+			c = Z._buffer[i];
+			if (c != Z._format[i]) {
+				str.push(c);
+			}
+		}
+		var len = str.length - 1;
+
+		for (i = end - 1; i &gt;= begin; i--) {
+			if (len &gt;= 0) {
+				Z._buffer[i] = str[len];
+				len--;
+			} else {
+				Z._buffer[i] = Z._format[i];
+			}
+		}
+	},
+
+	_updateBuffer: function (pos, ch) {
+		var begin = pos.begin, end = pos.end, Z = this;
+
+		begin = Z._getValidPos(begin);
+		if (begin &lt; 0) {
+			return -1;
+		}
+		Z._clearBuffer(begin + 1, end);
+		if (Z._literalChars &amp;&amp; Z._literalChars.indexOf(ch) &gt;= 0) {
+			for (var i = begin, cnt = Z._parsedMask.length; i &lt; cnt; i++) {
+				if (Z._parsedMask[i].ch == ch) {
+					Z._packEmpty(begin, i);
+					return i;
+				}
+			}
+		} else {
+			var maskObj = Z._parsedMask[begin];
+			if (Z._validateChar(maskObj.ch, ch)) {
+				Z._buffer[begin] = ch;
+				return begin;
+			} else	{
+				return -1;
+			}
+		}
+	},
+
+	_moveCursor: function (begin, toLeft) {
+		begin = this._getValidPos(begin, toLeft);
+		if (begin &gt;= 0) {
+			jslet.ui.TextUtil.setCursorPos(this._target, begin);
+		}
+	},
+
+	_showValue: function () {
+		this._target.value = this._buffer.join('');
+	},
+
+	_doKeypress: function (chCode) {
+		if (chCode == 13) {
+			return true;
+		}
+
+		var ch = String.fromCharCode(chCode), Z = this;
+		if (Z._transform == 'upper') {
+			ch = ch.toUpperCase();
+		} else {
+			if (Z._transform == 'lower') {
+				ch = ch.toLowerCase();
+			}
+		}
+		var pos = jslet.ui.TextUtil.getCursorPos(Z._target);
+		var begin = Z._updateBuffer(pos, ch);
+		Z._showValue();
+		if (begin &gt;= 0) {
+			Z._moveCursor(begin + 1);
+		} else {
+			Z._moveCursor(pos.begin);
+		}
+
+		return false;
+	},
+
+	_doKeydown: function (chCode) {
+		var Z = this,
+			pos = jslet.ui.TextUtil.getCursorPos(Z._target),
+			begin = pos.begin,
+			end = pos.end;
+
+		if (chCode == 229) {//IME showing
+			var flag = (Z._parsedMask.legnth &gt; begin);
+			if (flag) {
+				var msk = Z._parsedMask[begin];
+				flag = msk.isMask;
+				if (flag) {
+					var c = msk.ch;
+					flag = (c == 'c' || c == 'C');
+				}
+			}
+			if (!flag) {
+				window.setTimeout(function () {
+					Z._showValue();
+					Z._moveCursor(begin);
+				}, 50);
+			}
+		}
+		if (chCode == 13) //enter
+		{
+			return true;
+		}
+
+		if (chCode == 8) //backspace
+		{
+			if (begin == end) {
+				begin = Z._getValidPos(--begin, true);
+				end = begin;
+			}
+			Z._clearBuffer(begin, end);
+			Z._showValue();
+			Z._moveCursor(begin, true);
+			return false;
+		}
+
+		if (chCode == 27) // Allow to send 'ESC' command
+		{
+			return false;
+		}
+
+		if (chCode == 39) // Move Left
+		{
+		}
+
+		if (chCode == 46) // delete the selected text
+		{
+			Z._clearBuffer(begin, end - 1);
+			Z._showValue();
+			Z._moveCursor(begin);
+
+			return false;
+		}
+		return true;
+	},
+
+	_doBur: function () {
+		var mask, c, Z = this;
+		for (var i = 0, cnt = Z._parsedMask.length; i &lt; cnt; i++) {
+			mask = Z._parsedMask[i];
+			if (!mask.isMask) {
+				continue;
+			}
+			c = mask.ch;
+			if (Z.maskChars[c].required) {
+				if (Z._buffer[i] == Z._format[i]) {
+					//jslet.ui.TextUtil.setCursorPos(Z._target, i);
+					//return false;
+					return true;
+				}
+			}
+		}
+		return true;
+	},
+
+	_doCut: function (clipboardData) {
+		var Z = this,
+			data = jslet.ui.TextUtil.getSelectedText(Z._target),
+			range = jslet.ui.TextUtil.getCursorPos(Z._target),
+			begin = range.begin;
+		Z._clearBuffer(begin, range.end - 1);
+		Z._showValue();
+		Z._moveCursor(begin, true);
+		clipboardData.setData('Text', data);
+		return false;
+	},
+
+	_doPaste: function (clipboardData) {
+		var pasteValue = clipboardData.getData('Text');
+		if (!pasteValue) {
+			return false;
+		}
+		var pos = jslet.ui.TextUtil.getCursorPos(this._target), begin = 0, ch;
+		pos.end = pos.begin;
+		for (var i = 0; i &lt; pasteValue.length; i++) {
+			ch = pasteValue.charAt(i);
+			begin = this._updateBuffer(pos, ch);
+			pos.begin = i;
+			pos.end = pos.begin;
+		}
+		this._showValue();
+		if (begin &gt;= 0) {
+			this._moveCursor(begin + 1);
+		}
+		return true;
+	}
+};
+
+<span id='jslet-ui-TextUtil'>/**
+</span> * @class
+ * @static
+ * 
+ * Util of &quot;Text&quot; control.
+ */
+jslet.ui.TextUtil = {
+<span id='jslet-ui-TextUtil-method-selectText'>	/**
+</span>	 * Select text from an Input(Text) element.
+	 * 
+	 * @param {HtmlElement} txtEl The HTML text element .  
+	 * @param {Integer} start Start position.
+	 * @param {Integer} end End position.
+	 */
+	selectText: function(txtEl, start, end){
+		var v = txtEl.value;
+		if (v.length &gt; 0) {
+			start = start === undefined ? 0 : start;
+			end = end === undefined ? v.length : end;
+ 
+			if (txtEl.setSelectionRange) {
+				txtEl.setSelectionRange(start, end);
+			} else if (txtEl.createTextRange) {
+				var range = txtEl.createTextRange();
+				range.moveStart('character', start);
+				range.moveEnd('character', end - v.length);
+				range.select();
+			}
+		}	
+	},
+	
+<span id='jslet-ui-TextUtil-method-getSelectedText'>	/**
+</span>	 * Get selected text.
+	 * 
+	 * @param {HtmlElement} textEl HTML Text Element.
+	 * 
+	 * @return {String}  
+	 */
+	getSelectedText: function (txtEl) {
+		if (txtEl.setSelectionRange) {
+			var begin = txtEl.selectionStart;
+			var end = txtEl.selectionEnd;
+			return txtEl.value.substring(begin, end);
+		}
+		if (document.selection &amp;&amp; document.selection.createRange) {
+			return document.selection.createRange().text;
+		}
+	},
+
+<span id='jslet-ui-TextUtil-method-getCursorPos'>	/**
+</span>	 * Get cursor postion of a HTML text element.
+	 * 
+	 * @param {HtmlElement} txtEl HTML Text Element.
+	 * 
+	 * @return {Integer}
+	 */
+	getCursorPos: function(txtEl){
+		var result = { begin: 0, end: 0 };
+
+		if (txtEl.setSelectionRange) {
+			result.begin = txtEl.selectionStart;
+			result.end = txtEl.selectionEnd;
+		}
+		else if (document.selection &amp;&amp; document.selection.createRange) {
+			var range = document.selection.createRange();
+			result.begin = 0 - range.duplicate().moveStart('character', -100000);
+			result.end = result.begin + range.text.length;
+		}
+		return result;
+	},
+	
+<span id='jslet-ui-TextUtil-method-setCursorPos'>	/**
+</span>	 * Set cursor postion of html text element
+	 * 
+	 * @param {HtmlElement} txtEl Html Text Element
+	 * @param {Integer} pos Cusor position
+	 */
+	setCursorPos: function(txtEl, pos){
+		if (txtEl.setSelectionRange) {
+			txtEl.focus();
+			txtEl.setSelectionRange(pos, pos);
+		}
+		else if (txtEl.createTextRange) {
+			var range = txtEl.createTextRange();
+			range.collapse(true);
+			range.moveEnd('character', pos);
+			range.moveStart('character', pos);
+			range.select();
+		}	
+	}
+};
+</pre>
+</body>
+</html>

@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="../css/demo.css" />
+    
+    <title>Jslet - 创建数据集</title>
+    <script type="text/javascript" data-main="../config.js" src="../lib/requirejs/require.min.js"></script>
+    <script type="text/javascript">
+	    require(['dataset/a-creating']);
+    </script>
+</head>
+<body>
+    <div class="demo-header">
+    <h4 id="top">Jslet - 创建数据集</h4>
+	</div>
+	<hr />
+	<h4>1、创建普通数据集</h4>
+	<div data-jslet="type: 'DBTable', dataset: 'department'"></div>
+	<h4>源码</h4>
+    <pre class="prettyprint linenums"><code>
+    //字段信息
+    var deptFldCfg = [
+       {name: 'deptid', dataType: 'S', length: 6, label: '部门编码'}, 
+       {name: 'name', dataType: 'S', length: 15, label: '部门名称'}, 
+       {name: 'address', dataType: 'S', length: 20, label: '部门地址'}, 
+       {name: 'parentid', dataType: 'S', length: 6, label: '父级部门编码', visible:false}];
+
+	//创建数据集对象
+    var dsDept = new jslet.data.Dataset({name: 'department', fields: deptFldCfg, 
+		keyField: 'deptid',codeField: 'deptid', nameField: 'name', 
+		parentField: 'parentid', autoRefreshHostDataset: true,
+		queryUrl: '/demo/department/find.do',
+		submitUrl: '/demo/department/save.do'});
+
+	//设置数据集的数据
+    var data = [{deptid: '00', name: '行政部', address: '深圳'}, 
+                {deptid: '01', name: '市场部', address: '北京'}, 
+                {deptid: '0101', name: '成都分部', address: '成都', parentid: '01'}, 
+                {deptid: '0102', name: '上海分部', address: '上海', parentid: '01'}, 
+                {deptid: '02', name: '研发部', address: '深圳'}, 
+                {deptid: '0201', name: '研发一部', address: '深圳', parentid: '02'}, 
+                {deptid: '0202', name: '研发二部', address: '深圳', parentid: '02'}, 
+                {deptid: '03', name: '质量部', address: '深圳'}, 
+                {deptid: '04', name: '财务部', address: '深圳'}];
+    dsDept.records(data);
+	</code></pre>
+
+	<h4>2、创建枚举数据集</h4>
+	<div data-jslet="type: 'DBTable', dataset: 'gender'"></div>
+	<h4>源码</h4>
+    <pre class="prettyprint linenums"><code>
+	//创建“性别”数据集
+    var dsGender = new jslet.data.Dataset({name: 'gender', isEnum: true, records: 'F:女,M:男,U:未知'});
+    dsGender.first();
+	var code = dsGender.getFieldValue('code'); //return 'F'
+	var name = dsGender.getFieldValue('name'); //return '女'
+	</code></pre>
+
+    <script type="text/javascript">
+       window.LOADER_BASE_URL = "../lib/prettify";
+    </script>
+    <script type="text/javascript" src="../lib/prettify/run_prettify.js"></script>
+		
+</body>
+</html>

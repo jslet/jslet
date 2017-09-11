@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js"><span id='jslet-ui-FieldControlAddon'>/**
+</span> * @class
+ * 
+ * Field control add-on.
+ */
+jslet.ui.FieldControlAddon = {
+<span id='jslet-ui-FieldControlAddon-property-field'>	/**
+</span>	 * @property {String} field Field name if the add-on is another field, like: 'currency' 
+	 */
+	field: null,
+<span id='jslet-ui-FieldControlAddon-property-content'>	/**
+</span>	 * @property {String} content Fixed content if the add-on is the fixed content, like: 'kg'
+	 */
+	content: null,
+	
+<span id='jslet-ui-FieldControlAddon-property-width'>	/**
+</span>	 * @property {String} width The add-on width.
+	 */
+	width: '10px'
+};
+
+<span id='jslet-ui-DBPlace'>/**
+</span> * @class 
+ * @extend jslet.ui.DBFieldControl
+ * 
+ * DBPlace. It's an placeholder for other DBControls. Example:
+ * 
+ *     @example
+ *      var jsletParam = {type:&quot;DBPlace&quot;,dataset: &quot;dataset&quot;, &quot;field&quot;:&quot;fieldName&quot;, suffix: [{&quot;content&quot;: &quot;KG&quot;, &quot;width&quot;: &quot;10px&quot;}] };
+ *
+ *     //1. Declaring:
+ *      &lt;div data-jslet='jsletParam' /&gt;
+ *
+ *     //2. Binding
+ *      &lt;div id=&quot;ctrlId&quot;  /&gt;
+ *      //Js snippet
+ *      var el = document.getElementById('ctrlId');
+ *      jslet.ui.bindControl(el, jsletParam);
+ *
+ *     //3. Create dynamically
+ *      jslet.ui.createControl(jsletParam, document.body);
+ */
+jslet.ui.DBPlace = jslet.Class.create(jslet.ui.DBFieldControl, {
+<span id='jslet-ui-DBPlace-method-initialize'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	initialize: function ($super, el, params) {
+		this.allProperties = 'styleClass,dataset,field,prefix,suffix,expandChildWidth';
+		
+		this.editControl = null;
+		
+		this._expandChildWidth = true;
+		
+		$super(el, params);
+	},
+
+<span id='jslet-ui-DBPlace-method-prefix'>	/**
+</span>	 * Prefix of this control. Example:
+	 * 
+	 *     @example
+	 *     dbPlaceObj.prefix([{field: '', content: '', width: 30}]);
+	 * 
+	 * @param {jslet.ui.FieldControlAddon[] | undefined} prefix - The prefix settings.
+	 * 
+	 * @return {this | jslet.ui.FieldControlAddon[]}
+	 */
+	prefix: function(prefix) {
+		if(prefix === undefined) {
+			return this._prefix;
+		}
+		
+		jslet.Checker.test('DBPlace#prefix', prefix).isArray();
+		var setting;
+		for(var i = 0, len = prefix.length; i &lt; len; i++) {
+			setting = prefix[i];
+			if(!setting.field &amp;&amp; !setting.content) {
+				throw new Error('In DBPlace#prefix setting, one of property &quot;field&quot; or &quot;content&quot; is required!');
+			}
+		}
+		if(prefix &amp;&amp; prefix.length === 0) {
+			prefix = null;
+		}
+		this._prefix = prefix;
+		return this;
+	},
+	
+	
+<span id='jslet-ui-DBPlace-method-suffix'>	/**
+</span>	 * Suffix of this control. Example:
+	 * 
+	 *     @example
+	 *     dbPlaceObj.suffix([{field: '', content: '', width: 30}]);
+	 * 
+	 * @param {jslet.ui.FieldControlAddon[] | undefined} suffix - The suffix settings. 
+	 * 
+	 * @return {this | jslet.ui.FieldControlAddon[]}
+	 */
+	suffix: function(suffix) {
+		if(suffix === undefined) {
+			return this._suffix;
+		}
+		
+		jslet.Checker.test('DBPlace#suffix', suffix).isArray();
+		jslet.Checker.test('DBPlace#suffix', suffix).isArray();
+		var setting;
+		for(var i = 0, len = suffix.length; i &lt; len; i++) {
+			setting = suffix[i];
+			if(!setting.field &amp;&amp; !setting.content) {
+				throw new Error('In DBPlace#suffix setting, one of property &quot;field&quot; or &quot;content&quot; is required!');
+			}
+		}
+		if(suffix &amp;&amp; suffix.length === 0) {
+			suffix = null;
+		}
+		this._suffix = suffix; 
+		return this;
+	},
+	
+	expandChildWidth: function(expandChildWidth) {
+		if(expandChildWidth === undefined) {
+			return this._expandChildWidth;
+		}
+		this._expandChildWidth = expandChildWidth? true: false;
+		return this;
+	},
+	
+<span id='jslet-ui-DBPlace-method-isValidTemplateTag'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	isValidTemplateTag: function (el) {
+		var tagName = el.tagName.toLowerCase();
+		return tagName == 'div';
+	},
+
+<span id='jslet-ui-DBPlace-method-bind'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	bind: function () {
+		var Z = this;
+		Z.renderAll();
+	},
+	
+<span id='jslet-ui-DBPlace-method-refreshControl'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	refreshControl: function (evt) {
+		var Z = this,
+			evtType = evt.eventType;
+		// Meta changed 
+		if (evtType == jslet.data.RefreshEvent.CHANGEMETA &amp;&amp;
+			Z._field == evt.fieldName &amp;&amp; 
+			(evt.metaName == 'editControl' || evt.metaName == 'valueStyle')) {
+			Z.renderAll();
+			return true;
+		}
+	},
+
+<span id='jslet-ui-DBPlace-method-renderAll'>	/**
+</span>	 * @override
+	 */
+	renderAll: function () {
+		var Z = this;
+		Z.removeAllChildControls();
+		
+		var fldName, i, len,
+			hasAddon = Z._prefix || Z._suffix;
+		if(!hasAddon) {
+			Z._renderEditor(Z._field, Z.el);
+			return;
+		}
+		
+		jQuery(Z.el).addClass('jl-comb-editor');
+		if(Z._prefix) {
+			Z._renderOtherPart(Z.el, Z._prefix);
+		}
+		var editorEl = Z._renderEditor(Z._field, Z.el);
+		jQuery(editorEl).addClass('jl-comb-master');
+		
+		if(Z._suffix) {
+			Z._renderOtherPart(Z.el, Z._suffix);
+		}		
+		return this;
+	},
+	
+	_renderEditor: function(fldName, parentEl) {
+		var Z = this,
+			fldObj = Z._dataset.getField(fldName),
+			param = fldObj.editControl();
+		if (fldObj.valueStyle() == jslet.data.FieldValueStyle.BETWEEN &amp;&amp; Z._valueIndex === undefined) {
+			param = {
+				type: 'DBBetweenEdit'
+			};
+		}
+		param.dataset = Z._dataset;
+		param.field = fldName;
+		if(Z._valueIndex !== undefined) {
+			param.valueIndex = Z._valueIndex;
+		}
+		if(Z._tabIndex || Z._tabIndex === 0) {
+			param.tabIndex = Z._tabIndex;
+		}
+		var dbCtrl = jslet.ui.createControl(param, parentEl);
+		Z.addChildControl(dbCtrl);
+		if(dbCtrl.tableId) {
+			dbCtrl.tableId(Z._tableId);
+		}
+		var elId = jslet.nextId();
+		dbCtrl.el.id = elId;
+		return dbCtrl.el;
+	},
+	
+	_renderOtherPart: function(ctrlDiv, arrPrefixOrSuffix) {
+		var fixCfg, editorEl, width, partEl, 
+			jqCtrlDiv = jQuery(ctrlDiv);
+		for(var i = 0, len = arrPrefixOrSuffix.length; i &lt; len; i++) {
+			fixCfg = arrPrefixOrSuffix[i];
+			width = fixCfg.width;
+			var id = jslet.nextId();
+			jqCtrlDiv.append('&lt;span id = &quot;' + id + '&quot;&gt;&lt;/span&gt;');
+			partEl = document.getElementById(id);
+			if(fixCfg.field) {
+				 this._renderEditor(fixCfg.field, partEl);
+			} else if(fixCfg.content) {
+				partEl.innerHTML = fixCfg.content;
+			} else {
+				console.warn('prefix or suffix: field or content is required!');
+				continue;
+			}
+			if(!width) {
+				console.warn('Width is empty, use 5% instead!');
+				width = '5%';
+			}
+			jQuery(partEl).addClass('jl-comb-addon').children().first().addClass('input-sm');
+			
+			partEl.style.width = width;
+		}
+	},
+	
+<span id='jslet-ui-DBPlace-method-canFocus'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	canFocus: function() {
+		return false;
+	}
+});
+
+jslet.ui.register('DBPlace', jslet.ui.DBPlace);
+jslet.ui.DBPlace.htmlTemplate = '&lt;div&gt;&lt;/div&gt;';
+</pre>
+</body>
+</html>

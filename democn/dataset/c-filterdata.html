@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="../css/demo.css" />
+    
+    <title>Jslet - 筛选数据</title>
+    <script type="text/javascript" data-main="../config.js" src="../lib/requirejs/require.min.js"></script>
+    <script type="text/javascript">
+	    require(['dataset/c-filterdata']);
+    </script>
+</head>
+<body>
+    <div class="demo-header">
+    <h4 id="top">Jslet - 筛选数据</h4>
+	</div>
+	<hr />
+	<div data-jslet="type: 'DBTable', dataset: 'employee'"></div>
+	<div class="demo-desc">
+	<p>演示以下内容：</p>
+    <ol>
+        <li> 筛选所有的“男性”员工:&nbsp;&nbsp;
+				<input id="txtFilter1" value="[gender]=='M'" size="30" />
+				<button class="btn btn-default btn-sm" class="btn btn-default btn-sm" id="btnFilter1"> 筛选 </button>
+				<button class="btn btn-default btn-sm" name="btnClear"> 全部 </button>
+		</li>
+        <li>筛选年龄大于30的员工:&nbsp;&nbsp;
+			<input id="txtFilter2" value="[age]>30" size="30" />
+			<button class="btn btn-default btn-sm" id="btnFilter2"> 筛选 </button>
+			<button class="btn btn-default btn-sm" name="btnClear"> 全部 </button>
+		</li>
+        <li>筛选所有毕业学校包含 "哈佛"的员工:&nbsp;&nbsp;
+			<input id="txtFilter3" value="like([university],'%哈佛%')" size="30" name="T1" />
+			<button class="btn btn-default btn-sm" id="btnFilter3"> 筛选 </button>
+			<button class="btn btn-default btn-sm" name="btnClear"> 全部 </button>
+		</li>
+        <li>筛选所有年龄在20至30岁的员工:&nbsp;&nbsp;
+			<input id="txtFilter4" value="between([age],20,30)" size="30" />
+			<button class="btn btn-default btn-sm" id="btnFilter4"> 筛选 </button>
+			<button class="btn btn-default btn-sm" name="btnClear"> 全部 </button>
+		</li>
+        <li>筛选2月份出生的员工:&nbsp;&nbsp;
+			<input id="txtFilter5" value="[birthday].getMonth()==1" size="30" />
+			<button class="btn btn-default btn-sm" id="btnFilter5"> 筛选 </button>
+			<button class="btn btn-default btn-sm" name="btnClear"> 全部 </button>
+		</li>
+        <li>筛选所有“开发部”的员工: &nbsp;&nbsp;
+			<input id="txtFilter6" value="[department.name] == '研发部'" size="30" />
+			<button class="btn btn-default btn-sm" id="btnFilter6"> 筛选 </button>
+			<button class="btn btn-default btn-sm" name="btnClear"> 全部 </button>
+		</li>
+    </ol>
+	</div>
+	<h4>源码</h4>
+    <pre class="prettyprint linenums"><code>
+	//datasetMetaStore定义在公共js:common/datasetmetastore.js中
+	//将数据集定义信息仓库加到datasetFactory中，创建Dataset时会仓库里去定义信息
+	jslet.data.datasetFactory.addMetaStore(window.datasetMetaStore);
+	//通过工厂方法，可以自动创建主数据集及相关的数据集
+    jslet.data.datasetFactory.createDataset('employee').done(function() {
+    	jslet.ui.install(function() {
+    		var dsEmployee = jslet.data.getDataset('employee');
+    		dsEmployee.query();
+    	});
+    });
+    
+    function filterData(filter) {
+		var dsEmployee = jslet.data.getDataset('employee');
+		dsEmployee.filter(filter);
+		dsEmployee.filtered(true);
+    }
+    
+    //绑定按钮事件
+	$('#btnFilter1').click(function() {
+		filterData($('#txtFilter1').val());
+	});
+	
+	$('#btnFilter2').click(function() {
+		filterData($('#txtFilter2').val());
+	});
+	
+	$('#btnFilter3').click(function() {
+		filterData($('#txtFilter3').val());
+	});
+	
+	$('#btnFilter4').click(function() {
+		filterData($('#txtFilter4').val());
+	});
+	
+	$('#btnFilter5').click(function() {
+		filterData($('#txtFilter5').val());
+	});
+	
+	$('#btnFilter6').click(function() {
+		filterData($('#txtFilter6').val());
+	});
+
+	//清除筛选条件，显示全部数据
+    function clearFilter() {
+		var dsEmployee = jslet.data.getDataset('employee');
+		dsEmployee.filter(null);
+		dsEmployee.filtered(false);
+    }
+	$(document.body).find('*[name=btnClear]').click(clearFilter);
+	</code></pre>
+
+    <script type="text/javascript">
+       window.LOADER_BASE_URL = "../lib/prettify";
+    </script>
+    <script type="text/javascript" src="../lib/prettify/run_prettify.js"></script>
+		
+</body>
+</html>

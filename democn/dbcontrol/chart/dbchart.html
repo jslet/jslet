@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="../../css/demo.css" />
+    
+    <title>Jslet - 图表分析</title>
+    <script type="text/javascript" data-main="../../config.js" src="../../lib/requirejs/require.min.js"></script>
+    <script type="text/javascript">
+	    require(['dbcontrol/chart/dbchart']);
+    </script>
+</head>
+<body>
+    <div class="demo-header">
+    <h4 id="top">Jslet - 图表分析</h4>
+	</div>
+	<hr />
+	<div class="container-fluid">
+	<div class="form-horizontal">
+	<div class="col-sm-12">
+	<div data-jslet="type: 'DBTable', dataset: 'summary'" style="margin-bottom: 10px"></div>
+	</div>
+	
+	<div class="col-sm-8">
+    <div id="chartId" data-jslet="type:'DBChart', dataset: 'summary', categoryField:'month', valueFields:'amount,netprofit'"
+        style="height: 400px"></div>
+    </div>
+	<div class="col-sm-4">
+	<ol>
+             <li>
+                 图表类型 : <select id="selChartType" class="form-control">
+                     <option value="line">Line Chart</option>
+                     <option value="stackline">Stack Line Chart</option>
+                     <option value="bar">Bar Chart</option>
+                     <option value="stackbar">Stack Bar Chart</option>
+                     <option value="pie">Pie Chart</option>
+                 </select>
+	</li>
+             <li>
+                 图表值字段 : <select id="selValueFields" class="form-control">
+                     <option value="amount,netprofit">销售额 + 净利润 </option>
+                     <option value="amount">销售额</option>
+                     <option value="netprofit">净利润</option>
+                 </select>
+	</li>
+             <li>
+                 图表标题: <input id="txtChartTitle" class="form-control" type="text" size="20" />
+			<button id="btnChangeTitle" class="btn btn-default"> 设置 </button>
+             </li>
+             <li>
+                 筛选数据: <input id="txtFilter" type="text" class="form-control" size="20" value="[amount] > 40000" />
+			<button id="btnSetFilter" class="btn btn-default"> 设置 </button>
+			<button id="btnClearFilter" class="btn btn-default"> 清除 </button>
+             </li>
+	</ol>
+    </div>
+    </div>
+    </div>
+	<hr />
+	<h4>源码</h4>
+	<h5>HTML</h5>
+    <pre class="prettyprint linenums"><code>
+    &lt;div data-jslet="type:'DBChart', dataset: 'summary', categoryField:'month', valueFields:'amount,netprofit'" style="margin-bottom: 10px">&lt;/div>
+	</code></pre>
+    
+	<h5>JavaScript</h5>
+    <pre class="prettyprint linenums"><code>
+	//创建数据集
+    var fldCfg = [
+		{name: 'month', dataType: 'S', label: "Month"},
+		{name: 'amount', dataType: 'N', label: "Amount", displayFormat: "#,##0.00"},
+		{name: 'netprofit', dataType: 'N', label: "Net Profit", displayFormat: "#,##0.00"}
+	];
+    var dsSummary = new jslet.data.Dataset({name: "summary", fields: fldCfg});
+
+    //创建演示数据
+    var records = [{ "area": "East", "month": "Jan.", "amount": 20000, "netprofit": 8000 },
+        {"month": "Jan.", "amount": 30000, "netprofit": 11000 },
+		{"month": "Feb.", "amount": 55500, "netprofit": 21000 },
+		{"month": "Mar.", "amount": 45300, "netprofit": 14090 },
+		{"month": "Apr.", "amount": 29300, "netprofit": 7409 },
+		{"month": "May.", "amount": 49300, "netprofit": 12409 },
+		{"month": "Jun.", "amount": 57900, "netprofit": 19900}
+	];
+    dsSummary.records(records);
+
+    jslet.ui.install();
+    
+    //绑定按钮事件
+	$('#selChartType').on('change', function() {
+		//修改图表类型
+		var chartObj = jslet('#chartId');
+		var chartType = $(this).val();
+		chartObj.chartType(chartType);
+		chartObj.renderAll();
+	});
+	
+	$('#selValueFields').on('change', function() {
+		//改变图表的显示值
+		var chartObj = jslet('#chartId');
+		chartObj.valueFields($(this).val());
+		chartObj.renderAll();
+	});
+
+	$('#btnChangeTitle').click(function() {
+		//修改图表抬头
+		var chartObj = jslet('#chartId');
+		chartObj.chartTitle($('#txtChartTitle').val());
+		chartObj.renderAll();
+	});
+	$('#btnSetFilter').click(function() {
+		//设置筛选条件以观察图表重绘
+		var chartObj = jslet('#chartId');
+		var dsObj = chartObj.dataset();
+		var filter = jQuery.trim($('#txtFilter').val());
+		if(filter) {
+			dsObj.filter(filter);
+			dsObj.filtered(true);
+		} else {
+			dsObj.filtered(false);
+		}
+	});
+    
+	$('#btnClearFilter').click(function() {
+		//清除筛选条件
+		dsSummary.filtered(false);
+		dsSummary.first();
+	});
+	</code></pre>
+
+    <script type="text/javascript">
+       window.LOADER_BASE_URL = "../../lib/prettify";
+    </script>
+    <script type="text/javascript" src="../../lib/prettify/run_prettify.js"></script>
+		
+</body>
+</html>

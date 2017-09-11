@@ -1,0 +1,1881 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js">jslet._AUTOID = 0;
+
+<span id='jslet-method-nextId'>/**
+</span> * @method
+ * 
+ * Generate next global id, like 'jslet0', 'jslet1'. Example:
+ * 
+ *     @example
+ * 	   jslet.nextId(); //return jslet0
+ * 	   jslet.nextId(); //return jslet1
+ * 
+ * @member jslet
+ * 
+ * @return {String} The next global id.
+ */
+jslet.nextId = function(){
+	return 'jslet' + (jslet._AUTOID++);
+};
+
+if(!jslet.data) {
+	jslet.data = {};
+}
+
+if(!jslet.temp) {
+	jslet.temp = {};
+}
+
+//if (!jslet.rootUri) {
+//    var ohead = document.getElementsByTagName('head')[0], uri = ohead.lastChild.src;
+//    uri = uri.substring(0, uri
+//					.lastIndexOf('/')
+//					+ 1);
+//    jslet.rootUri = uri
+//}
+
+/*
+ * Javascript language enhancement
+ */
+if(!Array.indexOf){
+	Array.prototype.indexOf = function(value){
+		for(var i = 0, cnt = this.length; i &lt; cnt; i++){
+			if(this[i] == value)
+				return i;
+		}
+		return -1;
+	};
+}
+
+if(!String.prototype.trim){
+	String.prototype.trim = function(){
+		this.replace(/^\s+/, '').replace(/\s+$/, '');
+	};
+}
+
+if(!String.prototype.startsWith){
+	String.prototype.startsWith = function(pattern) {
+		return this.lastIndexOf(pattern, 0) === 0;
+	};
+}
+
+if(!String.prototype.endsWith){
+	//From Prototype.js
+	String.prototype.endsWith = function(pattern){
+        var d = this.length - pattern.length;
+        return d &gt;= 0 &amp;&amp; this.indexOf(pattern, d) === d;
+	};
+}
+
+if(!FileReader.prototype.readAsBinaryString) {
+	FileReader.prototype.readAsBinaryString = function (fileData) {
+		var Z = this,
+			binary = '',
+			reader = new FileReader();      
+		reader.onload = function (e) {
+			var bytes = new Uint8Array(reader.result);
+			var length = bytes.byteLength;
+			for (var i = 0; i &lt; length; i++) {
+				binary += String.fromCharCode(bytes[i]);
+			}
+			Z.content = binary;
+			jQuery(Z).trigger('onload');
+		}
+		reader.readAsArrayBuffer(fileData);
+	}
+}
+
+jslet.trim = function(str) {
+	return jQuery.trim(str);
+};
+
+jslet.debounce = function(func, wait, immediate) {
+	var timeoutHander;
+	return function() {
+		var context = this, args = arguments;
+		if(!wait) {
+			func.apply(context, args);
+			return;
+		}
+		var later = function() {
+			timeoutHander = null;
+			func.apply(context, args);
+		};
+		if(timeoutHander) {
+			clearTimeout(timeoutHander);
+		}
+		timeoutHander = setTimeout(later, wait);
+	};
+};
+
+/*
+ * Javascript language enhancement(end)
+ */
+jslet.deepClone = function(srcObj) {
+	if(srcObj === undefined || srcObj === null || srcObj === true || srcObj === false) {
+		return srcObj;
+	}
+	
+	if(jslet.isString(srcObj) || jslet.isNumber(srcObj)) {
+		return srcObj;
+	}
+	
+	if(jslet.isDate(srcObj)) {
+		return new Date(srcObj.getTime());
+	}
+    var objClone;
+	if(jslet.isArray(srcObj)) {
+		objClone = [];
+		for(var i = 0, len = srcObj.length; i &lt; len; i++) {
+			objClone[i] = jslet.deepClone(srcObj[i]);
+		}
+		return objClone;
+	}
+    if (srcObj.constructor == Object) {
+        objClone = new srcObj.constructor(); 
+    } else {
+        objClone = new srcObj.constructor(srcObj.valueOf()); 
+    }
+    for(var key in srcObj){
+        if ( objClone[key] != srcObj[key] ){ 
+            if ( typeof(srcObj[key]) == 'object' ){ 
+                objClone[key] = jslet.deepClone(srcObj[key]);
+            } else {
+                objClone[key] = srcObj[key];
+            }
+        }
+    }
+    return objClone; 
+};
+                                        
+
+<span id='jslet-method-formatMessage'>/**
+</span> * format message with argument. Example:
+ * 
+ *     @example
+ *     jslet.formatMessage('Your name is: {0}', 'Bob');//return: your name is: Bob
+ *     jslet.formatMessage('They are: {0} and {1}', ['Jerry','Mark']); 
+ * 
+ * @member jslet
+ * 
+ * @param {String} msg Initial message, placeholder of argument is {n}, n is number. 
+ * @param {String[]} args Arguments to fill into placeholder.
+ * 
+ * @return formatted formatted message.
+ */
+jslet.formatMessage = function (msg, args) {
+	jslet.Checker.test('jslet.formatMessage#msg', msg).required().isString();
+    if(args === undefined || args === null) {
+    	return msg; 
+    }
+    if(args === false) {
+    	args = 'false';
+    }
+    if(args === true) {
+    	args = 'true';
+    }
+    var result = msg, cnt, i;
+    if (jslet.isArray(args)) {// array
+        cnt = args.length;
+        for (i = 0; i &lt; cnt; i++) {
+            result = result.replace('{' + i + '}', args[i]);
+        }
+    } else if(jslet.isObject(args)){// Object
+        for (var key in args) {
+            result = result.replace('{' + key + '}', args[key]);
+        }
+    } else {
+    	return msg.replace('{0}', args);
+    }
+    return result;
+};
+
+jslet.formatString = function (value, dispFmt) {
+	if(!dispFmt || !value) {
+		return value;
+	}
+	jslet.Checker.test('jslet.formatString#displayFormat', dispFmt).isString();
+	var valueLen = value.length,
+		fmtLen = dispFmt.length,
+		fmtLen1 = fmtLen - 1,
+		c, k = -1, result = '', next;
+	for(var i = 0; i &lt; fmtLen; i++) {
+		c = dispFmt[i];
+		if(c === '\\' &amp;&amp; i &lt; fmtLen1) {
+			next = dispFmt[i+1];
+			if(next === '#') {
+				result += '#';
+				i++;
+				continue;
+			}
+		}
+		if(c === '#') {
+			k++;
+			if(k === valueLen) {
+				break;
+			}
+			result += value[k];
+		} else {
+			result += c;
+		}
+	}
+	return result;
+};
+
+jslet._SCALEFACTOR = '100000000000000000000000000000000000';
+
+<span id='jslet-method-formatNumber'>/**
+</span> * Format a number. Example:
+ * 
+ *     @example
+ *     jslet.formatNumber(12345.999,'#,##0.00'); //return '12,346.00'
+ *     jslet.formatNumber(12345.999,'#,##0.##'); //return '12,346'
+ *     jslet.formatNumber(123,'000000'); //return '000123'
+ * 
+ * @member jslet
+ * 
+ * @param {Number} num Number which need to format. 
+ * @param {String} pattern Pattern for number, like '#,##0.00': &lt;br /&gt;
+ *  '#' - not required; &lt;br /&gt;
+ *  '0' - required, if the corresponding digit of the number is empty, fill in with '0'; &lt;br /&gt;
+ *
+ * @return {String} Formatted Number.
+ */
+jslet.formatNumber = function(num, pattern) {
+	if(!num &amp;&amp; num !== 0) {
+		return '';
+	}
+	if (!pattern) {
+		return num + '';
+	}
+	var preFix = '', c, i;
+	for (i = 0; i &lt; pattern.length; i++) {
+		c = pattern.substr(i, 1);
+		if (c == '#' || c == '0' || c == ',') {
+			if (i &gt; 0) {
+				preFix = pattern.substr(0, i);
+				pattern = pattern.substr(i);
+			}
+			break;
+		}
+	}
+
+	var suffix = '';
+	for (i = pattern.length - 1; i &gt;= 0; i--) {
+		c = pattern.substr(i, 1);
+		if (c == '#' || c == '0' || c == ',') {
+			if (i &gt; 0) {
+				suffix = pattern.substr(i + 1);
+				pattern = pattern.substr(0, i + 1);
+			}
+			break;
+		}
+	}
+
+	var fmtarr = pattern ? pattern.split('.') : [''], fmtDecimalLen = 0;
+	if (fmtarr.length &gt; 1) {
+		fmtDecimalLen = fmtarr[1].length;
+	}
+	var strarr = num ? num.toString().split('.') : ['0'], dataDecimalLen = 0;
+	if (strarr.length &gt; 1) {
+		dataDecimalLen = strarr[1].length;
+	}
+	if (dataDecimalLen &gt; fmtDecimalLen) {
+		var factor = parseInt(jslet._SCALEFACTOR.substring(0, fmtDecimalLen + 1));
+		num = Math.round(num * factor) / factor;
+		strarr = num ? num.toString().split('.') : ['0'];
+	}
+	var retstr = '', 
+		str = strarr[0],
+		sign = str[0];
+	if(sign === '-' || sign === '+') {
+		str = str.substring(1);
+	} else {
+		sign = null;
+	}
+	var fmt = fmtarr[0],
+		comma = false,
+		k = str.length - 1,
+		f;
+	for (f = fmt.length - 1; f &gt;= 0; f--) {
+		switch (fmt.substr(f, 1)) {
+			case '#' :
+				if (k &gt;= 0) {
+					retstr = str.substr(k--, 1) + retstr;
+				}
+				break;
+			case '0' :
+				if (k &gt;= 0) {
+					retstr = str.substr(k--, 1) + retstr;
+				} else {
+					retstr = '0' + retstr;
+				}
+				break;
+			case ',' :
+				comma = true;
+				retstr = ',' + retstr;
+				break;
+		}
+	}
+	if (k &gt;= 0) {
+		if (comma) {
+			var l = str.length;
+			for (; k &gt;= 0; k--) {
+				retstr = str.substr(k, 1) + retstr;
+				if (k &gt; 0 &amp;&amp; ((l - k) % 3) === 0) {
+					retstr = ',' + retstr;
+				}
+			}
+		} else {
+			retstr = str.substr(0, k + 1) + retstr;
+		}
+	}
+	retstr = retstr.replace(/^,+/, '');
+	
+	str = strarr.length &gt; 1 ? strarr[1] : '';
+	fmt = fmtarr.length &gt; 1 ? fmtarr[1] : '';
+	k = 0;
+	var decimalStr = '';
+	for (f = 0; f &lt; fmt.length; f++) {
+		switch (fmt.substr(f, 1)) {
+			case '#' :
+				if (k &lt; str.length) {
+					decimalStr += str.substr(k++, 1);
+				}
+				break;
+			case '0' :
+				if (k &lt; str.length) {
+					decimalStr += str.substr(k++, 1);
+				} else {
+					decimalStr += '0';
+				}
+				break;
+		}
+	}
+	if(decimalStr) {
+		retstr = retstr + '.' + decimalStr;
+	}
+	if(sign) {
+		retstr = sign + retstr;
+	}
+	return preFix + retstr + suffix;
+};
+
+<span id='jslet-method-formatDate'>/**
+</span> * Format date with specified format. Example:
+ * 
+ *     @example
+ *     var date = new Date();
+ *     jslet.formatDate(date, 'yyyy-MM-dd'));//2012-12-21
+ * 
+ * @member jslet
+ * 
+ * @param {Date} date Formatting date value.
+ * @param {String} format Date format.
+ * 
+ * @return {String} String Formatted date.
+ */
+jslet.formatDate = function(date, format) {
+	if(!date) {
+		return '';
+	}
+	jslet.Checker.test('jslet.formatDate#date', date).isDate();
+	jslet.Checker.test('jslet.formatDate#format', format).required().isString();
+	var o = {
+		'M+' : date.getMonth() + 1, // month
+		'd+' : date.getDate(), // day
+		'h+' : date.getHours(), // hour
+		'm+' : date.getMinutes(), // minute
+		's+' : date.getSeconds(), // second
+		'q+' : Math.floor((date.getMonth() + 3) / 3), // quarter
+		'S' : date.getMilliseconds()
+		// millisecond
+	};
+	if (/(y+)/.test(format)) {
+		format = format.replace(RegExp.$1, 
+				(date.getFullYear() + '').substr(4 - RegExp.$1.length));
+	}
+	for (var k in o) {
+		if (new RegExp('(' + k + ')').test(format)) {
+			format = format.replace(RegExp.$1, 
+				RegExp.$1.length == 1 ? o[k] : ('00' + o[k]).substr(('' + o[k]).length));
+		}
+	}
+	return format;
+};
+
+<span id='jslet-method-parseDate'>/**
+</span> * Parse a string to Date object. Example
+ * 
+ *     @example
+ *     var date = jslet.parseDate('2013-03-25', 'yyyy-MM-dd');
+ *     var date = jslet.parseDate('2013-03-25 15:20:18', 'yyyy-MM-dd hh:mm:ss');
+ * 
+ * @member jslet
+ * 
+ * @param {String} strDate String date.
+ * @param {String} format Date format, like: 'yyyy-MM-dd hh:mm:ss'.
+ * 
+ * @return Date Object.
+ */
+jslet.parseDate = function(strDate, format) {
+	if(!strDate) {
+		return null;
+	}
+	jslet.Checker.test('jslet.parseDate#strDate', strDate).isString();
+	jslet.Checker.test('jslet.parseDate#format', format).required().isString();
+	
+	var preChar = null, ch, v, 
+		begin = -1, 
+		end = 0;
+	var dateParts = {'y': 0, 'M': 0,'d': 0, 'h': 0,	'm': 0, 's': 0, 'S': 0};
+	
+	for(var i = 0, len = format.length; i &lt; len; i++) {
+		ch = format.charAt(i);
+	
+		if(ch != preChar) {
+			if(preChar &amp;&amp; dateParts[preChar] !== undefined &amp;&amp; begin &gt;= 0) {
+				end = i;
+				v = parseInt(strDate.substring(begin, end));
+				if(isNaN(v)) {
+					throw new Error(jslet.formatMessage(jsletlocale.Dataset.invalidDate, [format]));
+				}
+				dateParts[preChar] = v;
+			}
+			begin = i;
+			preChar = ch;
+		}
+	}
+	if(begin &gt;= 0) {
+		v = parseInt(strDate.substring(begin));
+		if(isNaN(v)) {
+			throw new Error(jslet.formatMessage(jsletlocale.Dataset.invalidDate, [format]));
+		}
+		dateParts[ch] = v;
+	}
+	var year = dateParts.y;
+	if(year &lt; 100) {
+		year += 2000;
+	}
+	var result = new Date(year, dateParts.M - 1, dateParts.d, dateParts.h, dateParts.m, dateParts.s, dateParts.S);
+	return result;
+};
+
+/*
+ * Convert Date to ISO8601
+ */
+Date.prototype.toJSON = function() {
+	return jslet.formatDate(this, 'yyyy-MM-ddThh:mm:ss');
+};
+
+<span id='jslet-method-convertISODate'>/**
+</span> * Convert string(ISO date format) to date object.
+ * 
+ * @member jslet
+ * 
+ * @param {String} dateStr A string with ISO date format, like: 2012-12-21T09:30:24Z.
+ * 
+ * @return {Date} ISO Date Object.
+ */
+jslet.convertISODate= function(dateStr) {
+	if(!dateStr) {
+		return null;
+	}
+	if(jslet.isDate(dateStr)) {
+		return dateStr;
+	}
+	var flag = dateStr.substr(10,1);
+	if(dateStr.length === 10 || 'T' == flag) {
+		var year = dateStr.substr(0,4),
+		month = dateStr.substr(5,2),
+		day = dateStr.substr(8,2),
+		hour = dateStr.substr(11,2),
+		minute = dateStr.substr(14,2),
+		second = dateStr.substr(17,2);
+		if('Z' == dateStr.substr(-1,1)) {
+			return new Date(Date.UTC(+year, +month - 1, +day, +hour,
+					+minute, +second));
+		}
+		return new Date(+year, +month - 1, +day, +hour,
+				+minute, +second);
+	}
+    return dateStr;
+};
+
+/*
+ * Variable for convertToJsPattern,don't use it in your program
+ */
+jslet._currentPattern = {};
+
+/*
+ * Convert sql pattern to javascript pattern
+ * 
+ * @param {String} pattern sql pattern
+ * @param {String} escapeChar default is '\'
+ * @return {String} js regular pattern
+ */
+jslet._convertToJsPattern = function(pattern, escapeChar) {
+	if (jslet._currentPattern.pattern == pattern &amp;&amp; 
+			jslet._currentPattern.escapeChar == escapeChar) {
+		return jslet._currentPattern.result;
+	}
+	jslet._currentPattern.pattern = pattern;
+	jslet._currentPattern.escapeChar = escapeChar;
+
+	var jsPattern = [],
+		len = pattern.length - 1,
+		c, 
+		nextChar,
+		bgn = 0, 
+		end = len,
+		hasLeft = false,
+		hasRight = false;
+	if (pattern.charAt(0) == '%'){
+       bgn = 1;
+       hasLeft = true;
+    }
+    if (pattern.charAt(len) == '%'){
+       end = len - 1;
+       hasRight = true;
+    }
+    if (hasLeft &amp;&amp; hasRight){
+       jsPattern.push('.*');
+    }
+    else if (hasRight){
+       jsPattern.push('^');
+    }
+	for (var i = bgn; i &lt;= end; i++) {
+		c = pattern.charAt(i);
+		if ((escapeChar &amp;&amp; escapeChar == c || c == '\\') &amp;&amp; i &lt; len) {
+			nextChar = pattern.charAt(i + 1);
+			if (nextChar == '%' || nextChar == '_') {
+				jsPattern.push(nextChar);
+				i++;
+				continue;
+			}
+		} else if (c == '_') {
+			jsPattern.push('.');
+		} else {
+			if (c == '.' || c == '*' || c == '[' || c == ']' || 
+					c == '{' || c == '}' || c == '+' || c == '(' || 
+					c == ')' || c == '\\' || c == '?' || c == '$' || c == '^')
+				jsPattern.push('\\');
+			jsPattern.push(c);
+		}
+	}// end for
+	if (hasLeft &amp;&amp; hasRight || hasRight){
+       jsPattern.push('.*');
+    } else if (hasLeft){
+       jsPattern.push('$');
+    }
+
+    jslet._currentPattern.result = new RegExp(jsPattern.join(''), 'ig');
+	return jslet._currentPattern.result;
+};
+
+<span id='jslet-method-like'>/**
+</span> * Test whether the value to match pattern or not, example:
+ * 
+ *     @example
+ *     jslet.like('abc','%b%'); //return true 
+ *     jslet.like('abc','%b'); //return false 
+ *     jslet.like('abc','ab_'); //return true 
+ *  
+ * @member jslet
+ * 
+ * @param {String} testValue Testing value.
+ * @param {String} pattern SQL pattern, syntax like SQL.
+ * 
+ * @return {Boolean} True - if matched, false - otherwise.
+ */
+jslet.like = function(testValue, pattern, escapeChar) {
+	if (!testValue || !pattern) {
+		return false;
+	}
+	if (pattern.length === 0) {
+		return false;
+	}
+	if (!escapeChar) {
+		escapeChar = '\\';
+	}
+	var jsPattern = jslet._convertToJsPattern(pattern, escapeChar);
+	if(!jslet.isString(testValue)) {
+		testValue += '';
+	}
+	return testValue.match(jsPattern) !== null;
+};
+
+<span id='jslet-method-between'>/**
+</span> * Test whether the 'testValue' is between 'minValue' and 'maxValue' or not.
+ * All arguments must be same data type.
+ * 
+ *     @example
+ *     jslet.between(4,2,5); //return true
+ *     jslet.between('c','a','b'); // return false
+ * 
+ * @member jslet
+ * 
+ * @param {Number | String | Date} testValue Testing value.
+ * @param {Number | String | Date} minValue Minimum value.
+ * @param {Number | String | Date} maxValue Maximum value.
+ * 
+ * @return {Boolean} True - if matched, false - otherwise.
+ */
+jslet.between = function(testValue, minValue, maxValue) {
+	if (arguments.length &lt;= 1) {
+		return false;
+	}
+	var flagMin = true,
+		flagMax = true;
+	if(minValue !== null &amp;&amp; minValue !== undefined) { 
+		flagMin = (jslet.compareValue(testValue, minValue) &gt;= 0);
+	}
+	if(maxValue !== null &amp;&amp; maxValue !== undefined) { 
+		flagMax = (jslet.compareValue(testValue, maxValue) &lt;= 0);
+	}
+	return flagMin &amp;&amp; flagMax;
+};
+
+<span id='jslet-method-inlist'>/**
+</span> * Test whether the first argument is in the list of other arguments or not. Example:
+ * 
+ *     @example
+ *     jslet.inlist('a','c','d','e'); //return false
+ *     jslet.inlist('d','c','d','e'); //return true
+ * 
+ * @member jslet
+ * 
+ * @param {Number | String | Date} testValue Testing value.
+ * @param {Number | String | Date} valueList One or more arguments.
+ * 
+ * @return {Boolean} True - if matched, false - otherwise.
+ */
+jslet.inlist = function(testValue, valueList) {
+	var cnt = arguments.length;
+	if (cnt &lt; 2) {
+		return false;
+	}
+	for (var i = 1; i &lt; cnt; i++) {
+		if (jslet.compareValue(testValue, arguments[i]) === 0) {
+			return true;
+		}
+	}
+	return false;
+};
+
+<span id='jslet-method-inArray'>/**
+</span> * Test whether the testing value is in an array or not. Example:
+ * 
+ *     @example
+ *     jslet.inArray('a','c','d','e'); //return false
+ *     jslet.inArray('d','c','d','e'); //return true
+ * 
+ * @member jslet
+ * 
+ * @param {Number | String | Date} testValue Testing value.
+ * @param {Number | String | Date} valueList One or more arguments.
+ * 
+ * @return {Boolean} True - if matched, false - otherwise.
+ */
+jslet.inArray = function(testValue, values) {
+	if(!testValue || !values) {
+		return false;
+	}
+	for (var i = 0, cnt = values.length; i &lt; cnt; i++) {
+		if (jslet.compareValue(testValue, values[i]) === 0) {
+			return true;
+		}
+	}
+	return false;
+};
+
+<span id='jslet-method-isArray'>/**
+</span> * Test whether the given value is an array. Example:
+ * 
+ *     @example
+ *     jslet.isArray(['a']); //return true
+ *     jslet.isArray('a'); //return false
+ * 
+ * @member jslet
+ * 
+ * @param {Object} testValue Testing value.
+ * 
+ * @return {Boolean} True - if the given value is an array, false - otherwise.
+ */
+jslet.isArray = function (testValue) {
+    return testValue === null || testValue === undefined || Object.prototype.toString.apply(testValue) === '[object Array]';
+};
+
+<span id='jslet-method-isDate'>/**
+</span> * Test whether the given value is date object. Example:
+ * 
+ *     @example
+ *     jslet.isDate(new Date()); //return true
+ *     jslet.isDate('a'); //return false
+ * 
+ * @member jslet
+ * 
+ * @param {Object} testValue Testing value.
+ * 
+ * @return {Boolean} True - if the given value is date object, false - otherwise.
+ */
+jslet.isDate = function(testValue) {
+	return testValue === null || testValue === undefined || testValue.constructor == Date;
+};
+
+<span id='jslet-method-isString'>/**
+</span> * Test whether the given value is a string object. Example:
+ * 
+ *     @example
+ *     jslet.isString(123); //return false
+ *     jslet.isString('a'); //return true
+ * 
+ * @member jslet
+ * 
+ * @param {Object} testValue Testing value.
+ * 
+ * @return {Boolean} True - if the given value is String object, false - otherwise.
+ */
+jslet.isString = function(testValue) {
+	return testValue === null || testValue === undefined || typeof testValue == 'string';
+};
+
+<span id='jslet-method-isFunction'>/**
+</span> * Test whether the given value is a Function object. Example:
+ * 
+ *     @example
+ *     jslet.isString(123); //return false
+ *     jslet.isString(function() {}); //return true
+ * 
+ * @member jslet
+ * 
+ * @param {Object} testValue Testing value.
+ * 
+ * @return {Boolean} True - if the given value is Function object, false - otherwise.
+ */
+jslet.isFunction = function(testValue) {
+	return jQuery.isFunction(testValue);
+};
+
+jslet.isPromise = function(testValue) {
+	return testValue &amp;&amp; testValue.done &amp;&amp; jslet.isFunction(testValue.done);
+};
+
+<span id='jslet-method-isNumber'>/**
+</span> * Test whether the given value is a number value. Example:
+ * 
+ *     @example
+ *     jslet.isNumber(123); //return true
+ *     jslet.isNumber('a'); //return false
+ * 
+ * @member jslet
+ * 
+ * @param {Object} testValue Testing value.
+ * 
+ * @return {Boolean} True - if the given value is String object, false - otherwise.
+ */
+jslet.isNumber = function(testValue) {
+	return testValue === null || testValue === undefined || jQuery.isNumeric(testValue);
+};
+<span id='jslet-method-isObject'>/**
+</span> * Test whether the given value is an object.
+ * 
+ *     @example
+ *     jslet.isString(123); //return false
+ *     jslet.isString({a:1}); //return true
+ * 
+ * @member jslet
+ * 
+ * @param {Object} testValue Testing value.
+ * 
+ * @return {Boolean} True - if the given value is object, false - otherwise.
+ */
+jslet.isObject = function(testValue) {
+	return testValue === null || testValue === undefined || jQuery.type(testValue) == &quot;object&quot;;	
+};
+
+<span id='jslet-method-isHTMLElement'>/**
+</span> * Test whether the given value is a HTML element.
+ * 
+ *     @example
+ *     jslet.isHTMLElement(window); //return false
+ *     jslet.isHTMLElement(document.body); //return true
+ * 
+ * @member jslet
+ * 
+ * @param {Object} testValue Testing value.
+ * 
+ * @return {Boolean} True - if the given value is a HTML element, false - otherwise.
+ */
+jslet.isHTMLElement = function(testValue) {
+	return testValue === null || testValue === undefined || testValue instanceof HTMLElement;	
+};
+
+<span id='jslet-method-isEmpty'>/**
+</span> * Test whether the given value is empty. Example:
+ * 
+ *     @example
+ *     jslet.isEmpty(123); //return false
+ *     jslet.isEmpty(null); //return true
+ *     jslet.isEmpty(undefined); //return true
+ *     jslet.isEmpty(''); //return true
+ *     jslet.isEmpty([]); //return true
+ *     jslet.isEmpty([null]); //return true
+ * 
+ * @member jslet
+ * 
+ * @param {Object} testValue Testing value.
+ * 
+ * @return {Boolean} True - if the given value is object, false - otherwise.
+ */
+jslet.isEmpty = function(value) {
+	if(value === null || value === undefined || value === '') {
+		return true;
+	}
+	if(jslet.isArray(value)) {
+		var arrValue = value;
+		var isEmpty = true;
+		for(var i = 0, len = arrValue.length; i &lt; len; i++) {
+			if(!jslet.isEmpty(arrValue[i])) {
+				isEmpty = false;
+				break;
+			}
+		}
+		return isEmpty;
+	}
+	return false;
+};
+
+jslet.setTimeout = function(obj, func, time) {
+    jslet.delayFunc = function () {
+        func.call(obj);
+    };
+    setTimeout(jslet.delayFunc, time);
+};
+
+<span id='jslet-method-compareValue'>/**
+</span> * Compare two values. Example:
+ * 
+ *     @example
+ *     jslet.compareValue(1,2); //return -1
+ *     jslet.compareValue(10,2); //return 1
+ *     jslet.compareValue(2,2); //return 0
+ *     jslet.compareValue('a','A'); //return 0
+ *     jslet.compareValue('a','A', true); //return -1
+ * 
+ * @member jslet
+ * 
+ * @param {Number | String | Date} value1 Value1.
+ * @param {Number | String | Date} value2 Value2.
+ * @param {Boolean} caseSensitive Case sensitive or not if values are string value.
+ * @param {Boolean} useLocale Use locale compare or not.
+ *  
+ * @return {Integer} 0 - value1 = value2, -1 - value1 &lt; value2, 1 - value1 &gt; value2.
+ */
+jslet.compareValue = function(value1, value2, caseSensitive, useLocale) {
+	value1 = (value1 === undefined? null: value1);
+	value2 = (value2 === undefined? null: value2);
+	if(value1 === value2) {
+		return 0;
+	}
+	if(value1 === null &amp;&amp; value2 !== null) {
+		return -1;
+	}
+	if(value2 === null &amp;&amp; value1 !== null) {
+		return 1;
+	}
+	var isStr1 = jslet.isString(value1),
+		isStr2 = jslet.isString(value2);
+	if(!isStr1 &amp;&amp; !isStr2) {
+		if(jslet.isDate(value1)) {
+			value1 = value1.getTime();
+			value2 = value2.getTime();
+		}
+		return value1 == value2? 0: (value1 &lt; value2? -1: 1);
+	}
+	//compare string value
+	if(!isStr1) {
+		value1 = value1 + '';
+	}
+	if(!isStr2) {
+		value2 = value2 + '';
+	}
+	if(!caseSensitive) {
+		value1 = value1.toLowerCase();
+		value2 = value2.toLowerCase();
+	}
+	if(useLocale === undefined || useLocale) {
+		var result = value1.localeCompare(value2);
+		return result === 0? 0: (result &lt; 0 ? -1: 1);
+	} else {
+		return value1 == value2? 0: (value1 &lt; value2? -1: 1);
+	}
+};
+
+<span id='jslet-method-htmlEncode'>/**
+</span> * Encode html string. Example:
+ * 
+ *     @example
+ *     jslet.htmlEncode('&lt;div /&gt;'); //return 'lt;div /gt;'
+ * 
+ * @member jslet
+ * 
+ * @param {String} htmlText HTML text.
+ * 
+ * @return {String} Ecoded HTML text.
+ */
+jslet.htmlEncode = function(htmlText){
+    if (htmlText) {
+        return jQuery('&lt;div /&gt;').text(htmlText).html();
+    } else {
+        return '';
+    }
+};
+
+<span id='jslet-method-htmlDecode'>/**
+</span> * Decode html string. Example:
+ * 
+ *     @example
+ *     jslet.htmlDecode('lt;div /gt;'); //return '&lt;div /&gt;'
+ * 
+ * @member jslet
+ * 
+ * @param {String} htmlText Encoded HTML text.
+ * 
+ * @return {String} Decoded HTML text.
+ */
+jslet.htmlDecode = function(htmlText) {
+    if (htmlText) {
+        return jQuery('&lt;div /&gt;').html(htmlText).text();
+    } else {
+        return '';
+    }
+};
+
+<span id='jslet-method-getArrayValue'>/**
+</span> * Get an array item safely. Example:
+ * 
+ *     @example
+ *     var arrValues = ['a','b'];
+ *     jslet.getArrayValue(arrValues, 1); // return 'b'
+ *     jslet.getArrayValue(arrValues, 3); // return null
+ * 
+ * @member jslet
+ * 
+ * @param {Object[]} arrValues Array value.
+ * @param {Integer} index Index of wanted to get item.
+ * 
+ * @return {Object} Array item.
+ */
+jslet.getArrayValue = function(arrValues, index) {
+	if(!arrValues) {
+		return null;
+	}
+		
+    if(jslet.isArray(arrValues)){
+        var len = arrValues.length;
+        if(index &lt; len) {
+            return arrValues[index];
+        } else {
+            return null;
+        }
+    } else {
+        return arrValues;
+    }
+};
+
+<span id='jslet-Checker'>/**
+</span> * @class
+ * @static
+ * 
+ * jslet.Checker can check whether a variable is valid on runtime. Usage:
+ * 
+ *     @example
+ *     var x = 1;
+ *     jslet.Checker.test('x', x).isGTZero();
+ *     
+ */
+jslet.Checker = {
+<span id='jslet-Checker-property-varName'>	varName: null,
+</span><span id='jslet-Checker-property-varValue'>	varValue: null,
+</span>	
+<span id='jslet-Checker-method-test'>	/**
+</span>	 * Set the testing variable.
+	 * 
+	 * @param {String} varName Variable name.
+	 * @param {Object} varValue Variable value.
+	 * 
+	 * @return {this}
+	 */
+	test: function(varName, varValue) {
+		this.varName = varName;
+		this.varValue = varValue;
+		return this;
+	},
+	
+<span id='jslet-Checker-method-testValue'>	/**
+</span>	 * Set the testing variable value.
+	 * 
+	 * @param {Object} varValue Variable value.
+	 * 
+	 * @return {this}
+	 */
+	testValue: function(varValue) {
+		this.varValue = varValue;
+		return this;
+	},
+	
+<span id='jslet-Checker-method-required'>	/**
+</span>	 * Check the testing variable does not equal: null | undefined | ''.
+	 * 
+	 *     @example
+	 *     var x = null;
+	 *     var y = 123;
+	 *     jslet.Checker.test('x', x).required(); //error thrown
+	 *     jslet.Checker.test('y', y).required(); //no error thrown
+	 *     
+	 * @return {this}
+	 */
+	required: function() {
+		if(this.varValue === null || this.varValue === undefined || this.varValue === '') {
+			//[{0}] is Required!
+			throw new Error(jslet.formatMessage(jsletlocale.Checker.required, [this.varName]));
+		}
+		return this;
+	},
+	
+<span id='jslet-Checker-method-isBoolean'>	/**
+</span>	 * Check whether the testing variable type is boolean.
+	 * 
+	 *     @example
+	 *     var x = 123;
+	 *     var y = true;
+	 *     jslet.Checker.test('x', x).isBoolean(); //error thrown
+	 *     jslet.Checker.test('y', y).isBoolean(); //no error thrown
+	 *     
+	 * @return {this}
+	 */
+	isBoolean: function() {
+		if(this.varValue !== null &amp;&amp; 
+		   this.varValue !== undefined &amp;&amp;
+		   this.varValue !== '' &amp;&amp;
+		   this.varValue !== 0 &amp;&amp; 
+		   this.varValue !== true &amp;&amp; 
+		   this.varValue !== false) {
+			//[{0}] must be a Boolean value!
+			throw new Error(jslet.formatMessage(jsletlocale.Checker.requiredBooleanValue, [this.varName]));
+		}
+		return this;
+	},
+	
+<span id='jslet-Checker-method-isString'>	/**
+</span>	 * Check whether the testing variable type is string.
+	 * 
+	 *     @example
+	 *     var x = 123;
+	 *     var y = 'test';
+	 *     jslet.Checker.test('x', x).isString(); //error thrown
+	 *     jslet.Checker.test('y', y).isString(); //no error thrown
+	 *     
+	 * @return {this}
+	 */
+	isString: function() {
+		if(this.varValue !== null &amp;&amp; 
+			this.varValue !== undefined &amp;&amp;
+			this.varValue !== false &amp;&amp;
+			!jslet.isString(this.varValue)) {
+			//[{0}: {1}] must be a String value!
+			throw new Error(jslet.formatMessage(jsletlocale.Checker.requiredStringValue, [this.varName, this.varValue]));
+		}
+		return this;
+	},
+	
+<span id='jslet-Checker-method-isDate'>	/**
+</span>	 * Check whether the testing variable type is date.
+	 * 
+	 *     @example
+	 *     var x = 123;
+	 *     var y = new Date();
+	 *     jslet.Checker.test('x', x).isDate(); //error thrown
+	 *     jslet.Checker.test('y', y).isDate(); //no error thrown
+	 *     
+	 * @return {this}
+	 */
+	isDate: function() {
+		if(this.varValue !== null &amp;&amp; 
+			this.varValue !== undefined &amp;&amp;
+			this.varValue !== false &amp;&amp;
+			!jslet.isDate(this.varValue)) {
+			//[{0}: {1}] must be a Date value!
+			throw new Error(jslet.formatMessage(jsletlocale.Checker.requiredDateValue, [this.varName, this.varValue]));
+		}
+		return this;
+	},
+	
+<span id='jslet-Checker-method-isNumber'>	/**
+</span>	 * Check whether the testing variable type is date.
+	 * 
+	 *     @example
+	 *     var x = '123';
+	 *     var y = 123;
+	 *     jslet.Checker.test('x', x).isNumber(); //error thrown
+	 *     jslet.Checker.test('y', y).isNumber(); //no error thrown
+	 *     
+	 * @return {this}
+	 */
+	isNumber: function() {
+		if(this.varValue !== null &amp;&amp; 
+			this.varValue !== undefined &amp;&amp; 
+			this.varValue !== false &amp;&amp;
+			!jQuery.isNumeric(this.varValue)) {
+			//[{0}: {1}] must be a Numberic value!
+			throw new Error(jslet.formatMessage(jsletlocale.Checker.requiredNumbericValue, [this.varName, this.varValue]));
+		}
+		return this;
+	},
+	
+<span id='jslet-Checker-method-isGTZero'>	/**
+</span>	 * Check whether the testing variable is greater than zero.
+	 * 
+	 *     @example
+	 *     var y = 0;
+	 *     jslet.Checker.test('y', y).isGTZero(); //Error thrown
+	 *     y = 123;
+	 *     jslet.Checker.test('y', y).isGTZero(); //no error thrown
+	 *     
+	 * @return {this}
+	 */
+	isGTZero: function() {
+		this.isNumber();
+		if(this.varValue === null || this.varValue === undefined) {
+			return this;
+		}
+		if(this.varValue &lt;= 0) {
+			//[{0}: {1}] must be great than zero!
+			throw new Error(jslet.formatMessage(jsletlocale.Checker.greatThanZero, [this.varName, this.varValue]));
+		}
+		return this;
+	},
+	
+<span id='jslet-Checker-method-isGTEZero'>	/**
+</span>	 * Check whether the testing variable is greater than or equals zero.
+	 * 
+	 *     @example
+	 *     var y = -1;
+	 *     jslet.Checker.test('y', y).isGTEZero(); //Error thrown
+	 *     y = 0;
+	 *     jslet.Checker.test('y', y).isGTEZero(); //no error thrown
+	 *     
+	 * @return {this}
+	 */
+	isGTEZero: function() {
+		this.isNumber();
+		if(this.varValue === null || this.varValue === undefined) {
+			return this;
+		}
+		if(this.varValue &lt; 0) {
+			//[{0}: {1}] must be great than or equal zero!
+			throw new Error(jslet.formatMessage(jsletlocale.Checker.greatThanEqualZero, [this.varName, this.varValue]));
+		}
+		return this;
+	},
+	
+<span id='jslet-Checker-method-between'>	/**
+</span>	 * Check whether the testing variable is in a range.
+	 * 
+	 *     @example
+	 *     var y = 3;
+	 *     jslet.Checker.test('y', y).between(1, 2); //Error thrown
+	 *     jslet.Checker.test('y', y).between(2, 5); //no error thrown
+	 *
+	 * @param {Object} minValue Start value of range.
+	 * @param {Object} maxValue End value of range.
+	 * 
+	 * @return {this}
+	 */
+	between: function(minValue, maxValue) {
+		if(this.varValue === null || this.varValue === undefined) {
+			return this;
+		}
+		var checkMin = minValue !== null &amp;&amp; minValue !== undefined;
+		var checkMax = maxValue !== null &amp;&amp; maxValue !== undefined;
+		if(checkMin &amp;&amp; checkMax &amp;&amp; (this.varValue &lt; minValue || this.varValue &gt; maxValue)) {
+			//[{0} : {1}] must be between [{2}] and [{3}]!
+			throw new Error(jslet.formatMessage(jsletlocale.Checker.betweenValue, [this.varName, this.varValue, minValue, maxValue]));
+		}
+		if(!checkMin &amp;&amp; checkMax &amp;&amp; this.varValue &gt; maxValue) {
+			//[{0} : {1}] must be less than [{2}]!
+			throw new Error(jslet.formatMessage(jsletlocale.Checker.lessThanMaxValue, [this.varName, this.varValue, maxValue]));
+		}
+		if(checkMin &amp;&amp; !checkMax &amp;&amp; this.varValue &lt; minValue) {
+			//[{0} : {1}] must be great than [{2}]!
+			throw new Error(jslet.formatMessage(jsletlocale.Checker.betweenValue, [this.varName, this.varValue, minValue]));
+		}
+		return this;
+	},
+	
+<span id='jslet-Checker-method-isArray'>	/**
+</span>	 * Check whether the testing variable type is Array.
+	 * 
+	 *     @example
+	 *     var x = '123';
+	 *     jslet.Checker.test('x', x).isArray(); //error thrown
+	 *     x = ['123'];
+	 *     jslet.Checker.test('x', x).isArray(); //no error thrown
+	 *     
+	 * @return {this}
+	 */
+	isArray: function() {
+		if(this.varValue !== null &amp;&amp; 
+			this.varValue !== undefined &amp;&amp;
+			this.varValue !== false &amp;&amp;
+			!jslet.isArray(this.varValue)) {
+			//[{0}: {1}] must be an Array!
+			throw new Error(jslet.formatMessage(jsletlocale.Checker.requiredArrayValue, [this.varName, this.varValue]));
+		}
+		return this;
+	},
+	
+<span id='jslet-Checker-method-isObject'>	/**
+</span>	 * Check whether the testing variable is Object.
+	 * 
+	 *     @example
+	 *     var x = 123;
+	 *     jslet.Checker.test('x', x).isObject(); //error thrown
+	 *     x = [123];
+	 *     jslet.Checker.test('x', x).isObject(); //no error thrown
+	 *     
+	 * @return {this}
+	 */
+	isObject: function() {
+		if(this.varValue !== null &amp;&amp; 
+			this.varValue !== undefined &amp;&amp;
+			this.varValue !== false &amp;&amp;
+			jQuery.type(this.varValue) !== &quot;object&quot;) {
+			//[{0}: {1}] must be an Object!
+			throw new Error(jslet.formatMessage(jsletlocale.Checker.requiredObjectValue, [this.varName, this.varValue]));
+		}
+		return this;
+	},
+	
+<span id='jslet-Checker-method-isPlanObject'>	/**
+</span>	 * Check whether the testing variable is Plan Object.
+	 * 
+	 *     @example
+	 *     var x = 123;
+	 *     jslet.Checker.test('x', x).isPlanObject(); //error thrown
+	 *     x = {x: 123};
+	 *     jslet.Checker.test('x', x).isPlanObject(); //no error thrown
+	 *     
+	 * @return {this}
+	 */
+	isPlanObject: function() {
+		if(this.varValue !== null &amp;&amp; 
+				this.varValue !== undefined &amp;&amp;
+				this.varValue !== false &amp;&amp;
+				!jQuery.isPlainObject(this.varValue)) {
+			//[{0}: {1}] must be a plan Object!
+			throw new Error(jslet.formatMessage(jsletlocale.Checker.requiredPlanObjectValue, [this.varName, this.varValue]));
+		}
+		return this;
+				
+	},
+	
+<span id='jslet-Checker-method-isHTMLElement'>	/**
+</span>	 * Check whether the testing variable is HTML element.
+	 * 
+	 *     @example
+	 *     var x = window;
+	 *     jslet.Checker.test('x', x).isHTMLElement(); //error thrown
+	 *     x = document.body;
+	 *     jslet.Checker.test('x', x).isHTMLElement(); //no error thrown
+	 *     
+	 * @return {this}
+	 */
+	isHTMLElement: function() {
+		if(this.varValue !== null &amp;&amp; 
+			this.varValue !== undefined &amp;&amp;
+			!jslet.isHTMLElement(this.varValue)) {
+			//[{0}: {1}] must be an Object!
+			throw new Error(jslet.formatMessage(jsletlocale.Checker.requiredHtmlElement, [this.varName, this.varValue]));
+		}
+		return this;
+	},
+	
+<span id='jslet-Checker-method-isFunction'>	/**
+</span>	 * Check whether the testing variable is Function.
+	 * 
+	 *     @example
+	 *     var x = 123;
+	 *     jslet.Checker.test('x', x).isFunction(); //error thrown
+	 *     x = function() {};
+	 *     jslet.Checker.test('x', x).isFunction(); //no error thrown
+	 *     
+	 * @return {this}
+	 */
+	isFunction: function() {
+		if(this.varValue !== null &amp;&amp; 
+			this.varValue !== undefined &amp;&amp;
+			this.varValue !== false &amp;&amp;
+			!jslet.isFunction(this.varValue)) {
+			//[{0}: {1}] must be a Function!
+			throw new Error(jslet.formatMessage(jsletlocale.Checker.requiredFunctionValue, [this.varName, this.varValue]));
+		}
+		return this;
+	},
+	
+<span id='jslet-Checker-method-isClass'>	/**
+</span>	 * Check whether the testing variable is the specified Class.&lt;br /&gt;
+	 * This method is used internally to check jslet class.
+	 * 
+	 *     @example
+	 *     var x = 123;
+	 *     jslet.Checker.test('x', x).isClass('jslet.data.Dataset'); //error thrown
+	 *     x = new jslet.data.Dataset({name: 'test', fields: []});
+	 *     jslet.Checker.test('x', x).isClass('jslet.data.Dataset'); //no error thrown
+	 *     
+	 * @param {String} className Specified class name.
+	 *     
+	 * @return {this}
+	 */
+	isClass: function(className) {
+		this.isObject();
+		if(this.varValue !== null &amp;&amp; 
+			this.varValue !== undefined &amp;&amp;
+			this.varValue !== false &amp;&amp;
+			this.varValue.className != className) {
+			//[{0}: {1}] must be instance of [{2}]!
+			throw new Error(jslet.formatMessage(jsletlocale.Checker.instanceOfClass, [this.varName, this.varValue, className]));
+		}
+		return this;
+	},
+	
+<span id='jslet-Checker-method-isDataType'>	/**
+</span>	 * Check whether the testing variable is specified type.&lt;br /&gt;
+	 * This method is used internally to check jslet class.
+	 * 
+	 *     @example
+	 *     var x = 123;
+	 *     jslet.Checker.test('x', x).isDataType('S'); //error thrown
+	 *     jslet.Checker.test('x', x).isDataType('N'); //no error thrown
+	 *     x = new Date();
+	 *     jslet.Checker.test('x', x).isDataType('D'); //no error thrown
+	 *     
+	 * @param {String} dataType The optional value: 'S', 'D', 'N'.
+	 *     
+	 * @return {this}
+	 */
+	isDataType: function(dataType) {
+		if(dataType == 'S') {
+			this.isString();
+		}
+		if(dataType == 'N') {
+			this.isNumber();
+		}
+		if(dataType == 'D') {
+			this.isDate();
+		}
+		return this;
+	},
+	
+<span id='jslet-Checker-method-inArray'>	/**
+</span>	 * Check whether the testing variable is in the specified array.&lt;br /&gt;
+	 * 
+	 *     @example
+	 *     var x = 123;
+	 *     jslet.Checker.test('x', x).inArray([1,2,3]); //error thrown
+	 *     x = 2;
+	 *     jslet.Checker.test('x', x).inArray([1,2,3]); //no error thrown
+	 *     
+	 * @param {String} arryList An array.
+	 *     
+	 * @return {this}
+	 */
+	inArray: function(arrlist) {
+		if(this.varValue !== null &amp;&amp; 
+			this.varValue !== undefined &amp;&amp;
+			this.varValue !== false &amp;&amp;
+			arrlist.indexOf(this.varValue) &lt; 0) {
+			//[{0}: {1}] must be one of [{2}]!
+			throw new Error(jslet.formatMessage(jsletlocale.Checker.inArray, [this.varName, this.varValue, arrlist.join(',')]));
+		}
+		return this;
+	}
+
+};
+
+jslet.JSON = {
+	normalize: function (json) {
+		//json = jQuery.trim(json);
+		var result = [], c, next, isKey = false, isArray = false, isObj = true, last = '', quoteChar = null, append = false;
+		c = json.charAt(0);
+		if(c != '{' &amp;&amp; c != '[') {
+			result.push('{&quot;');
+			append = true;
+		}		
+		for(var i = 0, len = json.length; i&lt; len; i++) {
+			c = json.charAt(i);
+			
+			if(quoteChar) {//Not process any char in a String value. 
+				if(c == quoteChar) {
+					quoteChar = null;
+					result.push('&quot;');
+					last = '&quot;';
+				} else {
+					result.push(c);
+				}
+				continue;
+			}
+			if(c == '[') {
+				isArray = true;
+				isObj = false;
+			}
+			if(c == ']' || c == '{') {
+				isArray = false;
+				isObj = true;
+			}
+			if(isKey &amp;&amp; (c == ' ' || c == '\b')) {//Trim blank char in a key.
+				continue;
+			}
+			if(isObj &amp;&amp; (c == '{' || c == ',')) {
+				isKey = true;
+				result.push(c);
+				last = c;
+				continue;
+			}
+			if(last == '{' || last == ',') {
+				result.push('&quot;');
+			}
+			if(isKey &amp;&amp; c == &quot;'&quot;) {
+				result.push('&quot;');
+				continue;
+			}
+			if(c == ':') {
+				isKey = false;
+				if(last != '&quot;') {
+					result.push('&quot;');
+				}
+			}
+			if(!isKey) {
+				if(c == &quot;'&quot; || c == '&quot;') {
+					quoteChar = c;
+					result.push('&quot;');
+					continue;
+				}
+			}
+			last = c;
+			result.push(c);
+		}
+		if(append) {
+			result.push('}');
+		}
+		return result.join('');
+	},
+	
+	parse: function(json) {
+		try {
+//			return JSON.parse(this.normalize(json));//has bug
+			return JSON.parse(json);
+		} catch(e) {
+			throw new Error(jslet.formatMessage(jsletlocale.Common.jsonParseError, [json]));
+		}
+	},
+	
+	stringify: function(value, replacer, space) {
+		return JSON.stringify(value, replacer, space);
+	}
+
+};
+
+<span id='jslet-method-getFunction'>/**
+</span> * Get specified function with function object or function name.
+ * 
+ * @member jslet
+ * 
+ * @param {String | Function} funcOrFuncName If its value is function name, find this function in specified context.
+ * @param {Object} context The context which looking for function in, default is window.
+ * 
+ * @return {Function}
+ */
+jslet.getFunction = function(funcOrFuncName, context) {
+	if(!funcOrFuncName) {
+		return null;
+	}
+	if(jslet.isFunction(funcOrFuncName)) {
+		return funcOrFuncName;
+	}
+	if(!context) {
+		context = window;
+	}
+	
+	var result = context[funcOrFuncName];
+	if(!result) {
+		console.warn('NOT found function:' + funcOrFuncName);
+	}
+	return result;
+};
+
+<span id='jslet-method-cutString'>/**
+</span> * Cut the specified string and return the remaining string.
+ * 
+ *     @example
+ *     cutString('abcd','c'); //return 'abd'
+ * 
+ * @member jslet
+ * 
+ * @param {String} wholeStr Whole string.
+ * @param {String} cuttingStr Cutting string.
+ * 
+ * @return {String} Remaining string.
+ */
+jslet.cutString = function(wholeStr, cuttingStr) {
+	if(!wholeStr || !cuttingStr) {
+		return wholeStr;
+	}
+	var reg = new RegExp(cuttingStr,&quot;g&quot;);
+	return wholeStr.replace(reg, '');
+};
+
+
+<span id='jslet-method-getYear'>/**
+</span> * Get year value from a date object.
+ * 
+ *     @example
+ *     jslet.getYear(new Date(2015,9,10); //return 2015
+ * 
+ * @member jslet
+ * 
+ * @param {Date} dateValue Date object.
+ * 
+ * @return {Integer} Year of date.
+ */
+jslet.getYear = function(dateValue) {
+	if(!dateValue || !jslet.isDate(dateValue)) {
+		return 0;
+	}
+	return dateValue.getFullYear();
+};
+
+<span id='jslet-method-getMonth'>/**
+</span> * Get year value from a date object.
+ * 
+ *     @example
+ *     jslet.getMonth(new Date(2015,9,10); //return 10
+ *     
+ * @member jslet
+ * 
+ * @param {Date} dateValue Date object.
+ * 
+ * @return {Integer} Month of date.
+ */
+jslet.getMonth = function(dateValue) {
+	if(!dateValue || !jslet.isDate(dateValue)) {
+		return 0;
+	}
+	return dateValue.getMonth() + 1;
+};
+
+<span id='jslet-method-getYearMonth'>/**
+</span> * Get year and month value from a date object.
+ * 
+ *     @example
+ *     jslet.getYearMonth(new Date(2015,9,10); //return 201010
+ *     
+ * @member jslet
+ * 
+ * @param {Date} dateValue Date object.
+ * 
+ * @return {Integer} Year and month of date.
+ */
+jslet.getYearMonth = function(dateValue) {
+	if(!dateValue || !jslet.isDate(dateValue)) {
+		return 0;
+	}
+	return dateValue.getFullYear() * 100 + dateValue.getMonth() + 1;
+};
+
+jslet.removeHtmlTag = function(str) {
+	if(!str) {
+		return str;
+	}
+	if(str.indexOf('&lt;') &lt; 0) {
+		return str;
+	} else {
+		return str.replace(/&lt;(?:.|\s)*?&gt;/g, '')
+	}
+};
+
+<span id='jslet-method-showError'>/**
+</span>* Show error message.
+* 
+* @member jslet
+* 
+* @param {Error | String} e - Error object or error message
+* @param {Function} callBackFn - Call back function, pattern: function() {}.
+*/
+jslet.showError = function (e, callBackFn) {
+	var msg;
+	if (typeof (e) == 'string') {
+		msg = e;
+	} else {
+		msg = e.message;
+	}
+	if (jslet.ui &amp;&amp; jslet.ui.error) {
+		jslet.ui.error(msg, null, callBackFn);
+	} else {
+		window.alert(msg);
+	}
+};
+
+<span id='jslet-method-showInfo'>/**
+</span>* Show info message.
+* 
+* @member jslet
+* 
+* @param {Error | String} e - Error object or error message.
+* @param {Function} callBackFn - Call back function, pattern: function() {}.
+* @param {Integer} timeout - Timeout for close this dialog. 
+*/
+jslet.showInfo = function (e, callBackFn, timeout) {
+	var msg;
+	if (typeof (e) == 'string') {
+		msg = e;
+	} else {
+		msg = e.message;
+	}
+	if (jslet.ui &amp;&amp; jslet.ui.info) {
+		jslet.ui.info(msg, null, callBackFn, timeout);
+	} else {
+		window.alert(msg);
+	}
+};
+
+jslet.urlUtil = {
+	getDomain: function(url) {
+		return url.replace(/([^:]+:\/\/[^\/]+).*/, &quot;$1&quot;);
+	},
+	
+	addParam: function(url, param) {
+		jslet.Checker.test('addParam#url', url).required().isString();
+		if(!param) {
+			return url;
+		}
+		jslet.Checker.test('addParam#param', param).isPlanObject();
+		var url1 = '';
+		var k = url.indexOf('#');
+		if(k &gt;= 0) {
+			url1 = url.substring(k);
+			url = url.substring(0, k);
+		}
+		var paramObj = jslet.urlUtil.getParams(url) || {};
+		for(var name in param) {
+			paramObj[name] = escape((param[name] + '').trim());
+		}
+		var paramStr = '';
+		k = 0;
+		for(name in paramObj) {
+			paramStr += (k++? '&amp;': '') + name + '=' + paramObj[name];
+		}
+		k = url.indexOf('?');
+		if(k &gt;= 0) {
+			url = url.substring(0, k);
+		}
+		url += '?' + paramStr + url1;
+		return url;
+	},
+
+	addHash: function(url, hash) {
+		jslet.Checker.test('addUrlParam#url', url).required().isString();
+		if(!hash) {
+			return url;
+		}
+		var k = url.indexOf('#');
+		url = url + (k &gt;= 0?'':'#') + hash;
+		return url;
+	},
+	
+	getParams: function(url) {
+		jslet.Checker.test('getParams#url', url).required().isString();
+    	intPos = url.indexOf(&quot;?&quot;);
+    	if(intPos &lt; 0) {
+    		return null;
+    	}
+    	var url = url.substr(intPos + 1);
+    	var intPos = url.indexOf('#');
+    	if(intPos &gt;= 0) {
+    		url = url.substring(0, intPos);
+    	}
+    	
+    	var arrTmp = url.split(&quot;&amp;&quot;);
+    	var result = {};
+    	for(var i = 0; i &lt; arrTmp.length; i++){
+    		var arrParam = arrTmp[i].split(&quot;=&quot;);
+    		result[arrParam[0]] = arrParam[1];
+    	}
+    	return result;
+	},
+	
+	getParam: function(url, paramName) {
+		jslet.Checker.test('getParam#paramName', paramName).required().isString();
+		var params = this.getParams(url);
+		if(params) {
+			return params[paramName];
+		}
+		return null
+	},
+	
+	getHash: function(url) {
+		jslet.Checker.test('getHash#url', url).required().isString();
+    	var intPos = url.indexOf('#');
+    	if(intPos &lt; 0) {
+    		return null;
+    	}
+    	var hash = url.substring(intPos + 1);
+    	intPos = hash.indexOf(&quot;?&quot;);
+    	if(intPos &gt;= 0) {
+    		hash = hash.substring(0, intPos);
+    	}
+    	
+    	return hash;
+	}
+};
+
+<span id='jslet-StepProcessor'>/**
+</span> * @class
+ * 
+ * This class is used to split a long loop into ten short loops in order to refresh UI between two loops.
+ * It's normally used for updating ProcessBar value. Example:
+ * 
+ *     @example
+ *     var list = [1, 2, 3, .....];
+ *     function doLoop(start, end, percent) {
+ *         for(var i = start; i &lt;= end; i++) {
+ *             //process biz logic
+ *         }
+ *         jslet('processBar').value(percent);
+ *     }
+ *     
+ *     new jslet.StepProcessor(list.length, doLoop).run();
+ * 
+ * @param {Integer} count The long loop count.
+ * @param {Function} processingFn The processing function.
+ * @param {Integer} processingFn.start The start position of the long loop.
+ * @param {Integer} processingFn.end The end position of the long loop.
+ * @param {Integer} processingFn.percent The processing percent of the loop.
+ * @param {Integer} unit The unit of percent, like 5, 10, 20, it can't be greater than 100. 
+ * 
+ */
+jslet.StepProcessor = function(count, processingFn, stepCount) {
+	jslet.Checker.test('jslet.StepProcessor#count', count).isGTZero();
+	jslet.Checker.test('jslet.StepProcessor#processingFn', processingFn).isFunction();
+	jslet.Checker.test('jslet.StepProcessor#steps', stepCount).isNumber().between(1, 100);
+	var count = count;
+	var steps = [];
+	var index = 0;
+	if(!stepCount) {
+		stepCount = 10;
+	}
+	if(count &lt;= stepCount) {
+		steps.push([0, count - 1, 100]);
+	} else {
+		var k = Math.ceil(count / stepCount), start, end, percent;
+		var len = Math.ceil(count / k);
+		var lastIdx = len - 1;
+		var m = parseInt(100 / stepCount);
+		for(var i = 0; i &lt;= lastIdx; i++) {
+			start = i * k;
+			end = (i + 1) * k - 1;
+			if(end &gt;= count) {
+				end = count - 1;
+			}
+			percent = i &lt; lastIdx? (i + 1) * m: 100;
+			steps.push([start, end, percent]);
+		}
+	}
+	var nextStep = function() {
+        var step = steps[index++];
+        var result = processingFn(step[0], step[1], step[2]);
+        if(result === false) {
+        	return;
+        }
+        
+        if (index != steps.length) {
+            var me = this;
+            window.setTimeout(function(){
+                nextStep();
+            }, 2);
+        }    	
+    }
+	
+<span id='jslet-StepProcessor-method-run'>	/**
+</span>	 * @method run
+	 * 
+	 * Run the step processor.
+	 */
+	this.run = function() {
+		index = 0;
+		nextStep();
+	} 
+};
+
+
+<span id='jslet-Synchronizer'>/**
+</span> * @class
+ * 
+ * Sync some async tasks. Example:
+ * 
+ *     @example
+ *     function doneFn() {
+ *     		console.log('All tasks are ended.');
+ *     }
+ *     
+ *     var sync = new jslet.Synchronizer(2, doneFn)
+ *     
+ *     ds1.query().done(function() {
+ *     		sync.endTask();
+ *     });
+ *     ds2.query().done(function() {
+ *     		sync.endTask();
+ *     });
+ *     
+ * 
+ * @param {Integer} taskCount Task count.
+ * @param {Function} doneFn Done function when all async tasks have run.
+ */
+jslet.Synchronizer = function(taskCount, doneFn) {
+	var isValid = false;
+	jslet.Checker.test('Synchronizer#taskCount', taskCount).required().isGTEZero();
+	jslet.Checker.test('Synchronizer#doneFn', doneFn).required().isFunction();
+	this._taskCount = taskCount;
+	this._doneFn = doneFn;
+};
+
+jslet.Synchronizer.prototype = {
+<span id='jslet-Synchronizer-method-endTask'>	/**
+</span>	 * End task. Call this method in each async task.
+	 */
+	endTask: function() {
+		this._taskCount--;
+		if(this._taskCount === 0) {
+			this._doneFn();
+		}
+	},
+}</pre>
+</body>
+</html>

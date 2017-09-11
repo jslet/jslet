@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js">if (!jslet.data) {
+	jslet.data = {};
+}
+
+<span id='jslet-data-ApplyAction'>/**
+</span> * @enum
+ * 
+ */
+<span id='jslet-data-ApplyAction-property-SELECTED'><span id='jslet-data-ApplyAction-property-SAVE'><span id='jslet-data-ApplyAction-property-QUERY'>jslet.data.ApplyAction = {QUERY: 'query', SAVE: 'save', SELECTED: 'selected'};
+</span></span></span>
+<span id='jslet-data-DataProvider'>/**
+</span> * @class
+ * Data provider to communicate to server side.
+ */
+jslet.data.DataProvider = function() {
+	
+<span id='jslet-data-DataProvider-method-sendRequest'>	/**
+</span>	 * Send request to server.
+	 * 
+	 * @param {jslet.data.Dataset} dataset Dataset Object, see {@link jslet.data.Dataset}.
+	 * @param {String} url Request URL.
+	 * @param {String} reqData The request data which need to send to server.
+	 */
+	this.sendRequest = function(dataset, url, reqData) {
+		var settings;
+		if(jslet.global.beforeSubmit) {
+			settings = jslet.global.beforeSubmit({url: url});
+		}
+		if(!settings) {
+			settings = {};
+		}
+		settings.type = 'POST';
+		settings.contentType = 'application/json';
+		settings.mimeType = 'application/json';
+		settings.dataType = 'json';
+		settings.data = reqData;
+		settings.context = dataset;
+		if(dataset.csrfToken) {
+			var headers = settings.headers || {};
+			headers.csrfToken = dataset.csrfToken;
+			settings.headers = headers;
+		}
+		
+		var defer = jQuery.Deferred();
+		jQuery.ajax(url, settings)
+		.done(function(data, textStatus, jqXHR) {
+			if(data) {
+				if(data.csrfToken) {
+					this.csrfToken = data.csrfToken;
+				}
+				var errorCode = data.errorCode;
+				if (errorCode) {
+					defer.reject(data, this);
+					return;
+				}
+			}
+			defer.resolve(data, this);
+		})
+		.fail(function( jqXHR, textStatus, errorThrown ) {
+			var data = jqXHR.responseJSON,
+				result;
+			if(data &amp;&amp; data.errorCode) {
+				result = {errorCode: data.errorCode, errorMessage: data.errorMessage};
+			} else {
+				var errorCode = textStatus,
+					errorMessage = textStatus;
+				if(textStatus == 'error') {
+					errorCode = '0000';
+					errorMessage = jsletlocale.Common.ConnectError;
+				}
+				result = {errorCode: errorCode, errorMessage: errorMessage};
+			}
+			defer.reject(result, this);
+		})
+		.always(function(dataOrJqXHR, textStatus, jqXHRorErrorThrown) {
+			if(dataOrJqXHR &amp;&amp; jslet.isFunction(dataOrJqXHR.done)) { //fail
+				var data = dataOrJqXHR.responseJSON,
+					result;
+				if(data &amp;&amp; data.errorCode) {
+					result = {errorCode: data.errorCode, errorMessage: data.errorMessage};
+				} else {
+					result = {errorCode: textStatus, errorMessage: jqXHRorErrorThrown};
+				}
+				defer.always(result, this);
+			} else {
+				defer.always(dataOrJqXHR, this);
+			}
+		});
+		return defer.promise();
+	};
+};
+</pre>
+</body>
+</html>

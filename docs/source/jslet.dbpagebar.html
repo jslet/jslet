@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js"><span id='jslet-ui-DBPageBar'>/**
+</span> * @class 
+ * @extend jslet.ui.DBControl
+ * 
+ * DBPageBar. Features: &lt;br /&gt;
+ * 1. First page, Prior Page, Next Page, Last Page; &lt;br /&gt;
+ * 2. Can go to specified page; &lt;br /&gt;
+ * 3. Can specify page size on runtime; &lt;br /&gt;
+ * 4. Need not write any code; &lt;br /&gt;
+ * 
+ * Example:
+ * 
+ *     @example
+ *      var jsletParam = {type:&quot;DBPageBar&quot;,dataset:&quot;bom&quot;,pageSizeList:[20,50,100,200]};
+ *
+ *     //1. Declaring:
+ *      &lt;div data-jslet='type:&quot;DBPageBar&quot;,dataset:&quot;bom&quot;,pageSizeList:[20,50,100,200]' /&gt;
+ *      or
+ *      &lt;div data-jslet='jsletParam' /&gt;
+ *
+ *     //2. Binding
+ *      &lt;div id=&quot;ctrlId&quot;  /&gt;
+ *      //Js snippet
+ *      var el = document.getElementById('ctrlId');
+ *      jslet.ui.bindControl(el, jsletParam);
+ *
+ *     //3. Create dynamically
+ *      jslet.ui.createControl(jsletParam, document.body);
+ */
+jslet.ui.DBPageBar = jslet.Class.create(jslet.ui.DBControl, {
+<span id='jslet-ui-DBPageBar-method-initialize'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	initialize: function ($super, el, params) {
+		var Z = this;
+		Z.allProperties = 'styleClass,dataset,showPageSize,pageSizeList';
+		Z._showPageSize = true;
+		
+		Z._pageSizeList = [100, 200, 500];
+
+		Z._currPageCount = 0;
+		
+		$super(el, params);
+	},
+
+<span id='jslet-ui-DBPageBar-property-showPageSize'>	/**
+</span>	 * @property
+	 * 
+	 * Identify whether show &quot;Page Size&quot; part or not.
+	 * 
+	 * @param {Boolean | undefined} showPageSize True - show &quot;PageSize&quot;, false - otherwise.
+	 * 
+	 * @return {this | Boolean}
+	 */
+	showPageSize: function(showPageSize) {
+		if(showPageSize === undefined) {
+			return this._showPageSize;
+		}
+		this._showPageSize = showPageSize ? true: false;
+		return this;
+	},
+	
+<span id='jslet-ui-DBPageBar-property-pageSizeList'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get a list of page size.
+	 * 
+	 * @param {Integer[] | undefined} pageSizeList Array of integer, like: [50,100,200].
+	 * 
+	 * @return {this | Integer[]} 
+	 */
+	pageSizeList: function(pageSizeList) {
+		if(pageSizeList === undefined) {
+			return this._pageSizeList;
+		}
+		jslet.Checker.test('DBPageBar.pageSizeList', pageSizeList).isArray();
+		var size;
+		for(var i = 0, len = pageSizeList.length; i &lt; len; i++) {
+			size = pageSizeList[i];
+			jslet.Checker.test('DBPageBar.pageSizeList', size).isGTZero();
+		}
+		this._pageSizeList = pageSizeList;
+		return this;
+	},
+	
+<span id='jslet-ui-DBPageBar-method-isValidTemplateTag'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	isValidTemplateTag: function (el) {
+		var tagName = el.tagName.toLowerCase();
+		return tagName == 'div';
+	},
+
+<span id='jslet-ui-DBPageBar-method-bind'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	bind: function () {
+		var Z = this,
+			jqEl = jQuery(Z.el);
+		if (!jqEl.hasClass('jl-pagebar')) {
+			jqEl.addClass('jl-pagebar');
+		}
+		var template = [
+		'&lt;div class=&quot;form-inline form-group&quot;&gt;',
+	  	'&lt;select class=&quot;form-control input-sm jl-pb-pagesize&quot; title=&quot;', jsletlocale.DBPageBar.pageSize, '&quot;&gt;&lt;/select&gt;',
+	    '&lt;button class=&quot;btn btn-default btn-sm jl-pb-first&quot; title=&quot;', jsletlocale.DBPageBar.first, '&quot;&gt;&lt;i class=&quot;fa fa-angle-double-left&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;/button&gt;',
+	    '&lt;button class=&quot;btn btn-default btn-sm jl-pb-prior&quot; title=&quot;', jsletlocale.DBPageBar.prior, '&quot;&gt;&lt;i class=&quot;fa fa-angle-left&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;/button&gt;',
+	    '&lt;button class=&quot;btn btn-default btn-sm jl-pb-next&quot; title=&quot;', jsletlocale.DBPageBar.next, '&quot;&gt;&lt;i class=&quot;fa fa-angle-right&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;/button&gt;',
+	    '&lt;button class=&quot;btn btn-default btn-sm jl-pb-last&quot; title=&quot;', jsletlocale.DBPageBar.last, '&quot;&gt;&lt;i class=&quot;fa fa-angle-double-right&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;/button&gt;',
+	    '&lt;button class=&quot;btn btn-default btn-sm jl-pb-refresh&quot; title=&quot;', jsletlocale.DBPageBar.refresh, '&quot;&gt;&lt;i class=&quot;fa fa-refresh&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;/button&gt;',
+	  	'&lt;select class=&quot;form-control input-sm jl-pb-pagenum&quot; title=&quot;', jsletlocale.DBPageBar.pageNum, '&quot;&gt;&lt;/select&gt;',
+	    '&lt;/div&gt;'];
+		
+		jqEl.html(template.join(''));
+
+		Z._jqPageSize = jqEl.find('.jl-pb-pagesize');
+		if (Z._showPageSize) {
+			Z._jqPageSize.removeClass('jl-hidden');
+			var pgSizeList = Z._pageSizeList;
+			var cnt = pgSizeList.length, s = '', pageSize;
+			for (var i = 0; i &lt; cnt; i++) {
+				pageSize = pgSizeList[i];
+				s += '&lt;option value=&quot;' + pageSize + '&quot;&gt;' + pageSize + '&lt;/option&gt;';
+			}
+
+			Z._jqPageSize.html(s);
+			if(cnt &gt; 0) {
+				Z._dataset.pageSize(parseInt(pgSizeList[0]));
+			}
+			Z._jqPageSize.on('change', function (event) {
+				var dsObj = Z.dataset();
+				dsObj.pageNo(1);
+				dsObj.pageSize(parseInt(this.value));
+				dsObj.requery();
+			});
+		} else {
+			Z._jqPageSize.addClass('jl-hidden');
+		}
+
+		Z._jqFirstBtn = jqEl.find('.jl-pb-first');
+		Z._jqPriorBtn = jqEl.find('.jl-pb-prior');
+		Z._jqNextBtn = jqEl.find('.jl-pb-next');
+		Z._jqLastBtn = jqEl.find('.jl-pb-last');
+		Z._jqRefreshBtn = jqEl.find('.jl-pb-refresh');
+		Z._jqPageNum = jqEl.find('.jl-pb-pagenum');
+		
+		Z._jqFirstBtn.on('click', function (event) {
+			if(this.disabled) {
+				return;
+			}
+			var dsObj = Z.dataset();
+			dsObj.pageNo(1);
+			dsObj.requery();
+		});
+
+		Z._jqPriorBtn.on('click', function (event) {
+			if(this.disabled) {
+				return;
+			}
+			var dsObj = Z.dataset(),
+				num = dsObj.pageNo();
+			if (num == 1) {
+				return;
+			}
+			dsObj.pageNo(num - 1);
+			dsObj.requery();
+		});
+
+		Z._jqPageNum.on('change', function (event) {
+			var dsObj = Z.dataset();
+			var num = parseInt(this.value);
+			dsObj.pageNo(num);
+			dsObj.requery();
+		});
+
+		Z._jqNextBtn.on('click', function (event) {
+			if(this.disabled) {
+				return;
+			}
+			var dsObj = Z.dataset(),
+				num = dsObj.pageNo();
+			if (num &gt;= dsObj.pageCount()) {
+				return;
+			}
+			dsObj.pageNo(++num);
+			dsObj.requery();
+		});
+
+		Z._jqLastBtn.on('click', function (event) {
+			if(this.disabled) {
+				return;
+			}
+			var dsObj = Z.dataset();
+
+			if (dsObj.pageCount() &lt; 1) {
+				return;
+			}
+			dsObj.pageNo(dsObj.pageCount());
+			dsObj.requery();
+		});
+
+		Z._jqRefreshBtn.on('click', function (event) {
+			Z.dataset().requery();
+		});
+
+		Z.renderAll();
+	},
+
+<span id='jslet-ui-DBPageBar-method-refreshControl'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	refreshControl: function (evt) {
+		if (evt &amp;&amp; evt.eventType != jslet.data.RefreshEvent.CHANGEPAGE) {
+			return;
+		}
+		this._refreshPageNum();
+		this._refreshButtonStatus();
+	},
+
+	_refreshPageNum: function() {
+		var Z = this,
+			num = Z._dataset.pageNo(), 
+			count = Z._dataset.pageCount();
+		if(count !== Z._currPageCount) {
+			var s = '';
+			for(var i = 1; i &lt;= count; i++) {
+				s += '&lt;option value=&quot;' + i + '&quot;&gt;' + i + '&lt;/option&gt;';
+			}
+			Z._jqPageNum.html(s);
+			Z._currPageCount = count;
+		}
+		Z._jqPageNum.val(num);
+	},
+	
+	_refreshButtonStatus: function() {
+		var Z = this, 
+			ds = Z._dataset,
+			pageNo = ds.pageNo(),
+			pageCnt = ds.pageCount(),
+			prevDisabled = true,
+			nextDisabled = true;
+		if(pageNo &gt; 1) {
+			prevDisabled = false;
+		}
+		if(pageNo &lt; pageCnt) {
+			nextDisabled = false;
+		}
+		Z._jqFirstBtn.attr('disabled', prevDisabled);
+		Z._jqPriorBtn.attr('disabled', prevDisabled);
+		Z._jqNextBtn.attr('disabled', nextDisabled);
+		Z._jqLastBtn.attr('disabled', nextDisabled);
+	},
+	
+<span id='jslet-ui-DBPageBar-method-renderAll'>	/**
+</span>	 * @override
+	 */
+	renderAll: function () {
+		this.refreshControl();
+	},
+	
+<span id='jslet-ui-DBPageBar-method-destroy'>	/**
+</span>	 * @override
+	 */
+	destroy: function($super){
+		var Z = this;
+		if(Z._jqPageSize) {
+			Z._jqPageSize.off();
+			Z._jqPageSize = null;
+		}
+		Z._jqFirstBtn.off();
+		Z._jqPriorBtn.off();
+		Z._jqNextBtn.off();
+		Z._jqLastBtn.off();
+		Z._jqPageNum.off();
+		Z._jqRefreshBtn.off();
+
+		Z._jqFirstBtn = null;
+		Z._jqPriorBtn = null;
+		Z._jqNextBtn = null;
+		Z._jqLastBtn = null;
+		Z._jqPageNum = null;
+		Z._jqRefreshBtn = null;
+		
+		$super();
+	}
+
+});
+
+jslet.ui.register('DBPageBar', jslet.ui.DBPageBar);
+jslet.ui.DBPageBar.htmlTemplate = '&lt;div&gt;&lt;/div&gt;';
+</pre>
+</body>
+</html>
