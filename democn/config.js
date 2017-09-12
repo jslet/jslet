@@ -17,7 +17,7 @@ requirejs.config({
         "jslet-ui": '../dist/jslet-ui.min',
         datasetmetastore: 'common/datasetmetastore',
 		//echart
-		'echarts': '../lib/chart/echarts',
+		'echarts': '../lib/chart/echarts.simple.min',
         
         //xlxs
         'jszip': '../lib/xlsx/jszip',
