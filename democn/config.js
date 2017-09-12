@@ -14,7 +14,7 @@ requirejs.config({
         //Jslet
         "jslet-locale": '../dist/locale/zh-cn/jslet-locale.min',
         "jslet-data": '../dist/jslet-data.min',
-        "jslet-ui": '../dist/jslet-ui',
+        "jslet-ui": '../dist/jslet-ui.min',
         datasetmetastore: 'common/datasetmetastore',
 		//echart
 		'echarts': '../lib/chart/echarts',
