@@ -13,8 +13,8 @@ requirejs.config({
         jquery: '../lib/jquery/jquery-2.2.3.min',
         //Jslet
         "jslet-locale": '../dist/locale/zh-cn/jslet-locale.min',
-        "jslet-data": '../dist/jslet-data.min',
-        "jslet-ui": '../dist/jslet-ui.min',
+        "jslet-data": '../dist/jslet-data',
+        "jslet-ui": '../dist/jslet-ui',
         datasetmetastore: 'common/datasetmetastore',
 		//echart
 		'echarts': '../lib/chart/echarts.simple.min',
@@ -49,8 +49,8 @@ define('fontawesome', ['css!../lib/fontawesome/css/font-awesome.min.css']);
 
 define('jslet', ['echarts', 'jslet-data', 'jslet-ui'], function(ec) {
 	jslet.global.echarts = ec;
+	require(['bootstrapcss', 'fontawesome', 'css!../dist/asset/jslet.css', 
+			 'css!../dist/asset/' + theme + '/jslet-theme.css', 
+			 'jslet']);
 });
 
-require(['bootstrapcss', 'fontawesome', 'css!../dist/asset/jslet.css', 
-         'css!../dist/asset/' + theme + '/jslet-theme.css', 
-         'jslet']);

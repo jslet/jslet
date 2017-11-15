@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="../css/demo.css" />
+    
+    <title>Jslet - 员工管理(服务端无实体)</title>
+    <script type="text/javascript" data-main="../config.js" src="../lib/requirejs/require.min.js"></script>
+    <script type="text/javascript">
+	    require(['java/employee']);
+    </script>
+</head>
+<body>
+    <div class="demo-header">
+    <h3 id="top">Jslet - 员工管理(服务端无实体)</h3>
+	<div style="line-height: 2rem" class="demo-desc">
+	服务端无实体表示，在服务端无需创建实体类，前端数据将转换为：com.jslet.dataset.record.DynamicRecord.
+	<h4 style="color: red">此页面需要服务端支持，否则无法查询和保存！</h4>
+	</div>
+	</div>
+	<hr />
+
+	<div style="padding: 10px;border-radius: 5px">
+	    <button class="btn btn-default btn-sm" id="btnQuery"> 查询 </button>
+	    <button class="btn btn-default btn-sm" id="btnSave"> 保存 </button>
+    </div>
+	
+	    <div class="form-horizontal" >
+			<div class="form-group" style="margin-left:0">
+			<div class="col-sm-12" style="padding-right: 20px">
+	        <div data-jslet="type:'DBTable',dataset:'employee',hasSelectCol:true,editable:true" style="height:150px"></div>
+			</div>
+			</div>
+	    </div>
+	</div>
+	<div>
+	<hr />
+	
+	<h3>Source</h3>
+	<h4>1、前端代码</h4>
+    <pre class="prettyprint linenums lang-html"><code>
+	/********************************** 定义数据集 ************************************************/
+    //字段配置
+    var fldCfg = [
+       {name: 'action', dataType: 'E'}, 
+       {name: 'id', dataType: 'S', length: 11, label: '编码', required: true, tip: '编码不得重复!', unique: true}, 
+       {name: 'name', dataType: 'S', length: 20, label: '姓名', required: true, unique: true, aggraded: true, tip: '名称不得重复!'}, 
+       {name: 'gender', dataType: 'S', length: 6, label: '性别'},
+       {name: 'age', dataType: 'N', length: 6, label: '年龄', displayWidth: 6, dataRange: {min: 18, max: 60 }, formula: '[birthday]?((new Date()).getFullYear() - [birthday].getFullYear()): 0'},
+       {name: 'birthday', dataType: 'D', label: '生日', displayFormat: 'yyyy-MM-dd', dataRange: {min: new Date(1960, 1, 1), max: new Date()}},
+       {name: 'salary', dataType: 'N', length: 16, scale: 2, label: '薪水', displayFormat: '￥#,##0.##', aggraded: true}
+       ];
+    //创建“员工”数据集
+    var dsEmployee = new jslet.data.Dataset({name: 'employee', fields: fldCfg});
+    <b>
+    //设置查找URL
+    dsEmployee.queryUrl("/employee/find");
+    //设置保存URL
+    dsEmployee.submitUrl("/employee/save");
+    </b>
+	/********************************** 结束定义数据集 ************************************************/
+	
+    //查询数据
+    $('#btnQuery').click(function() {
+        <b>dsEmployee.query();</b>	
+    });
+    //保存数据
+    $('#btnSave').click(function() {
+        <b>dsEmployee.submit();</b>	
+    });
+    //创建控件
+    jslet.ui.install();
+	</code></pre>
+
+	<h4>2、后端Java代码</h4>
+    <pre class="prettyprint linenums"><code>
+@RestController
+@RequestMapping("/employee")
+public class EmployeeController {
+
+	@Autowired
+	private EmployeeService employeeService;
+
+	@RequestMapping("/find")
+	public <b>JsletResponse</b> find(<b>@RequestBody JsletRequest</b> request) {
+		List<DynamicRecord> employees = this.employeeService.findAll();
+
+		// 返回查询结果到前端
+		return new JsletResponse(employees);
+	}
+
+	@SuppressWarnings("unchecked")
+	@RequestMapping("/save")
+	public <b>JsletResponse</b> save(<b>@RequestBody JsletRequest</b> request) {
+		// 获取前端修改的数据
+		List<DynamicRecord> employees = (List<DynamicRecord>) request.getMain();
+
+		employees = this.employeeService.save(employees);
+
+		// 如果后端修改数据，则需将修改后的数据返回给前端同步
+		return new JsletResponse(employees);
+		// 如果数据没有被修改，直接返回null即可
+		// return null;
+	}
+}
+	</code></pre>
+	
+    <script type="text/javascript">
+       window.LOADER_BASE_URL = "../lib/prettify";
+    </script>
+    <script type="text/javascript" src="../lib/prettify/run_prettify.js"></script>
+		
+</body>
+</html>

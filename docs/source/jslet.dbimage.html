@@ -171,7 +171,10 @@ jslet.ui.DBImage = jslet.Class.create(jslet.ui.DBFieldControl, {
 		jqEl.addClass('img-responsive img-rounded');
 		if(jslet.ui.ImageViewer) {
 			jqEl.on('click', function() {
-				if(Z._locked || !Z._enableViewer) {
+				if(Z._locked || !Z._enableViewer || !Z._dataset || !Z._field) {
+					return;
+				}
+				if(Z._dataset.recordCount() === 0 || !Z._dataset.getFieldValue(Z._field)) {
 					return;
 				}
 				var viewer = new jslet.ui.ImageViewer();

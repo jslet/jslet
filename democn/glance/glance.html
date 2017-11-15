@@ -80,10 +80,13 @@
 	<li>筛选数据：看到表格里的每个字段的列头里漏斗图标没，使劲点下去看看；</li>
 	<li>排序：还是表格的列头，这下点字段名看看，再点一下，想按多个字段排序怎么办，那就CTRL+点击表头，你想按几个字段都可以的；</li>
 	<li>合计：看看“姓名”和“工资”的列尾部；</li>
+	<li>字段值加密：看看“身份证号”，支持部分加密和全部加密；</li>
 	<li>公式字段：看看“年龄”字段，通过“生日”字段计算出来的；</li>
 	<li>上下文规则：看不懂，没关系，改变一下“性别”字段的值，然后点开“称呼”看看，如果“性别”是男的，怎么的也不允许输入“女士”进去吧；</li>
 	<li>数据校验：想“工资”录入字母，NO！想录入重复的“姓名”和“编码”或者不录入，NO！年龄想小于18岁，没门！还有其它的，不一一列举了；</li>
-	<li>最后看看源码：服务端交互，不用写任何代码的，什么JSON，什么AJax，统统不要，只需提供URL即可。</li>
+	<li>服务端交互，不用写任何代码的，什么JSON，什么AJax，统统不要，只需提供URL即可。</li>
+	<li>打开页面时增加了防止页面跳动的功能，打开时页签上有等待图标出现，整个页面生成后，才整体显示出来，这样页面不会跳动；</li>
+	<li>页签里的数据有变动时，页签上会有一个星号（*）出现，提醒用户数据有变动，重点是实现此功能只需一行代码；</li>
 	</ol>
 	以上就是100行代码能实现上面的功能！
 	</div>
@@ -221,9 +224,19 @@ Employee Editor：
 		chartDlg.show();
 	});
 
-	//创建控件，创建完成后，查询数据
+	dsEmployee.query();
+	//创建控件
 	jslet.ui.install(function() {
-		dsEmployee.query(); 
+		try {
+			//界面创建完毕后，显示整个页面，这样就可避免整个在创建过程中页面跳动，
+			//此功能需要菜单项增加debounce:true属性，如：
+			//{id: 'glance', name: '惊鸿一瞥', url: 'glance/glance.html', debounce: true}
+			jslet.ui.desktopUtil.showTabPanel();
+			//加入此代码后，只要employee数据集的数据有变动，会在页签（TabItem）上增加一个星号（*），关闭此页签时，也会有提示
+			jslet.ui.desktopUtil.registerEditableDataset('employee');
+		} catch(e) {
+			console.log('此页面不在jslet.ui.DeskTop中打开，所以报错！');
+		}
 	});
 	</code></pre>
 
@@ -283,32 +296,32 @@ Employee Editor：
 		parentField: 'parentid', autoRefreshHostDataset: true,
 		records: data});
 
-
     //"员工信息"
     var fldCfg = [
-       {name: 'id', dataType: 'S', length: 11, label: '编码', required: true, tip: '编码不得重复!', unique: true}, 
-       {name: 'name', dataType: 'S', length: 15, label: '姓名', required: true, unique: true, aggraded: true, tip: '名称不得重复!'}, 
+       {name: 'id', dataType: 'S', length: 6, label: '编码', required: true, tip: '编码不得重复!', unique: true}, 
+       {name: 'name', dataType: 'S', length: 20, label: '姓名', required: true, unique: true, aggraded: true, tip: '名称不得重复!', displayWidth: 10}, 
        {name: 'department', dataType: 'S', length: 10, label: '部门', dislayWidth: 16, required: true, lookup: {dataset: 'department'}, editControl: 'DBComboSelect'}, 
-       {name: 'gender', dataType: 'S', length: 4, label: '性别', lookup: {dataset: 'gender'}},
+       {name: 'gender', dataType: 'S', length: 6, label: '性别', lookup: {dataset: 'gender'}},
        {name: 'salutation', dataType: 'S', length: 10, label: '称呼', displayWidth: 6, lookup: {dataset: 'salutation'}},
-       {name: 'age', dataType: 'N', length: 6, label: '年龄', displayWidth: 6, dataRange: {min: 18, max: 60 }, formula: '(new Date()).getFullYear() - ([birthday]?[birthday].getFullYear(): 0)'},
-       {name: 'married', dataType: 'B', label: '婚否', trueValue: 1, falseValue: 0, displayWidth: 10},
-       {name: 'birthday', dataType: 'D', label: '生日', displayFormat: 'yyyy-MM-dd', dataRange: {min: new Date(1960, 1, 1)}},
+       {name: 'age', dataType: 'N', length: 6, label: '年龄', displayWidth: 6, dataRange: {min: 18, max: 60 }, formula: '[birthday]?((new Date()).getFullYear() - [birthday].getFullYear()): 0'},
+       {name: 'married', dataType: 'B', label: '已婚', trueValue: 1, falseValue: 0, displayWidth: 10},
+       {name: 'birthday', dataType: 'D', label: '生日', displayFormat: 'yyyy-MM-dd', dataRange: {min: new Date(1960, 1, 1), max: new Date()}},
        {name: 'position', dataType: 'S', length: 10, label: '职位', lookup: {dataset: 'position'}},
-       {name: 'salary', dataType: 'N', length: 16, scale: 2, label: '薪水', displayFormat: '￥#,##0.##', aggraded: true},
-       {name: 'university', dataType: 'S', length: 20, label: '毕业院校'},
+       {name: 'salary', dataType: 'N', length: 10, scale: 2, label: '薪水', displayFormat: '￥#,##0.##', aggraded: true},
+       {name: 'currency', dataType: 'S', length: 6, label: '货币', lookup: {dataset: 'currency'}},
+       {name: 'idcard', dataType: 'S', length: 18, label: '身份证号', encrypted: {start: 10, end: 15},
+	   		regularExpr: /\d{18}/ig, regularMessage: '无效身份证号, 须18位数字!', tip: '18数字'},
+       {name: 'university', dataType: 'S', length: 50, label: '毕业院校', displayWidth: 16},
        {name: 'province', dataType: 'S', length: 10, label: '省份', lookup: {dataset: 'province'}, editControl: 'DBComboSelect'},
-       {name: 'city', dataType: 'S', length: 8, label: '城市', visible: false},
-       {name: 'photo', dataType: 'S', length: 10, label: '照片'},
-       {name: 'officePhone', dataType: 'S', length: 12, label: '公司电话', 
+       {name: 'city', dataType: 'S', length: 10, label: '城市', visible: false},
+       {name: 'photo', dataType: 'S', length: 50, label: '照片', displayWidth: 10},
+       {name: 'officePhone', dataType: 'S', length: 20, label: '公司电话', 
     	   		regularExpr: /(\(\d{3,4}\)|\d{3,4}-|\s)?\d{8}/ig, regularMessage: '无效电话号码!', tip: '格式:999-99999999'},
        {name: 'cellPhone', dataType: 'S', length: 12, label: '手机', 
     	   		regularExpr: /(\(\d{3,4}\)|\d{3,4}-|\s)?\d{8}/ig, regularMessage: '无效手机号码!', tip: '"1"+10 数字'},
        {name: 'email', dataType: 'S', length: 50, label: 'Email', displayWidth: 20, 
     	   		regularExpr: /^[a-zA-Z_0-9-'\+~]+(\.[a-zA-Z_0-9-'\+~]+)*@([a-zA-Z_0-9-]+\.)+[a-zA-Z]{2,7}$/ig, regularMessage: '无效 Email地址!', tip: 'foo@foo.com'},
-       {name: 'idcard', dataType: 'S', length: 18, label: '省份证号', 
-    	   		regularExpr: /\d{18}/ig, regularMessage: '无效身份证号, 须18位数字!', tip: '18数字'},
-       {name: 'summary', dataType: 'S', length: 200, label: '备注', displayWidth: 20} 
+       {name: 'summary', dataType: 'S', length: 200, label: '备注', displayWidth: 20, editControl: 'DBTextArea'} 
     ];
 
     //创建规则：“称呼”字段的可选项根据“性别”字段值进行变化

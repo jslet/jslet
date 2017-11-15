@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="../css/demo.css" />
+    
+    <title>Jslet - 用户管理(服务端有实体)</title>
+    <script type="text/javascript" data-main="../config.js" src="../lib/requirejs/require.min.js"></script>
+    <script type="text/javascript">
+	    require(['java/user']);
+    </script>
+</head>
+<body>
+    <div class="demo-header">
+    <h3 id="top">Jslet - 用户管理(服务端有实体)</h3>
+	<div style="line-height: 2rem" class="demo-desc">
+	服务端有实体表示，在服务端有相应的实体类，前端数据将转换为：com.jslet.dataset.record.DynamicRecord.
+	<h4 style="color: red">此页面需要服务端支持，否则无法查询和保存！</h4>
+	</div>
+	</div>
+	<hr />
+
+	<div style="padding: 10px;border-radius: 5px">
+	    <button class="btn btn-default btn-sm" id="btnQuery"> 查询 </button>
+	    <button class="btn btn-default btn-sm" id="btnSave"> 保存 </button>
+    </div>
+	
+	    <div class="form-horizontal" >
+			<div class="form-group" style="margin-left:0">
+			<div class="col-sm-12" style="padding-right: 20px">
+	        <div data-jslet="type:'DBTable',dataset:'user',hasSelectCol:true,editable:true" style="height:150px"></div>
+			</div>
+			</div>
+	    </div>
+	</div>
+	<div>
+	<hr />
+	
+	<h3>Source</h3>
+	<h4>1、前端代码</h4>
+    <pre class="prettyprint linenums lang-html"><code>
+	/********************************** 定义数据集 ************************************************/
+    //字段信息
+    var fldCfg = [
+       {name: 'action', dataType: 'E'}, 
+       {name: 'userId', dataType: 'N', length: 11, label: '用户Id', required: true, tip: 'UserId不得重复!', unique: true}, 
+       {name: 'userCode', dataType: 'S', length: 20, label: '用户编码', required: true, unique: true, aggraded: true, tip: '用户编码不得重复!'}, 
+       {name: 'userName', dataType: 'S', length: 20, label: '用户姓名', required: true, unique: true}, 
+       {name: 'password', dataType: 'S', length: 20, label: '密码', editControl: 'DBPassword',encrypted: {start: 0, end: 100}},
+       {name: 'tel', dataType: 'S', length: 20, label: '电话'},
+       {name: 'remark', dataType: 'S', length: 20, label: '备注'}
+       ];
+    //创建“用户”数据集
+    var dsUser = new jslet.data.Dataset({name: 'user', fields: fldCfg});
+    //设置后端实体类
+    <b>dsUser.recordClass('com.jslet.sample.user.User');</b>
+    //设置查找URL
+	<b>dsUser.queryUrl("/user/find");</b>
+	//设置保存URL
+	<b>dsUser.submitUrl("/user/save");</b>
+	
+	/********************************** 结束定义数据集 ************************************************/
+	
+	//查询数据
+	$('#btnQuery').click(function() {
+		<b>dsUser.query();</b>	
+	});
+	//保存数据
+	$('#btnSave').click(function() {
+		<b>dsUser.submit();</b>
+	});
+	//创建控件
+	jslet.ui.install();
+	</code></pre>
+
+	<h4>2、后端Java代码</h4>
+    <pre class="prettyprint linenums"><code>
+@RestController
+@RequestMapping("/user")
+public class UserController {
+
+	@Autowired
+	private IUserService userService;
+
+	@RequestMapping(value = "/find", method = RequestMethod.POST)
+	public JsletResponse findAll(@RequestBody JsletRequest jsletRequest) {
+		// 获取前端传入的查询条件
+		Map&lt;String, Object> criteria = jsletRequest.getCriteria();
+
+		List&lt;User> users = userService.findUserList(criteria);
+		// 返回数据
+		return new JsletResponse(users);
+	}
+
+	@SuppressWarnings("unchecked")
+	@RequestMapping(value = "/save", method = RequestMethod.POST)
+	public JsletResponse save(@RequestBody JsletRequest jsletRequest) {
+		// 获取前端修改的数据
+		<b>List&lt;User> users = (List&lt;User>) jsletRequest.getMain();</b>
+
+		userService.save(users);
+
+		// 如果后端修改数据，则需将修改后的数据返回给前端同步
+		return new JsletResponse(users);
+		// 如果数据没有被修改，直接返回null即可
+		// return null;
+	}
+}
+	</code></pre>
+	
+    <script type="text/javascript">
+       window.LOADER_BASE_URL = "../lib/prettify";
+    </script>
+    <script type="text/javascript" src="../lib/prettify/run_prettify.js"></script>
+		
+</body>
+</html>

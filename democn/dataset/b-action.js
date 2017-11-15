@@ -18,7 +18,7 @@
 	var masterMeta = getMeta('salesMaster');
 	var firstFldCfg = masterMeta.fields[0];
 	firstFldCfg.dataType = 'A';
-	firstFldCfg.fixedValue = '<button name="btnAudit" class="btn btn-default btn-sm">审核</button> <button name="btnCancelAudit" class="btn btn-default btn-sm">取消审核</button>';
+	firstFldCfg.fixedValue = '<button name="btnAudit" class="btn btn-default btn-sm" style="padding-top: 0;padding-bottom:0">审核</button> <button name="btnCancelAudit" class="btn btn-default btn-sm" style="padding-top: 0;padding-bottom:0">取消审核</button>';
 	firstFldCfg.displayWidth = 11;
 	
 	//创建销售明细数据集

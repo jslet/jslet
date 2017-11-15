@@ -19,7 +19,7 @@
 </span> * @class 
  * @extend jslet.ui.Control
  * 
- * Jslet Desktop, this control is used to a desktop with a main menu and a workbench.&lt;br /&gt;  
+ * Jslet Desktop, this control is combined with a main menu and a workbench.&lt;br /&gt;  
  * Example:
  * 
  *     @example
@@ -307,6 +307,10 @@ jslet.ui.Desktop = jslet.Class.create(jslet.ui.Control, {
 	_doContentLoading: function(id, tabItemCfg) {
     	if(tabItemCfg.debounce) {
     		jQuery('#' + id).hide();
+    		var timeout = window.setTimeout(function() {
+    			jQuery('#' + id).fadeIn('fast');
+    			window.clearTimeout(timeout);
+    		}, 5000);
     	}
 		
 	},
@@ -380,15 +384,20 @@ jslet.ui.DesktopUtil = function() {
 	function getDesktop() {
 		var p = window.parent;
 		var result = null;
-		while(true) {
-			if(!p) {
-				break;
+		if(p !== window) {
+			while(true) {
+				if(!p) {
+					break;
+				}
+				if(p.jslet &amp;&amp; p.jslet.desktop) {
+					result = p.jslet.desktop;
+					break;
+				}
+				if(p === p.parent) {
+					break;
+				}
+				p = p.parent;
 			}
-			if(p.jslet &amp;&amp; p.jslet.desktop) {
-				result = p.jslet.desktop;
-				break;
-			}
-			p = p.parent;
 		}
 		if(!result) { //If parent not exists desktop object, check current window object.
 			if(window.jslet) {
@@ -419,7 +428,7 @@ jslet.ui.DesktopUtil = function() {
 			}
 			if(!checkDatasetChangedHandler &amp;&amp; getCurrTabItemId()) {
 				var self = this;
-				//定时监测注册的数据集是否有变动，有变动则发送消息给主页面的tabcontrol控件更新修改状态
+				//Check whether dataset is changed
 				checkDatasetChangedHandler = window.setInterval(function() {
 					var dsObj, isDiff = false,
 						changed = false, oldChanged, newChanged;

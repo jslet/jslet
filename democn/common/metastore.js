@@ -68,8 +68,8 @@
 
     //"员工信息"
     var fldCfg = [
-       {name: 'id', dataType: 'S', length: 11, label: '编码', required: true, tip: '编码不得重复!', unique: true}, 
-       {name: 'name', dataType: 'S', length: 20, label: '姓名', required: true, unique: true, aggraded: true, tip: '名称不得重复!'}, 
+       {name: 'id', dataType: 'S', length: 6, label: '编码', required: true, tip: '编码不得重复!', unique: true}, 
+       {name: 'name', dataType: 'S', length: 20, label: '姓名', required: true, unique: true, aggraded: true, tip: '名称不得重复!', displayWidth: 10}, 
        {name: 'department', dataType: 'S', length: 10, label: '部门', dislayWidth: 16, required: true, lookup: {dataset: 'department'}, editControl: 'DBComboSelect'}, 
        {name: 'gender', dataType: 'S', length: 6, label: '性别', lookup: {dataset: 'gender'}},
        {name: 'salutation', dataType: 'S', length: 10, label: '称呼', displayWidth: 6, lookup: {dataset: 'salutation'}},
@@ -77,20 +77,20 @@
        {name: 'married', dataType: 'B', label: '已婚', trueValue: 1, falseValue: 0, displayWidth: 10},
        {name: 'birthday', dataType: 'D', label: '生日', displayFormat: 'yyyy-MM-dd', dataRange: {min: new Date(1960, 1, 1), max: new Date()}},
        {name: 'position', dataType: 'S', length: 10, label: '职位', lookup: {dataset: 'position'}},
-       {name: 'salary', dataType: 'N', length: 16, scale: 2, label: '薪水', displayFormat: '￥#,##0.##', aggraded: true},
+       {name: 'salary', dataType: 'N', length: 10, scale: 2, label: '薪水', displayFormat: '￥#,##0.##', aggraded: true},
        {name: 'currency', dataType: 'S', length: 6, label: '货币', lookup: {dataset: 'currency'}},
-       {name: 'university', dataType: 'S', length: 50, label: '毕业院校'},
+       {name: 'idcard', dataType: 'S', length: 18, label: '身份证号', encrypted: {start: 10, end: 15},
+	   		regularExpr: /\d{18}/ig, regularMessage: '无效身份证号, 须18位数字!', tip: '18数字'},
+       {name: 'university', dataType: 'S', length: 50, label: '毕业院校', displayWidth: 16},
        {name: 'province', dataType: 'S', length: 10, label: '省份', lookup: {dataset: 'province'}, editControl: 'DBComboSelect'},
        {name: 'city', dataType: 'S', length: 10, label: '城市', visible: false},
-       {name: 'photo', dataType: 'S', length: 50, label: '照片'},
+       {name: 'photo', dataType: 'S', length: 50, label: '照片', displayWidth: 10},
        {name: 'officePhone', dataType: 'S', length: 20, label: '公司电话', 
     	   		regularExpr: /(\(\d{3,4}\)|\d{3,4}-|\s)?\d{8}/ig, regularMessage: '无效电话号码!', tip: '格式:999-99999999'},
        {name: 'cellPhone', dataType: 'S', length: 12, label: '手机', 
     	   		regularExpr: /(\(\d{3,4}\)|\d{3,4}-|\s)?\d{8}/ig, regularMessage: '无效手机号码!', tip: '"1"+10 数字'},
        {name: 'email', dataType: 'S', length: 50, label: 'Email', displayWidth: 20, 
     	   		regularExpr: /^[a-zA-Z_0-9-'\+~]+(\.[a-zA-Z_0-9-'\+~]+)*@([a-zA-Z_0-9-]+\.)+[a-zA-Z]{2,7}$/ig, regularMessage: '无效 Email地址!', tip: 'foo@foo.com'},
-       {name: 'idcard', dataType: 'S', length: 18, label: '省份证号', 
-    	   		regularExpr: /\d{18}/ig, regularMessage: '无效身份证号, 须18位数字!', tip: '18数字'},
        {name: 'summary', dataType: 'S', length: 200, label: '备注', displayWidth: 20, editControl: 'DBTextArea'} 
     ];
 

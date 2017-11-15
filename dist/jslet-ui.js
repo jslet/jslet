@@ -40,6 +40,7 @@
 * Control Class, base class for all control.
 */
 jslet.ui.Control = jslet.Class.create({
+	
 	/**
 	 * @protected
 	 * 
@@ -51,7 +52,8 @@ jslet.ui.Control = jslet.Class.create({
 	initialize: function (el, ctrlParams) {
 		var Z = this;
 		Z.el = el;
-
+		Z.binded = false;
+		
 		Z.allProperties = null;
 		ctrlParams = jslet.ui._evalParams(ctrlParams);
 		if (Z.isValidTemplateTag	&& !Z.isValidTemplateTag(Z.el)) {
@@ -86,6 +88,7 @@ jslet.ui.Control = jslet.Class.create({
 			jqEl.addClass(Z._styleClass);
 		}
 		Z.afterBind();
+		Z.binded = true;
 	},
 
 	/**
@@ -4088,8 +4091,6 @@ jslet.ui.ProgressBar = jslet.Class.create(jslet.ui.Control, {
 		
 		Z._labelText = '0%';
 		
-		Z._binded = false;
-		
 		$super(el, params);
 	},
 
@@ -4135,7 +4136,7 @@ jslet.ui.ProgressBar = jslet.Class.create(jslet.ui.Control, {
 			return this._labelText;
 		}
 		this._labelText = labelText;
-		if(this._binded) {
+		if(this.binded) {
 			var jqEl = jQuery(this.el);
 			var jqLabel = jqEl.find('.jl-progressbar-label');
 			jqLabel.text(labelText);
@@ -4149,7 +4150,6 @@ jslet.ui.ProgressBar = jslet.Class.create(jslet.ui.Control, {
 	 */
 	bind: function () {
 		this.renderAll();
-		this._binded = true;
 	},
 
 	/**
@@ -4167,7 +4167,7 @@ jslet.ui.ProgressBar = jslet.Class.create(jslet.ui.Control, {
 	
 	_setValue: function() {
 		var Z = this;
-		if(!Z._binded) {
+		if(!Z.binded) {
 			return;
 		}
 		var jqEl = jQuery(Z.el);
@@ -4905,7 +4905,7 @@ jslet.ui.Accordion.htmlTemplate = '<div></div>';
  * @class 
  * @extend jslet.ui.Control
  * 
- * Jslet Desktop, this control is used to a desktop with a main menu and a workbench.<br />  
+ * Jslet Desktop, this control is combined with a main menu and a workbench.<br />  
  * Example:
  * 
  *     @example
@@ -5193,8 +5193,14 @@ jslet.ui.Desktop = jslet.Class.create(jslet.ui.Control, {
 	_doContentLoading: function(id, tabItemCfg) {
     	if(tabItemCfg.debounce) {
     		jQuery('#' + id).hide();
+    		var self = this;
+    		var timeout = window.setTimeout(function() {
+    			jQuery('#' + id).fadeIn('fast');
+    			self.hideLoading(id);
+    			console.warn('Show tab panel after 5 minutes automatically. There must be the code "jslet.ui.desktopUtil.showTabPanel();" in the iframe page!');
+    			window.clearTimeout(timeout);
+    		}, 5000);
     	}
-		
 	},
 	
 	_doContentLoaded: function(id, tabItemCfg) {
@@ -5266,15 +5272,20 @@ jslet.ui.DesktopUtil = function() {
 	function getDesktop() {
 		var p = window.parent;
 		var result = null;
-		while(true) {
-			if(!p) {
-				break;
+		if(p !== window) {
+			while(true) {
+				if(!p) {
+					break;
+				}
+				if(p.jslet && p.jslet.desktop) {
+					result = p.jslet.desktop;
+					break;
+				}
+				if(p === p.parent) {
+					break;
+				}
+				p = p.parent;
 			}
-			if(p.jslet && p.jslet.desktop) {
-				result = p.jslet.desktop;
-				break;
-			}
-			p = p.parent;
 		}
 		if(!result) { //If parent not exists desktop object, check current window object.
 			if(window.jslet) {
@@ -5305,7 +5316,7 @@ jslet.ui.DesktopUtil = function() {
 			}
 			if(!checkDatasetChangedHandler && getCurrTabItemId()) {
 				var self = this;
-				//定时监测注册的数据集是否有变动，有变动则发送消息给主页面的tabcontrol控件更新修改状态
+				//Check whether dataset is changed
 				checkDatasetChangedHandler = window.setInterval(function() {
 					var dsObj, isDiff = false,
 						changed = false, oldChanged, newChanged;
@@ -5743,7 +5754,6 @@ jslet.ui.MenuBar = jslet.Class.create(jslet.ui.Control, {
 		itemCfg.subMenu.show(posX, pos.top + jqMi.height());
 		jslet.ui.menuManager.menuBarShown = true;
 		Z._activeMenuItem = omi;
-		// this.parentNode.parentNode.jslet.ui._createMenuPopup(cfg);
 	},
 
 	_createBarItem: function (obar, itemCfg) {
@@ -5765,7 +5775,6 @@ jslet.ui.MenuBar = jslet.Class.create(jslet.ui.Control, {
 						Z._onItemClick.call(Z, cfg);
 				}
 			} else {
-				//				if (Z._activeMenuItem != this || jslet.ui.menuManager.menuBarShown)
 				Z._showSubMenu(this);
 			}
 			event.stopPropagation();
@@ -6036,16 +6045,6 @@ jslet.ui.Menu = jslet.Class.create(jslet.ui.Control, {
 		Z.el.style.left = left + 'px';
 		Z.el.style.top = parseInt(top) + 'px';
 		Z.el.style.display = 'block';
-		if (!Z.shadow) {
-			Z.shadow = document.createElement('div');
-			jQuery(Z.shadow).addClass('jl-menu-shadow');
-			Z.shadow.style.width = width + 'px';
-			Z.shadow.style.height = height + 'px';
-			document.body.appendChild(Z.shadow);
-		}
-		Z.shadow.style.left = left + 1 + 'px';
-		Z.shadow.style.top = top + 1 + 'px';
-		Z.shadow.style.display = 'block';
 	},
 
 	/**
@@ -6072,9 +6071,6 @@ jslet.ui.Menu = jslet.Class.create(jslet.ui.Control, {
 	hide: function () {
 		this.ctxElement = null;
 		this.el.style.display = 'none';
-		if (this.shadow) {
-			this.shadow.style.display = 'none';
-		}
 	},
 
 	/**
@@ -6407,6 +6403,396 @@ jslet.ui.Menu.Operator.prototype = {
 	}
 };
 
+/**
+ * @class 
+ * @extend jslet.ui.Control
+ * 
+ * Jslet Portal, it is combined with some parts, and the end user can adjust the layout of these windows.<br />  
+ * Example:
+ * 
+ *     @example
+ *     var jsletParam = {type:"Portal"};
+ * 
+ *     //1. Declaring:
+ *     <div id="chartId" data-jslet='type:"Portal"' />
+ *     or
+ *     <div data-jslet='jsletParam' />
+ *
+ *     //2. Binding
+ *     <div id="ctrlId"  />
+ *     //Js snippet
+ *     var el = document.getElementById('ctrlId');
+ *     jslet.ui.bindControl(el, jsletParam);
+ *
+ *     //3. Create dynamically
+ *     jslet.ui.createControl(jsletParam, document.body);
+ *
+ */
+jslet.ui.Portal = jslet.Class.create(jslet.ui.Control, {
+	
+	/**
+	 * @protected
+	 * @override
+	 */
+	initialize: function ($super, el, params) {
+		var Z = this;
+		Z.allProperties = 'parts,partChanged';
+		Z.requiredProperties = '';
+		
+		Z._parts = null;
+		
+		Z._partChanged = false;
+		
+		$super(el, params);
+	},
+	
+	/**
+	 * @property
+	 * 
+	 * Set or get parts in the portal.
+	 * 
+	 * @param {Object[] | undefined} parts Parts in the portal.
+	 * @param {String} parts.id Part id.
+	 * @param {String} parts.caption Part caption.
+	 * @param {String} parts.url Part content URL.
+	 * @param {Integer} parts.left Left position of left-top point.
+	 * @param {Integer} parts.top Top position of left-top point.
+	 * @param {Integer} parts.width Part's width.
+	 * @param {Integer} parts.height Part's height.
+	 * @param {Integer} parts.closable Identify whether part is closable or not.
+	 * 
+	 * @return {this | Object[]}
+	 */
+	parts: function(parts) {
+		if(parts === undefined) {
+			return this._parts;
+		}
+		this.clearParts();
+		this._parts = parts;
+		if(parts) {
+			jslet.Checker.test('Portal.parts', parts).isArray();
+			var part;
+			for(var i = 0, len = parts.length; i < len; i++) {
+				part = parts[i];
+				jslet.Checker.test('Portal.part.id', part.id).required().isString();
+				jslet.Checker.test('Portal.part.caption', part.caption).isString();
+				jslet.Checker.test('Portal.part.url', part.url).isString();
+				jslet.Checker.test('Portal.part.top', part.top).isNumber();
+				jslet.Checker.test('Portal.part.left', part.left).isNumber();
+				jslet.Checker.test('Portal.part.width', part.width).isNumber();
+				jslet.Checker.test('Portal.part.height', part.height).isNumber();
+			}
+			if(this.binded) {
+				this.loadParts();
+			}
+		}
+		return this;
+	},
+		
+	/**
+	 * @event
+	 * 
+	 * Identify whether part is changed(added, deleted or layout changed).
+	 * 
+	 * @return {Boolean} True - changed, false - otherwise.
+	 */
+	partChanged: function() {
+		return this._partChanged? true: false;
+	},
+	
+	/**
+	 * @protected
+	 * @override
+	 */
+	isValidTemplateTag: function (el) {
+		return el.tagName.toLowerCase() == 'div';
+	},
+
+	/**
+	 * @protected
+	 * @override
+	 */
+	bind: function () {
+		if(!this.el.id) {
+			this.el.id = jslet.nextId();
+		}
+		var jqEl = jQuery(this.el);
+		if(!jqEl.hasClass('jl-portal')) {
+			jqEl.addClass('jl-portal');
+		}
+		this.renderAll();
+	},
+
+	/**
+	 * @override
+	 */
+	renderAll: function () {
+		this.clearParts();
+		this.loadParts();
+	},
+
+	/**
+	 * Add a part into portal.
+	 * 
+	 * @param {Object} partCfg Part configuration.
+	 * @param {String} partCfg.id Part id.
+	 * @param {String} partCfg.caption Part caption.
+	 * @param {String} partCfg.url Part content URL.
+	 * @param {String} partCfg.content Part content.
+	 * @param {Integer} partCfg.left Left position of left-top point.
+	 * @param {Integer} partCfg.top Top position of left-top point.
+	 * @param {Integer} partCfg.width Part's width.
+	 * @param {Integer} partCfg.height Part's height.
+	 * @param {Integer} partCfg.closable Identify whether part is closable or not.
+	 */
+	addPart: function(partCfg) {
+		if(!partCfg) {
+			return this;
+		}
+		var Z = this;
+		if(!Z._parts) {
+			Z._parts = [];
+		}
+		Z._parts.push(partCfg);
+		Z._createPart(partCfg);
+		Z._partChanged = true;
+		return this;
+	},
+	
+	/**
+	 * Remove a part from portal.
+	 * 
+	 * @param {String} partId Part id.
+	 */
+	removePart: function(partId) {
+		if(!partId) {
+			return this;
+		}
+		var Z = this, partCfg;
+		for(var i = 0, len = Z._parts.length; i < len; i++) {
+			partCfg = Z._parts[i];
+			if(partCfg.id == partId && partCfg.elId) {
+				jslet('#' + partCfg.elId).close();
+				Z._parts.splice(i, 1);
+				Z._partChanged = true;
+				return this;
+			}
+		}
+		return this;
+	},
+	
+	loadParts: function() {
+		var Z = this,
+			parts = Z._parts;
+		if(!parts) {
+			return this;
+		}
+		for(var i = 0, len = parts.length; i < len; i++) {
+			Z._createPart(parts[i]);
+		}
+		this._partChanged = false;
+		return this;
+	},
+	
+	/**
+	 * Clear all parts.
+	 */
+	clearParts: function() {
+		var parts = this._parts, partCfg;
+		if(!parts) {
+			return this;
+		}
+		for(var i = 0, len = parts.length; i < len; i++) {
+			partCfg = parts[i];
+			if(partCfg.elId) {
+				jslet('#' + elId).close();
+			}
+		}
+		this._parts = null;
+		this._partChanged = false;
+		return this;
+	},
+	
+	/**
+	 * Set part caption.
+	 * 
+	 * @param {String} partId Part Id.
+	 * @param {String} caption Part caption.
+	 */
+	setPartCaption: function(partId, caption) {
+		jslet.Checker.test('setPartCaption.partId', partId).required().isString();
+		jslet.Checker.test('setPartCaption.caption', caption).isString();
+		var partWin = this.getPartWindow(partId);
+		if(partWin) {
+			partWin.setCaption(caption);
+		}
+		return this;
+	},
+	
+	/**
+	 * Set part content.
+	 * 
+	 * @param {String} partId Part Id.
+	 * @param {String} caption Part content.
+	 */
+	setPartContent: function(partId, content) {
+		jslet.Checker.test('setPartCaption.partId', partId).required().isString();
+		var partWin = this.getPartWindow(partId);
+		if(partWin) {
+			partWin.setContent(content);
+		}
+		return this;
+	},
+	
+	getPartWindow: function(partId) {
+		var parts = this._parts, partCfg;
+		if(!parts) {
+			return null;
+		}
+		for(var i = 0, len = parts.length; i < len; i++) {
+			partCfg = parts[i];
+			if(partCfg.id == partId && partCfg.elId) {
+				return jslet('#' + partCfg.elId);
+			}
+		}
+		return null;
+	},
+	
+	_createPart: function(partCfg) {
+		var Z = this,
+    		winCfg = {type: "Window", animation: 'none', 
+				iconClass: partCfg.iconClass, 
+    			caption: partCfg.caption, 
+    			isSmallHeader: true,
+    			width: partCfg.width, 
+    			height: partCfg.height,
+    			closable: partCfg.closable,
+    			onMoving: function(x, y, deltaX, deltaY) {
+    				return Z._doMoving(this.el.id, x, y, deltaX, deltaY);
+    			},
+    			onPositionChanged: function(left, top) {
+    				Z._doPosChanged(this.el.id, left, top);
+    			},
+    			onSizeChanged: function(width, height) {
+    				Z._doSizeChanged(this.el.id, width, height);
+    			},
+    			onClosed: function() {
+    				Z._doClosed(this.el.id);
+    			}
+		};
+        var owin = jslet.ui.createControl(winCfg, Z.el);
+        if(partCfg.url) {
+        	owin.setContent("<iframe src='" + partCfg.url + "' style='width: 100%;height: calc(100% - 5px); border:none' />");
+        } else {
+        	if(partCfg.content) {
+        		owin.setContent(partCfg.content);
+        	}
+        }
+        owin.show(partCfg.left, partCfg.top);
+        partCfg.elId = owin.el.id;
+	},
+	
+	_doMoving: function(elId, x, y, deltaX, deltaY) {
+		var Z = this,
+			parts = Z._parts, partCfg,
+			currPartCfg = this._getPartCfgWithElId(elId),
+			left0 = x, top0 = y,
+			right0 = x + currPartCfg.width,
+			bottom0 = y + currPartCfg.height,
+			result = {};
+		for(var i = 0, len = parts.length; i < len; i++) {
+			partCfg = parts[i];
+			if(currPartCfg === partCfg) {
+				continue;
+			}
+			var left = partCfg.left || 0,
+				top = partCfg.top || 0,
+				right = left + partCfg.width,
+				bottom = top + partCfg.height,
+				delta = 10;
+			if(deltaX !== 0 && (top >= top0 && top <= bottom0 || bottom >= top0 && bottom <= bottom0)) {
+				var dLeft = left0 - right,
+					dRight = right0 - left;
+				if(Math.abs(dLeft) < delta) {
+					result.deltaX = deltaX - dLeft;
+				}
+				if(Math.abs(dRight) < delta) {
+					result.deltaX = deltaX - dRight;
+				}
+			}
+			if(deltaY !== 0 && (left >= left0 && left <= right0 || right >= left0 && right <= right0)) {
+				var dTop = top0 - bottom,
+					dBottom = bottom0 - top;
+				if(Math.abs(dTop) < delta) {
+					result.deltaY = deltaY - dTop;
+				}
+				if(Math.abs(dBottom) < delta) {
+					result.deltaY = deltaY - dBottom;
+				}
+			}
+		} //end for
+		this._partChanged = true;		
+		return result;
+	},
+	
+	_doPosChanged: function(elId, left, top) {
+		var partCfg = this._getPartCfgWithElId(elId);
+		if(partCfg) {
+			partCfg.left = left;
+			partCfg.top = top;
+			this._partChanged = true;		
+		}
+	},
+	
+	_doSizeChanged: function(elId, width, height) {
+		var partCfg = this._getPartCfgWithElId(elId);
+		if(partCfg) {
+			partCfg.width = width;
+			partCfg.height = height;
+			this._partChanged = true;		
+		}
+	},
+	
+	_doClosed: function(elId) {
+		var partCfg;
+		for(var i = 0, len = this._parts.length; i < len; i++) {
+			partCfg = this._parts[i];
+			if(partCfg.elId == elId) {
+				this._parts.splice(i, 1);
+				this._partChanged = true;
+				return;
+			}
+		}
+	},
+	
+	_getPartCfgWithElId: function(elId) {
+		var Z = this,
+			parts = Z._parts;
+		if(!parts) {
+			return null;
+		}
+		var partCfg;
+		for(var i = 0, len = parts.length; i < len; i++) {
+			partCfg = parts[i];
+			if(partCfg.elId === elId) {
+				return partCfg;
+			}
+		}
+		return null;
+	},
+	
+	/**
+	 * @override
+	 */
+	destroy: function($super){
+		var jqEl = jQuery(this.el);
+		jqEl.off();
+		$super();
+	}
+});
+
+jslet.ui.register('Portal', jslet.ui.Portal);
+jslet.ui.Desktop.htmlTemplate = '<div></div>';
 /**
  * @class
  * @extend jslet.ui.Control
@@ -8319,6 +8705,14 @@ jslet.ui.TabControl = jslet.Class.create(jslet.ui.Control, {
 		Z._checkTabItemCount();
 	},
 
+	hideLoading: function(tabItemId) {
+		var Z = this,
+			jqEl = jQuery(Z.el);
+		if(Z._enableLoading) {
+			jqEl.find('#' + tabItemId + '_h .jl-tab-loading').addClass('jl-hidden');
+		}
+	},
+	
 	/**
 	 * set the specified tab item to loaded state. It will fire the "onContentLoaded" event.
 	 * 
@@ -8327,9 +8721,7 @@ jslet.ui.TabControl = jslet.Class.create(jslet.ui.Control, {
 	setContentLoadedState: function(tabItemId) {
 		var Z = this,
 			jqEl = jQuery(Z.el);
-		if(Z._enableLoading) {
-			jqEl.find('#' + tabItemId + '_h .jl-tab-loading').addClass('jl-hidden');
-		}
+		Z.hideLoading(tabItemId);
 		if(!Z._onContentLoaded) {
 			return;
 		}
@@ -8718,7 +9110,7 @@ jslet.ui.Window = jslet.Class.create(jslet.ui.Control, {
 	initialize: function ($super, el, params) {
 		var Z = this;
 		Z.el = el;
-		Z.allProperties = 'styleClass,caption,resizable,minimizable,maximizable,closable,iconClass,onSizeChanged,onClosed,onPositionChanged,onActive,width,height,minWidth,maxWidth,minHeight,maxHeight,isCenter,isSmallHeader,stopEventBubbling,animation';
+		Z.allProperties = 'styleClass,caption,resizable,minimizable,maximizable,closable,iconClass,onSizeChanged,onClosed,onPositionChanged,onMoving,onActive,left,top,width,height,minWidth,maxWidth,minHeight,maxHeight,isCenter,isSmallHeader,stopEventBubbling,animation';
 
 		Z._caption = null;
 		
@@ -8731,6 +9123,10 @@ jslet.ui.Window = jslet.Class.create(jslet.ui.Control, {
 		Z._closable = true;
 		
 		Z._iconClass = null;
+		
+		Z._left = 0;
+		
+		Z._top = 0;
 		
 		Z._width = 0;
 		
@@ -8746,11 +9142,15 @@ jslet.ui.Window = jslet.Class.create(jslet.ui.Control, {
 
 		Z._isCenter = false;
  
+		Z._isSmallHeader = false;
+		
 		Z._animation = 'linear';
 		
 		Z._onSizeChanged = null;
 		
 		Z._onPositionChanged = null;
+		
+		Z._onMoving = null;
 		
 		Z._onActive = null;
 		
@@ -8888,6 +9288,23 @@ jslet.ui.Window = jslet.Class.create(jslet.ui.Control, {
 	/**
 	 * @property
 	 * 
+	 * Identify whether the window's header is in small size.
+	 * 
+	 * @param {Boolean | undefined} isSmallHeader True - window's header is in small size, false - otherwise.
+	 * 
+	 * @return {this | Boolean}
+	 */
+	isSmallHeader: function(isSmallHeader) {
+		if(isSmallHeader === undefined) {
+			return this._isSmallHeader;
+		}
+		this._isSmallHeader = isSmallHeader? true: false;
+		return this;
+	},
+	
+	/**
+	 * @property
+	 * 
 	 * Animation effect for showing and hiding.
 	 * 
 	 * @param {String | undefined} animation Animation effect for showing and hiding, optional value: 'none', 'linear', 'slide', 'fade', default is 'linear'.
@@ -8919,6 +9336,42 @@ jslet.ui.Window = jslet.Class.create(jslet.ui.Control, {
 		return this;
 	},
 	
+	/**
+	 * @property
+	 * 
+	 * Set or get window initial left.
+	 * 
+	 * @param {Integer | undefined} left Window initial left.
+	 * 
+	 * @return {this | Integer}
+	 */
+	left: function(left) {
+		if(left === undefined) {
+			return this._left;
+		}
+		jslet.Checker.test('Window.left', left).isNumber();
+		this._left = left;
+		return this;
+	},
+
+	/**
+	 * @property
+	 * 
+	 * Set or get window initial top.
+	 * 
+	 * @param {Integer | undefined} top Window initial top.
+	 * 
+	 * @return {this | Integer}
+	 */
+	top: function(top) {
+		if(top === undefined) {
+			return this._top;
+		}
+		jslet.Checker.test('Window.top', top).isNumber();
+		this._top = top;
+		return this;
+	},
+
 	/**
 	 * @property
 	 * 
@@ -9061,6 +9514,31 @@ jslet.ui.Window = jslet.Class.create(jslet.ui.Control, {
 	/**
 	 * @event
 	 * 
+	 * Fired while user is moving the window. Example:
+	 * 
+	 *     @example
+	 *     owin.onMoving(function(left, top){
+	 *     
+	 *     });
+	 * 
+	 * @param {Function | undefined} onMoving Window moving event handler.
+	 * @param {Integer} onMoving.left left.
+	 * @param {Integer} onMoving.top top.
+	 * 
+	 * @return {this | Function}
+	 */
+	onMoving: function(onMoving) {
+		if(onMoving === undefined) {
+			return this._onMoving;
+		}
+		jslet.Checker.test('Window.onMoving', onMoving).isFunction();
+		this._onMoving = onMoving;
+		return this;
+	},
+	
+	/**
+	 * @event
+	 * 
 	 * Set or get window position changed event handler. <br />
 	 * Fired when user changes the window's position. Example:
 	 * 
@@ -9138,6 +9616,9 @@ jslet.ui.Window = jslet.Class.create(jslet.ui.Control, {
 	 * @override
 	 */
 	bind: function () {
+		var Z = this;
+		Z._doMovingDebounce = jslet.debounce(Z._doMoving, 10);
+
 		this.renderAll();
 	},
 
@@ -9145,30 +9626,26 @@ jslet.ui.Window = jslet.Class.create(jslet.ui.Control, {
 	 * @override
 	 */
 	renderAll: function () {
-		var Z = this;
-		if (!Z._closable) {
-			Z._minimizable = false;
-			Z._maximizable = false;
-		}
-		var jqEl = jQuery(Z.el);
+		var Z = this,
+			jqEl = jQuery(Z.el);
 		if (!jqEl.hasClass('jl-window')) {
 			jqEl.addClass('panel panel-default jl-window');
 		}
 		if (Z._width) {
-			jqEl.width(Z._width);
+			jqEl.outerWidth(Z._width);
 		}
 		if (Z._height) {
-			jqEl.height(Z._height);
+			jqEl.outerHeight(Z._height);
 		}
 		jqEl.css('display','none');
 		var template = [
-		'<div class="panel-heading jl-win-header jl-win-header-sm" style="cursor:move">',
+		'<div class="panel-heading jl-win-header' + (Z._isSmallHeader? ' jl-win-header-sm': '') + '" style="cursor:move">',
 			Z._iconClass ? '<span class="jl-win-header-icon ' + Z._iconClass + '"></span>' : '',
 			'<span class="panel-title jl-win-caption">', Z._caption ? Z._caption : '', '</span>',
 			'<span class="jl-win-tool jl-unselectable">'];
-			template.push(Z._closable ? '<button class="close jl-win-close" onfocus="this.blur();">x</button>' : '');
-			template.push(Z._maximizable ? '<button class="close jl-win-max" onfocus="this.blur();">□</button>' : '');
-			template.push(Z._minimizable ? '<button class="close jl-win-min" onfocus="this.blur();">-</button>' : '');
+			template.push(Z._closable ? '<button class="jl-win-tool-btn close jl-win-close" onfocus="this.blur();">x</button>' : '');
+			template.push(Z._maximizable ? '<button class="jl-win-tool-btn close jl-win-max" onfocus="this.blur();">□</button>' : '');
+			template.push(Z._minimizable ? '<button class="jl-win-tool-btn close jl-win-min" onfocus="this.blur();">-</button>' : '');
 		template.push('</span></div>');
 		template.push('<div class="panel-body jl-win-body"></div>');
 
@@ -9227,27 +9704,27 @@ jslet.ui.Window = jslet.Class.create(jslet.ui.Control, {
 		});
 
 		header._doDragStart = function (oldX, oldY, x, y, deltaX, deltaY) {
-			Z._createTrackerMask(header);
-			Z.trackerMask.style.cursor = header.style.cursor;
+			var offset = jqEl.position();
+			Z._left = offset.left;
+			Z._top = offset.top;
 			jslet.temp_dragging = true;
 		};
 
 		header._doDragging = function (oldX, oldY, x, y, deltaX, deltaY) {
-			Z.setPosition(Z.left + deltaX, Z.top + deltaY, true);
+			Z._doMovingDebounce.call(Z, deltaX, deltaY);
 		};
 
 		header._doDragEnd = function (oldX, oldY, x, y, deltaX, deltaY) {
-			var left = parseInt(Z.el.style.left);
-			var top = parseInt(Z.el.style.top);
+			var offset = jQuery(Z.el).position(),
+				left = offset.left,
+				top = offset.top;
 			Z.setPosition(left, top);
-			Z._removeTrackerMask();
 			Z.cursor = null;
 			jslet.temp_dragging = false;
 		};
 
 		header._doDragCancel = function (oldX, oldY, x, y, deltaX, deltaY) {
-			Z.setPosition(Z.left, Z.top);
-			Z._removeTrackerMask();
+			Z.setPosition(Z._left, Z._top);
 			Z.cursor = null;
 			jslet.temp_dragging = false;
 		};
@@ -9267,11 +9744,14 @@ jslet.ui.Window = jslet.Class.create(jslet.ui.Control, {
 			if (!Z.tracker) {
 				return;
 			}
-			var left = parseInt(Z.tracker.style.left);
-			var top = parseInt(Z.tracker.style.top);
-			var width = parseInt(Z.tracker.style.width);
-			var height = parseInt(Z.tracker.style.height);
-
+			var jqTracker = jQuery(Z.tracker),
+				offset = jqTracker.offset(),
+				width = jqTracker.width(),
+				height = jqTracker.height(),
+				pOffset = jQuery(Z.el).offsetParent().offset(),
+				left = offset.left - pOffset.left,
+				top = offset.top - pOffset.top;
+				
 			Z.setPosition(left, top);
 			Z.changeSize(width, height);
 			Z._removeTrackerMask();
@@ -9333,9 +9813,13 @@ jslet.ui.Window = jslet.Class.create(jslet.ui.Control, {
 		var Z = this,
 			jqEl = jQuery(Z.el);
 		if (Z._isCenter) {
-			var jqOffsetP = jQuery(window),
+			var jqOffsetP = jqEl.offsetParent(),
 				pw = jqOffsetP.width(),
-				ph = jqOffsetP.height();
+				ph = jqOffsetP.height(),
+				wh = $(window).height(),
+				ww = $(window).width();
+			pw = pw > ww? ww: pw;
+			ph = ph > wh? wh: ph;
 			left = document.body.scrollLeft + Math.round((pw - jqEl.outerWidth()) / 2);
 			top = document.body.scrollTop + Math.round((ph - jqEl.outerHeight()) / 2);
 			if(left < 0) {
@@ -9344,12 +9828,18 @@ jslet.ui.Window = jslet.Class.create(jslet.ui.Control, {
 			if(top < 0) {
 				top = 0;
 			} 
+			Z._top = top ? top : 0;
+			Z._left = left ? left : 0;
+		} else {
+			if(top === null || top === undefined) {
+				top = Z._top;
+			}
+			if(left === null || left === undefined) {
+				left = Z._left;
+			}
 		}
-
-		Z.top = top ? top : 0;
-		Z.left = left ? left : 0;
-		Z.el.style.left = Z.left + 'px';
-		Z.el.style.top = Z.top + 'px';
+		
+		Z.setPosition(left, top);
 		if(Z._animation == 'slide') {
 			jqEl.slideDown(function() {
 				Z._changeBodyHeight();
@@ -9363,7 +9853,7 @@ jslet.ui.Window = jslet.Class.create(jslet.ui.Control, {
 				Z.activate();
 			});
 		} else if(Z._animation == 'none') {
-			jqEl.show(function() {
+			jqEl.show(0, function() {
 				Z._changeBodyHeight();
 				Z.activate();
 			});
@@ -9464,19 +9954,18 @@ jslet.ui.Window = jslet.Class.create(jslet.ui.Control, {
 	 */
 	maximize: function () {
 		var Z = this,
-			offsetP = jQuery(window),
-			width = offsetP.width(),
-			height = offsetP.height(),
-			left = document.body.scrollLeft,
-			top = document.body.scrollTop;
+			jqEl = jQuery(Z.el),
+			jqParent = jqEl.offsetParent(),
+			width = jqParent.innerWidth(),
+			height = jqParent.innerHeight(),
+			pOffset = jqParent.offset();
 		
-		Z.setPosition(left, top, true);
+		Z.setPosition(0, 0, true);
 		if (Z._state !== 'min') {
-			var jqEl = jQuery(Z.el);
 			Z._tempHeight = jqEl.height();
 			Z._tempWidth = jqEl.width();
 		}
-		Z.changeSize(width, height);
+		Z.changeSize(width - 10, height - 10);
 		Z._state = 'max';
 	},
 
@@ -9485,7 +9974,7 @@ jslet.ui.Window = jslet.Class.create(jslet.ui.Control, {
 	 */
 	restore: function () {
 		var Z = this;
-		Z.setPosition(Z.left, Z.top, true);
+		Z.setPosition(Z._left, Z._top, true);
 		Z.changeSize(Z._tempWidth, Z._tempHeight);
 		Z._state = null;
 	},
@@ -9520,8 +10009,8 @@ jslet.ui.Window = jslet.Class.create(jslet.ui.Control, {
 			left = 0;
 		}
 		if (!notUpdateLeftTop) {
-			Z.left = left;
-			Z.top = top;
+			Z._left = left;
+			Z._top = top;
 		} else {
 			if (Z._onPositionChanged) {
 				var result = Z._onPositionChanged.call(Z, left, top);
@@ -9535,8 +10024,9 @@ jslet.ui.Window = jslet.Class.create(jslet.ui.Control, {
 				}
 			}
 		}
-		Z.el.style.left = left + 'px';
-		Z.el.style.top = top + 'px';
+		var jqEl = jQuery(Z.el);
+		var pOffset = jqEl.offsetParent().offset();
+		jqEl.offset({left: pOffset.left + left, top: pOffset.top + top});
 	},
 
 	/**
@@ -9563,6 +10053,24 @@ jslet.ui.Window = jslet.Class.create(jslet.ui.Control, {
 		Z._changeBodyHeight();
 	},
 
+	_doMoving: function(deltaX, deltaY) {
+		var Z = this,
+			newLeft = Z._left + deltaX,
+			newTop = Z._top + deltaY;
+		if(Z._onMoving) {
+			var result = Z._onMoving.call(Z, newLeft, newTop, deltaX, deltaY);
+			if(result) {
+				var newDeltaX = result.deltaX;
+				var newDeltaY = result.deltaY;
+				deltaX = newDeltaX || newDeltaX === 0? newDeltaX: deltaX; 
+				deltaY = newDeltaY || newDeltaY === 0? newDeltaY: deltaY; 
+			}
+		}
+		newLeft = Z._left + deltaX;
+		newTop = Z._top + deltaY;
+		Z.setPosition(newLeft, newTop, true);
+	},
+	
 	_getHeaderHeight: function() {
 		var Z = this,
 			jqEl = jQuery(Z.el),
@@ -9591,14 +10099,15 @@ jslet.ui.Window = jslet.Class.create(jslet.ui.Control, {
 	},
 
 	/**
-	 * Change window caption.
+	 * Set window caption.
 	 * 
 	 * @param {String} caption Window caption.
 	 */
-	changeCaption: function (caption) {
+	setCaption: function (caption) {
 		this.caption = caption;
 		var captionDiv = jQuery(this.el).find('.jl-win-caption');
 		captionDiv.html(caption);
+		return this;
 	},
 
 	/**
@@ -9632,6 +10141,7 @@ jslet.ui.Window = jslet.Class.create(jslet.ui.Control, {
 				html.style.display = 'block';
 			}
 		}
+		return this;
 	},
 
 	/**
@@ -9703,22 +10213,22 @@ jslet.ui.Window = jslet.Class.create(jslet.ui.Control, {
 			return;
 		}
 		var jqEl = jQuery(Z.el), 
-			w = jqEl.width(), 
-			h = jqEl.height(), 
+			w = jqEl.outerWidth(), 
+			h = jqEl.outerHeight(), 
 			top = null, left = null;
 
 		if (Z.cursor == 'nw') {
 			w = w - deltaX;
 			h = h - deltaY;
-			top = Z.top + deltaY;
-			left = Z.left + deltaX;
+			top = Z._top + deltaY;
+			left = Z._left + deltaX;
 		} else if (Z.cursor == 'n') {
 			h = h - deltaY;
-			top = Z.top + deltaY;
+			top = Z._top + deltaY;
 		} else if (Z.cursor == 'ne') {
 			h = h - deltaY;
 			w = w + deltaX;
-			top = Z.top + deltaY;
+			top = Z._top + deltaY;
 		} else if (Z.cursor == 'e') {
 			w = w + deltaX;
 		} else if (Z.cursor == 'se') {
@@ -9729,10 +10239,10 @@ jslet.ui.Window = jslet.Class.create(jslet.ui.Control, {
 		} else if (Z.cursor == 'sw') {
 			h = h + deltaY;
 			w = w - deltaX;
-			left = Z.left + deltaX;
+			left = Z._left + deltaX;
 		} else if (Z.cursor == 'w') {
 			w = w - deltaX;
-			left = Z.left + deltaX;
+			left = Z._left + deltaX;
 		}
 
 		if (!Z._checkSize(w, h)) {
@@ -9745,12 +10255,15 @@ jslet.ui.Window = jslet.Class.create(jslet.ui.Control, {
 		if (h) {
 			jqTracker.height(h);
 		}
-		if (top) {
-			Z.tracker.style.top = top + 'px';
+		var pOffset = jQuery(Z.el).offsetParent().offset();
+		if(left === null) {
+			left = Z._left;
 		}
-		if (left) {
-			Z.tracker.style.left = left + 'px';
+		if(top === null) {
+			top = Z._top;
 		}
+		jqTracker.offset({top: pOffset.top + top, left: pOffset.left + left});
+		jqTracker.show();
 	},
 
 	_doWinMouseMove: function (event) {
@@ -9814,18 +10327,19 @@ jslet.ui.Window = jslet.Class.create(jslet.ui.Control, {
 		var jqBody = jQuery(document.body);
 
 		Z.trackerMask = document.createElement('div');
-		jQuery(Z.trackerMask).addClass('jl-win-tracker-mask');
+		var jqTracker = jQuery(Z.trackerMask);
+		jqTracker.addClass('jl-win-tracker-mask');
 		Z.trackerMask.style.top = '0px';
 		Z.trackerMask.style.left = '0px';
 		Z.trackerMask.style.zIndex = 99998;
 		Z.trackerMask.style.width = jqBody.width() + 'px';
 		Z.trackerMask.style.height = jqBody.height() + 'px';
 		Z.trackerMask.style.display = 'block';
-		Z.trackerMask.onmousedown = function () {
+		jqTracker.on('mousedown', function () {
 			if (holder && holder._doDragCancel) {
 				holder._doDragCancel();
 			}
-		};
+		});
 		jqBody[0].appendChild(Z.trackerMask);
 	},
 
@@ -9843,19 +10357,12 @@ jslet.ui.Window = jslet.Class.create(jslet.ui.Control, {
 		if (Z.tracker) {
 			return;
 		}
-		var jqEl = jQuery(Z.el), 
-			w = jqEl.width(), 
-			h = jqEl.height();
 		
 		Z.tracker = document.createElement('div');
 		var jqTracker = jQuery(Z.tracker);
+		jqTracker.hide();
 		jqTracker.addClass('jl-win-tracker');
-		Z.tracker.style.top = Z.top + 'px';
-		Z.tracker.style.left = Z.left + 'px';
 		Z.tracker.style.zIndex = 99999;
-		jqTracker.width(w);
-		jqTracker.height(h);
-		Z.tracker.style.display = 'block';
 		Z.el.parentNode.appendChild(Z.tracker);
 	},
 
@@ -9887,6 +10394,12 @@ jslet.ui.Window = jslet.Class.create(jslet.ui.Control, {
 			Z.trackerMask.onmousedown = null;
 		}
 		Z.trackerMask = null;
+		Z.tracker = null;
+		Z._onMoving = null;
+		Z._onPositionChanged = null;
+		Z._onSizeChanged = null;
+		Z._onActive = null;
+		Z._onClosed = null;
 		Z.el._doDragCancel = null;
 		Z.el._doDragEnd = null;
 		Z.el._doDragging = null;
@@ -13558,7 +14071,10 @@ jslet.ui.DBImage = jslet.Class.create(jslet.ui.DBFieldControl, {
 		jqEl.addClass('img-responsive img-rounded');
 		if(jslet.ui.ImageViewer) {
 			jqEl.on('click', function() {
-				if(Z._locked || !Z._enableViewer) {
+				if(Z._locked || !Z._enableViewer || !Z._dataset || !Z._field) {
+					return;
+				}
+				if(Z._dataset.recordCount() === 0 || !Z._dataset.getFieldValue(Z._field)) {
 					return;
 				}
 				var viewer = new jslet.ui.ImageViewer();
@@ -14991,7 +15507,7 @@ jslet.ui.DBSelect = jslet.Class.create(jslet.ui.DBFieldControl, {
 		if(Z.el.multiple) {
 			jqEl.on('click', 'option', Z._doCheckLimitCount);
 		}
-		jqEl.addClass('form-control');//Bootstrap class
+		jqEl.addClass('form-control input-sm');//Bootstrap class
 		Z.doMetaChanged('required');
 	}, // end bind
 
@@ -15456,7 +15972,7 @@ jslet.ui.DBSelectView = jslet.Class.create(jslet.ui.DBControl, {
 		Z.renderAll();
 		var jqEl = jQuery(Z.el);
 		jqEl.on('change', Z._doChanged);
-		jqEl.addClass('form-control');//Bootstrap class
+		jqEl.addClass('form-control input-sm');//Bootstrap class
 	}, // end bind
 
 	_doChanged: function(event) {
@@ -22327,6 +22843,11 @@ jslet.ui.AbstractDBTable = jslet.Class.create(jslet.ui.DBControl, {
 			otrRecno = otr.jsletrecno; 
 		if(otrRecno !== dsObj.recno()) {
 			if(dsObj.status()) {
+				var focusedEle = document.activeElement;
+				if(focusedEle) {
+					Z.el.focus();
+					focusedEle.focus();
+				}
 				dsObj.confirm();
 			}
 	

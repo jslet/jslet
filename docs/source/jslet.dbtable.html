@@ -3444,6 +3444,11 @@ jslet.ui.AbstractDBTable = jslet.Class.create(jslet.ui.DBControl, {
 			otrRecno = otr.jsletrecno; 
 		if(otrRecno !== dsObj.recno()) {
 			if(dsObj.status()) {
+				var focusedEle = document.activeElement;
+				if(focusedEle) {
+					Z.el.focus();
+					focusedEle.focus();
+				}
 				dsObj.confirm();
 			}
 	

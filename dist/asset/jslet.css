@@ -1293,29 +1293,34 @@
 	text-overflow: ellipsis;
 	white-space: nowrap;
 	overflow: hidden;
+	padding:2px 10px!important;
 }
 
 .jl-win-header-sm {
-	padding:2px 10px!important;
+	font-size: 11px;
 }
 
 .jl-win-caption {
 	float: left;
 	cursor: move;
+	font-size: 100%!important;
 }
 
 .jl-win-header-icon {
 	position: reltive;
 	left: 5px;
 	top: 4px;
-	width: 16px;
-	height: 16px;
 	float: left;
+	font-size: 110%!important;
 }
 
 .jl-win-tool {
 	display: inline-block;
 	float: right;
+}
+
+.jl-win-tool-btn {
+	font-size: 140%!important;
 }
 
 .jl-win-close {
@@ -1348,6 +1353,21 @@
 	opacity: 0.10;
 }
 /* =========================================== End of Window =========================================== */
+
+.jl-portal {
+	width: 200px;
+	height: 200px;
+	overflow: auto;
+	position: relative;
+}
+
+.jl-portal .jl-window {
+	border-radius: 0!important;
+}
+
+.jl-portal .jl-win-body {
+	padding: 0!important;
+}
 
 
 /*--------DBTable ClassName------------ */

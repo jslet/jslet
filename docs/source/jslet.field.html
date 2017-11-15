@@ -91,9 +91,9 @@ jslet.data.Field = function (dsObj, fldCfg, parentFldObj) {
 	Z._valueFollow = false;
 	Z._trimBlank = true;
 	Z._focused = false;
+	Z._encrypted = null;
 	Z._aggregated = false;
 	Z._aggregatedBy = null;
-
 	Z._extendHostName = null;
 	Z._crossSource = null;
 	
@@ -238,6 +238,8 @@ jslet.data.Field.prototype = {
 		setPropValue('trimBlank');
 		
 		setPropValue('focused');
+		setPropValue('encrypted');
+		
 		setPropValue('antiXss');
 		setPropValue('validChars');
 		
@@ -2363,6 +2365,36 @@ jslet.data.Field.prototype = {
 		return this;
 	},
 
+<span id='jslet-data-Field-property-encrypted'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get whether the field is encrypted or not. &lt;br /&gt;
+	 * It can be an object like: {start: 5, end: 8}. Example:
+	 * 
+	 *     @example
+	 *     fldObj.encrypted({start: 5, end: 8});
+	 *     //If field value is : '0123456789', the display text will be '01234***890'.
+	 *      
+	 * @param {Object | undefined} encrypted An plan object.
+	 * @param {Integer} encrypted.start The start position to be encrypted, start with 0.
+	 * @param {Integer} encrypted.end The end position to be encrypted(Not include the end position).
+	 * 
+	 * @return {this | Object}
+	 */
+	encrypted: function(encrypted) {
+		var Z = this;
+		if(encrypted === undefined) {
+			return Z._encrypted;
+		}
+		jslet.Checker.test('Field.encrypted', encrypted).isPlanObject();
+		if(encrypted) {
+			jslet.Checker.test('Field.encrypted.start', encrypted.start).isGTEZero();
+			jslet.Checker.test('Field.encrypted.end', encrypted.end).isGTEZero();
+		}
+		Z._encrypted = encrypted;
+		return this;
+	},
+	
 <span id='jslet-data-Field-property-aggregated'>	/**
 </span>	 * @property
 	 * 
@@ -2597,6 +2629,7 @@ jslet.data.Field.prototype = {
 		result.valueFollow(Z._valueFollow);
 		result.trimBlank(Z._trimBlank);
 		result.focused(Z._focused);
+		result.encrypted(Z._encrypted);
 		result.aggregated(Z._aggregated);
 		result.aggregatedBy(Z._aggregatedBy);
 

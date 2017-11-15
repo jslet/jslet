@@ -244,7 +244,6 @@ jslet.ui.MenuBar = jslet.Class.create(jslet.ui.Control, {
 		itemCfg.subMenu.show(posX, pos.top + jqMi.height());
 		jslet.ui.menuManager.menuBarShown = true;
 		Z._activeMenuItem = omi;
-		// this.parentNode.parentNode.jslet.ui._createMenuPopup(cfg);
 	},
 
 	_createBarItem: function (obar, itemCfg) {
@@ -266,7 +265,6 @@ jslet.ui.MenuBar = jslet.Class.create(jslet.ui.Control, {
 						Z._onItemClick.call(Z, cfg);
 				}
 			} else {
-				//				if (Z._activeMenuItem != this || jslet.ui.menuManager.menuBarShown)
 				Z._showSubMenu(this);
 			}
 			event.stopPropagation();
@@ -537,16 +535,6 @@ jslet.ui.Menu = jslet.Class.create(jslet.ui.Control, {
 		Z.el.style.left = left + 'px';
 		Z.el.style.top = parseInt(top) + 'px';
 		Z.el.style.display = 'block';
-		if (!Z.shadow) {
-			Z.shadow = document.createElement('div');
-			jQuery(Z.shadow).addClass('jl-menu-shadow');
-			Z.shadow.style.width = width + 'px';
-			Z.shadow.style.height = height + 'px';
-			document.body.appendChild(Z.shadow);
-		}
-		Z.shadow.style.left = left + 1 + 'px';
-		Z.shadow.style.top = top + 1 + 'px';
-		Z.shadow.style.display = 'block';
 	},
 
 <span id='jslet-ui-Menu-method-showAt'>	/**
@@ -573,9 +561,6 @@ jslet.ui.Menu = jslet.Class.create(jslet.ui.Control, {
 	hide: function () {
 		this.ctxElement = null;
 		this.el.style.display = 'none';
-		if (this.shadow) {
-			this.shadow.style.display = 'none';
-		}
 	},
 
 <span id='jslet-ui-Menu-method-showContextMenu'>	/**

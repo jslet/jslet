@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Take a glance at Jslet framework">
+    <link rel="stylesheet" type="text/css" href="css/demo.css" />
+    
+    <title>Jslet - 与Java后端对接说明</title>
+    <script type="text/javascript" data-main="../config.js" src="../lib/requirejs/require.min.js"></script>
+    <script type="text/javascript">
+	    requirejs(['config'], function() {
+	    	requirejs(['jslet']);
+	    });
+    </script>
+</head>
+<body style="font-size: 14px">
+ 	<div class="container-fluid">
+    <div class="demo-header">
+    <h3 id="top">Jslet - 与Java后端对接说明</h3>
+	</div>
+	<hr />
+	<h3>简介</h3>
+	<div style="line-height: 1rem" class="demo-desc">
+	<p>Jslet提供了一个专门的Java包用于与Jslet对接：jslet-server-1.x.jar，引入后即可实现如下功能：</p>
+	<ol>
+	<li><p>可实现前后端透明调用，数据自动转换；</p></li>
+	<li><p>支持动态实体（一种定制Map)和静态实体，去看看：
+	<a href="javascript:void(0)" onclick="jslet.ui.desktopUtil.openMenuById('jv-user');">Java-用户管理(服务端有实体)</a>
+	&nbsp;和&nbsp;
+	<a href="javascript:void(0)" onclick="jslet.ui.desktopUtil.openMenuById('jv-employee');">Java-员工管理(服务端无实体)</a>
+	</p></li>
+	<li><p>支持master/detail数据转换，去看看：
+	<a href="javascript:void(0)" onclick="jslet.ui.desktopUtil.openMenuById('jv-order');">Java-订单管理(主子结构)</a>
+	</p></li>
+	<li><p>支持日期字段转换；</p></li>
+	<li><p>支持字段变更日志, 去看看：<a href="javascript:void(0)" onclick="jslet.ui.desktopUtil.openMenuById('jv-auditlog');">Java-字段变更日志</a></p></li>
+	</ol>
+	<hr />
+<h3>示例代码：</h3>
+	    <div class="form-horizontal" >
+	<div class="form-group">
+	<div class="col-sm-5">
+	<p>前端：</p>
+    <pre class="prettyprint linenums"><code>
+//设置后端实体类类名，如果没有设置，则转为：com.jslet.dataset.record.DynamicRecord
+dsUser.recordClass('com.jslet.demo.User');
+//查询URL
+dsUser.queryUrl('/user/query');
+//保存URL
+dsUser.submitUrl('/user/save');
+    
+// 点击保存按钮
+$('#btnSave').on('click', function() {
+	dsUser.submit(); //调用此方法，前端变化的数据会发给后端服务
+});
+	</code></pre>	
+	</div>
+	<div class="col-sm-7">
+	<p>后端：</p>
+    <pre class="prettyprint linenums"><code>
+@RestController
+@RequestMapping("/user")
+public class UserController {
+	@RequestMapping(value = "/save", method = RequestMethod.POST)
+	public JsletResponse save(@RequestBody JsletRequest jsletRequest) {
+		// JsletRequest: 用于接收Jslet从客户端传过来的数据
+		// JsletResponse: 用于返回数据给Jslet
+		// 获取前端数据
+		List&lt;User> users = (List&lt;User>) jsletRequest.getMain();
+
+		userService.save(users);
+
+		// 如果后端修改数据，则需将修改后的数据返回给前端同步
+		return new JsletResponse(users);
+		// 如果数据没有被修改，直接返回null即可
+		// return null;
+	}
+}
+	</code></pre>
+</div>
+
+</div>
+</div>
+</div>
+    <script type="text/javascript">
+		window.LOADER_BASE_URL = "../lib/prettify";
+    </script>
+    <script type="text/javascript" src="../lib/prettify/run_prettify.js"></script>
+</body>
+</html>

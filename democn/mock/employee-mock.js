@@ -13,10 +13,10 @@
 })(function () {
     var employeeList = [
       {id: '1001', name: 'Tom', department: '00', gender: 'M', salutation: 'Sir', age: 48, birthday: new Date(1961, 1, 23), province: '01',
-        city: '0110', position: '1', married: 1, university: '北京大学', photo: '1.jpg', salary: 3000, currency: 'USD'},
+        city: '0110', position: '1', married: 1, university: '北京大学', photo: '1.jpg', salary: 30000, currency: 'USD', idcard: '440404198001011101'},
 
       {id: '1002', name: 'Marry', department: '03', gender: 'F', salutation: 'Madam', age: 26, birthday: new Date(1983, 8, 23), province: '02',
-        city: '0201', position: '2', married: 0, university: '哈佛大学', photo: '2.jpg', salary: 2000, currency: 'USD'},
+        city: '0201', position: '2', married: 0, university: '哈佛大学', photo: '2.jpg', salary: 20000, currency: 'USD', idcard: '440404198102011175'},
 
       {id: '1003', name: 'Jerry', department: '0201', gender: 'M', salutation: 'Mr', age: 32, birthday: new Date(1977, 5, 22), province: '13',
         city: '1305', position: '3', married: 1, university: '清华大学', photo: '3.jpg', salary: 3200, currency: 'RMB'},
@@ -132,7 +132,7 @@
 		url : "/demo/employee/findEmployeeAndDepartment",
 		contentType : "application/json",
 		responseTime: 100,
-		responseText : {main: employeeService.findAll(), extraEntities: {department: departmentList}}
+		responseText : {main: employeeService.findAll(), others: {department: departmentList}}
 	});
 	
 	jQuery.mockjax({

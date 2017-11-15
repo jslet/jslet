@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="../css/demo.css" />
+    
+    <title>Jslet - 字段修改日志</title>
+    <script type="text/javascript" data-main="../config.js" src="../lib/requirejs/require.min.js"></script>
+    <script type="text/javascript">
+	    require(['java/auditlog']);
+    </script>
+</head>
+<body>
+    <div class="demo-header">
+    <h3 id="top">Jslet - 字段修改日志</h3>
+	<div style="line-height: 2rem" class="demo-desc">
+	修改日志一般用于审计使用，用来记录是谁在什么时候修改了哪些字段。<br />
+	如果没有查询到数据，则需要先进入
+	<a href="javascript:void(0)" onclick="jslet.ui.desktopUtil.openMenuById('jv-user');">Java-用户管理(服务端有实体)</a>
+	和 
+	<a href="javascript:void(0)" onclick="jslet.ui.desktopUtil.openMenuById('jv-employee');">Java-员工管理(服务端无实体)</a>
+	修改数据。
+	<h4 style="color: red">此页面需要服务端支持，否则无法查询和保存！</h4>
+	</div>
+	</div>
+	<hr />
+
+	<div style="padding: 10px;border-radius: 5px">
+	    <button class="btn btn-default btn-sm" id="btnQuery"> 查询 </button>
+    </div>
+	
+	    <div class="form-horizontal" >
+			<div class="form-group" style="margin-left:0">
+			<div class="col-sm-12" style="padding-right: 20px">
+	        <div data-jslet="type:'DBTable',dataset:'auditLog',hasSelectCol:true" style="height:200px"></div>
+			</div>
+			</div>
+	    </div>
+	</div>
+	<div>
+	<hr />
+	
+	<h3>Source</h3>
+	<h4>1、前端代码</h4>
+    <pre class="prettyprint linenums lang-html"><code>
+	/********************************** 定义数据集 ************************************************/
+    //字段信息
+    var fldCfg = [
+       {name: 'boCode', dataType: 'S', length: 11, label: '业务表'}, 
+       {name: 'keyValue', dataType: 'S', length: 20, displayWidth: 10, label: '键值', aggraded: true}, 
+       {name: 'content', dataType: 'S', length: 200, displayWidth: 20, label: '修改内容'}, 
+       {name: 'user', dataType: 'S', length: 20, label: '变更用户'},
+       {name: 'updateTime', dataType: 'D', length: 20, label: '变更日期', displayFormat: 'yyyy-MM-dd hh:mm:ss'}
+       ];
+    //创建“变更日志”数据集
+    var dsAuditLog = new jslet.data.Dataset({name: 'auditLog', fields: fldCfg});
+    //设置查找URL
+    dsAuditLog.queryUrl("/auditlog/find");
+	
+	/********************************** 结束定义数据集 ************************************************/
+	
+	//查询数据
+	$('#btnQuery').click(function() {
+		dsAuditLog.query();	
+	});
+	//创建控件
+	jslet.ui.install();
+	</code></pre>
+
+	<h4>2、后端Java代码</h4>
+    <pre class="prettyprint linenums"><code>
+    //在其它业务保存方法中调用日志保存接口
+	public List<DynamicRecord> save(List<DynamicRecord> employees) {
+		for (DynamicRecord rec : employees) {
+			if (rec.inserted()) {
+				allEmployees.add(rec);
+			} else if (rec.updated()) {
+				//只有在修改的时候才需要记录日志
+				this.auditLogService.saveAuditLog("Employee", "id", <b>rec.auditLog()</b>, "Jerry");
+				......
+				
+	//日志保存方法
+	public void saveAuditLog(String name, String keyValue, RecordAuditLog auditLog, String user) {
+		DynamicRecord log = new DynamicRecord();
+		//获取修改的字段
+		Set<String> fields = auditLog.getAuditLogFields();
+		log.setValue("boName", name);
+		log.setValue("keyValue", keyValue);
+		StringBuilder sb = new StringBuilder();
+		String oldValue, newValue;
+		//组装一条数据的各个字段的修改日志
+		for (String fldName : fields) {
+			sb.append(auditLog.getFieldLabel(fldName));
+			sb.append(": ");
+			oldValue = auditLog.getOldValue(fldName);
+			oldValue = StringUtils.isEmpty(oldValue) ? "(空)" : oldValue;
+			sb.append(oldValue);
+			sb.append(" -> ");
+			newValue = auditLog.getNewValue(fldName);
+			newValue = StringUtils.isEmpty(newValue) ? "(空)" : newValue;
+			sb.append(newValue);
+			sb.append("| ");
+		}
+		log.setValue("content", sb.toString());
+		log.setValue("user", user);
+		log.setValue("updateTime", Calendar.getInstance().getTime());
+		auditLogs.add(log);
+	}
+	
+	</code></pre>
+	
+    <script type="text/javascript">
+       window.LOADER_BASE_URL = "../lib/prettify";
+    </script>
+    <script type="text/javascript" src="../lib/prettify/run_prettify.js"></script>
+		
+</body>
+</html>

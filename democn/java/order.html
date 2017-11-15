@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="../css/demo.css" />
+    
+    <title>Jslet - 订单管理(主子结构)</title>
+    <script type="text/javascript" data-main="../config.js" src="../lib/requirejs/require.min.js"></script>
+    <script type="text/javascript">
+	    require(['java/order']);
+    </script>
+</head>
+<body>
+    <div class="demo-header">
+    <h4 id="top">Jslet - 订单管理(主子结构)</h4>
+	</div>
+	<hr />
+	<div class="demo-desc">
+	主子结构的数据集，如果服务端有实体类，则主/子数据集都需要设置recordClass属性，<br />
+	如果没有设置后端将会把数据转为com.jslet.dataset.record.DynamicRecord.
+	<h4 style="color: red">此页面需要服务端支持，否则无法查询和保存！</h4>
+	</div>
+	<div style="padding: 10px;border-radius: 5px">
+	    <button class="btn btn-default btn-sm" id="btnQuery"> 查询 </button>
+	    <button class="btn btn-default btn-sm" id="btnSave"> 保存 </button>
+    </div>
+	<h4>订单</h4>
+	<div data-jslet="type: 'DBTable', dataset: 'order', editable: true" style="height: 150px"></div>
+	<h4>订单明细</h4>
+	<div data-jslet="type: 'DBTable', dataset: 'orderItem', editable: true" style="height: 150px"></div>
+	<h4>1、前端代码</h4>
+    <pre class="prettyprint linenums"><code>
+	/********************************** 定义数据集 ************************************************/
+    var fldCfg = [
+        {name: 'action', dataType: 'E'}, 
+        {name: 'seqno', dataType: 'N', length: 6, label: '序号'},
+        {name: 'product', dataType: 'S', length: 20, label: '产品'},
+        {name: 'qty', dataType: 'N', length: 6, label: '数量'},
+        {name: 'price', dataType: 'N', length: 8, scale: 2, label: '数量'},
+        {name: 'amount', dataType: 'N', length: 10, scale: 2, label: '金额', formula: '[qty]*[price]'}
+        ];
+    //创建订单明细
+    var dsOrderItem = new jslet.data.Dataset({name: 'orderItem', fields: fldCfg});
+    
+    fldCfg = [
+       {name: 'action', dataType: 'E'}, 
+       {name: 'orderNo', dataType: 'S', length: 11, label: '订单号', required: true, tip: '订单号不得重复!', unique: true}, 
+       {name: 'orderDate', dataType: 'D', length: 10, label: '下单日期', required: true}, 
+       {name: 'customer', dataType: 'S', length: 6, label: '客户'},
+       {name: 'paymentTerm', dataType: 'S', length: 6, label: '付款条款', displayWidth: 6},
+       {name: 'items', dataType: 'V', label: '订单明细', detailDataset: 'orderItem'}
+       ];
+    //创建“订单”数据集
+    var dsOrder = new jslet.data.Dataset({name: 'order', fields: fldCfg});
+	
+    //设置订单的实体类名
+    <b>dsOrder.recordClass('com.jslet.sample.order.Order');</b>
+    //设置订单明细的实体类名
+    <b>dsOrderItem.recordClass('com.jslet.sample.order.OrderItem');</b>
+    //设置查询URL
+    <b>dsOrder.queryUrl("/order/find2");</b>
+    //设置保存URL
+    <b>dsOrder.submitUrl("/order/save2");</b>
+    
+    $('#btnQuery').on('click', function() {
+    	<b>dsOrder.query();</b>
+    });
+    $('#btnSave').on('click', function() {
+    	<b>dsOrder.submit();</b>
+    });
+    jslet.ui.install();
+	</code></pre>
+	<h4>2、后端Java代码</h4>
+    <pre class="prettyprint linenums"><code>
+@RestController
+@RequestMapping("/order")
+public class OrderController {
+
+	@Autowired
+	private OrderService orderService;
+
+	@RequestMapping("/find")
+	public JsletResponse find(@RequestBody JsletRequest request) {
+		List&lt;Order> orders = this.orderService.findAll();
+
+		// 返回订单修改数据（主单 + 明细单）
+		return new JsletResponse(orders);
+	}
+
+	@SuppressWarnings("unchecked")
+	@RequestMapping("/save")
+	public JsletResponse save(@RequestBody JsletRequest request) {
+		// 取得前端传入的订单修改数据（主单 + 明细单）
+		List&lt;Order> orders = (List&lt;Order>) request.getMain();
+
+		orders = this.orderService.save(orders);
+
+		// 如果后端修改数据，则需将修改后的数据返回给前端同步
+		return new JsletResponse(orders);
+		// 如果数据没有被修改，直接返回null即可
+		// return null;
+	}
+}
+	</code></pre>
+
+    <script type="text/javascript">
+		window.LOADER_BASE_URL = "../lib/prettify";
+    </script>
+    <script type="text/javascript" src="../lib/prettify/run_prettify.js"></script>
+</body>
+</html>

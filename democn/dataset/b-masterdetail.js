@@ -36,6 +36,8 @@
 			{ "saleid": "200901003", "saledate": new Date(2001, 1, 1), "customer": "02", "paymentterm": "02"}];
     dsMaster.records(dataList);
 
-    
+    $('#btnSave').on('click', function() {
+    	dsMaster.submit();
+    });
     jslet.ui.install();
 });

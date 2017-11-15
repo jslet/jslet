@@ -301,6 +301,7 @@
 .jl-menu {
 	background-color: #fff;
 	border: 1px solid gray;
+	box-shadow: 2px 2px 3px rgba(0, 0, 0, 0.2);
 }
 
 .jl-menu-shadow {
@@ -395,7 +396,7 @@
 }
 
 .jl-smb-line {
-	border-bottom: 1px dotted #bd8080;
+	border-bottom: 1px dotted #ccc;
 }
 
 .jl-smb-subtitle {
@@ -504,7 +505,7 @@
 	background-color: #fff;
 	background-clip: padding-box;
 	border: 3px solid #e8e8e8!important;
-	box-shadow: 0 3px 9px rgba(0, 0, 0, .5);
+	box-shadow: 2px 2px 3px rgba(0, 0, 0, 0.2);
 }
 
 .jl-window-active {
@@ -534,7 +535,7 @@
 
 /*--------DBTable ClassName------------ */
 .jl-table {
-	border: 1px solid #b4c0c8;
+	border: 1px solid #c0c0c0;
 }
 
 .jl-table input:focus, textarea:focus, select:focus {
@@ -546,16 +547,16 @@
 }
 
 .jl-scrollbar-col {
-	border-left: 1px solid #b4c0c8;	
+	border-left: 1px solid #c0c0c0;	
 }
 
 .jl-tbl-data td, .jl-tbl-data th {
-	border-right: 1px solid #b4c0c8;
-	border-bottom: 1px solid #b4c0c8;
+	border-right: 1px solid #c0c0c0;
+	border-bottom: 1px solid #c0c0c0;
 }
 
 .jl-tbl-border-bottom {
-	border-bottom: 1px solid #b4c0c8;
+	border-bottom: 1px solid #c0c0c0;
 }
 
 .jl-tbl-col-over {
@@ -568,7 +569,7 @@
 }
 
 .jl-tbl-border-top {
-	border-top: 1px solid #b4c0c8;
+	border-top: 1px solid #c0c0c0;
 }
 
 .jl-tbl-header-cell, .jl-scrollbar-width, .jl-tbl-vscroll-head {
@@ -645,7 +646,7 @@ a.jl-tbltree-btn:hover {
 }
 
 .jl-tbl-insert, .jl-tbl-delete {
-	color: #333;	
+	color: #777;
 }
 
 .jl-filter-panel {

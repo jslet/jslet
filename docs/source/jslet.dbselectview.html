@@ -128,7 +128,7 @@ jslet.ui.DBSelectView = jslet.Class.create(jslet.ui.DBControl, {
 		Z.renderAll();
 		var jqEl = jQuery(Z.el);
 		jqEl.on('change', Z._doChanged);
-		jqEl.addClass('form-control');//Bootstrap class
+		jqEl.addClass('form-control input-sm');//Bootstrap class
 	}, // end bind
 
 	_doChanged: function(event) {

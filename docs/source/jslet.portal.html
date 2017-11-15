@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js"><span id='jslet-ui-Portal'>/**
+</span> * @class 
+ * @extend jslet.ui.Control
+ * 
+ * Jslet Portal, it is combined with some parts, and the end user can adjust the layout of these windows.&lt;br /&gt;  
+ * Example:
+ * 
+ *     @example
+ *     var jsletParam = {type:&quot;Portal&quot;};
+ * 
+ *     //1. Declaring:
+ *     &lt;div id=&quot;chartId&quot; data-jslet='type:&quot;Portal&quot;' /&gt;
+ *     or
+ *     &lt;div data-jslet='jsletParam' /&gt;
+ *
+ *     //2. Binding
+ *     &lt;div id=&quot;ctrlId&quot;  /&gt;
+ *     //Js snippet
+ *     var el = document.getElementById('ctrlId');
+ *     jslet.ui.bindControl(el, jsletParam);
+ *
+ *     //3. Create dynamically
+ *     jslet.ui.createControl(jsletParam, document.body);
+ *
+ */
+jslet.ui.Portal = jslet.Class.create(jslet.ui.Control, {
+	
+<span id='jslet-ui-Portal-method-initialize'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	initialize: function ($super, el, params) {
+		var Z = this;
+		Z.allProperties = 'parts,partChanged';
+		Z.requiredProperties = '';
+		
+		Z._parts = null;
+		
+		Z._partChanged = false;
+		
+		$super(el, params);
+	},
+	
+<span id='jslet-ui-Portal-property-parts'>	/**
+</span>	 * @property
+	 * 
+	 * Set or get parts in the portal.
+	 * 
+	 * @param {Object[] | undefined} parts Parts in the portal.
+	 * @param {String} parts.id Part id.
+	 * @param {String} parts.caption Part caption.
+	 * @param {String} parts.url Part content URL.
+	 * @param {Integer} parts.left Left position of left-top point.
+	 * @param {Integer} parts.top Top position of left-top point.
+	 * @param {Integer} parts.width Part's width.
+	 * @param {Integer} parts.height Part's height.
+	 * @param {Integer} parts.closable Identify whether part is closable or not.
+	 * 
+	 * @return {this | Object[]}
+	 */
+	parts: function(parts) {
+		if(parts === undefined) {
+			return this._parts;
+		}
+		this.clearParts();
+		this._parts = parts;
+		if(parts) {
+			jslet.Checker.test('Portal.parts', parts).isArray();
+			var part;
+			for(var i = 0, len = parts.length; i &lt; len; i++) {
+				part = parts[i];
+				jslet.Checker.test('Portal.part.id', part.id).required().isString();
+				jslet.Checker.test('Portal.part.caption', part.caption).isString();
+				jslet.Checker.test('Portal.part.url', part.url).isString();
+				jslet.Checker.test('Portal.part.top', part.top).isNumber();
+				jslet.Checker.test('Portal.part.left', part.left).isNumber();
+				jslet.Checker.test('Portal.part.width', part.width).isNumber();
+				jslet.Checker.test('Portal.part.height', part.height).isNumber();
+			}
+			if(this.binded) {
+				this.loadParts();
+			}
+		}
+		return this;
+	},
+		
+<span id='jslet-ui-Portal-event-partChanged'>	/**
+</span>	 * @event
+	 * 
+	 * Identify whether part is changed(added, deleted or layout changed).
+	 * 
+	 * @return {Boolean} True - changed, false - otherwise.
+	 */
+	partChanged: function() {
+		return this._partChanged? true: false;
+	},
+	
+<span id='jslet-ui-Portal-method-isValidTemplateTag'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	isValidTemplateTag: function (el) {
+		return el.tagName.toLowerCase() == 'div';
+	},
+
+<span id='jslet-ui-Portal-method-bind'>	/**
+</span>	 * @protected
+	 * @override
+	 */
+	bind: function () {
+		if(!this.el.id) {
+			this.el.id = jslet.nextId();
+		}
+		var jqEl = jQuery(this.el);
+		if(!jqEl.hasClass('jl-portal')) {
+			jqEl.addClass('jl-portal');
+		}
+		this.renderAll();
+	},
+
+<span id='jslet-ui-Portal-method-renderAll'>	/**
+</span>	 * @override
+	 */
+	renderAll: function () {
+		this.clearParts();
+		this.loadParts();
+	},
+
+<span id='jslet-ui-Portal-method-addPart'>	/**
+</span>	 * Add a part into portal.
+	 * 
+	 * @param {Object} partCfg Part configuration.
+	 * @param {String} partCfg.id Part id.
+	 * @param {String} partCfg.caption Part caption.
+	 * @param {String} partCfg.url Part content URL.
+	 * @param {String} partCfg.content Part content.
+	 * @param {Integer} partCfg.left Left position of left-top point.
+	 * @param {Integer} partCfg.top Top position of left-top point.
+	 * @param {Integer} partCfg.width Part's width.
+	 * @param {Integer} partCfg.height Part's height.
+	 * @param {Integer} partCfg.closable Identify whether part is closable or not.
+	 */
+	addPart: function(partCfg) {
+		if(!partCfg) {
+			return this;
+		}
+		var Z = this;
+		if(!Z._parts) {
+			Z._parts = [];
+		}
+		Z._parts.push(partCfg);
+		Z._createPart(partCfg);
+		Z._partChanged = true;
+		return this;
+	},
+	
+<span id='jslet-ui-Portal-method-removePart'>	/**
+</span>	 * Remove a part from portal.
+	 * 
+	 * @param {String} partId Part id.
+	 */
+	removePart: function(partId) {
+		if(!partId) {
+			return this;
+		}
+		var Z = this, partCfg;
+		for(var i = 0, len = Z._parts.length; i &lt; len; i++) {
+			partCfg = Z._parts[i];
+			if(partCfg.id == partId &amp;&amp; partCfg.elId) {
+				jslet('#' + partCfg.elId).close();
+				Z._parts.splice(i, 1);
+				Z._partChanged = true;
+				return this;
+			}
+		}
+		return this;
+	},
+	
+	loadParts: function() {
+		var Z = this,
+			parts = Z._parts;
+		if(!parts) {
+			return this;
+		}
+		for(var i = 0, len = parts.length; i &lt; len; i++) {
+			Z._createPart(parts[i]);
+		}
+		this._partChanged = false;
+		return this;
+	},
+	
+<span id='jslet-ui-Portal-method-clearParts'>	/**
+</span>	 * Clear all parts.
+	 */
+	clearParts: function() {
+		var parts = this._parts, partCfg;
+		if(!parts) {
+			return this;
+		}
+		for(var i = 0, len = parts.length; i &lt; len; i++) {
+			partCfg = parts[i];
+			if(partCfg.elId) {
+				jslet('#' + elId).close();
+			}
+		}
+		this._parts = null;
+		this._partChanged = false;
+		return this;
+	},
+	
+<span id='jslet-ui-Portal-method-setPartCaption'>	/**
+</span>	 * Set part caption.
+	 * 
+	 * @param {String} partId Part Id.
+	 * @param {String} caption Part caption.
+	 */
+	setPartCaption: function(partId, caption) {
+		jslet.Checker.test('setPartCaption.partId', partId).required().isString();
+		jslet.Checker.test('setPartCaption.caption', caption).isString();
+		var partWin = this.getPartWindow(partId);
+		if(partWin) {
+			partWin.setCaption(caption);
+		}
+		return this;
+	},
+	
+<span id='jslet-ui-Portal-method-setPartContent'>	/**
+</span>	 * Set part content.
+	 * 
+	 * @param {String} partId Part Id.
+	 * @param {String} caption Part content.
+	 */
+	setPartContent: function(partId, content) {
+		jslet.Checker.test('setPartCaption.partId', partId).required().isString();
+		var partWin = this.getPartWindow(partId);
+		if(partWin) {
+			partWin.setContent(content);
+		}
+		return this;
+	},
+	
+	getPartWindow: function(partId) {
+		var parts = this._parts, partCfg;
+		if(!parts) {
+			return null;
+		}
+		for(var i = 0, len = parts.length; i &lt; len; i++) {
+			partCfg = parts[i];
+			if(partCfg.id == partId &amp;&amp; partCfg.elId) {
+				return jslet('#' + partCfg.elId);
+			}
+		}
+		return null;
+	},
+	
+	_createPart: function(partCfg) {
+		var Z = this,
+    		winCfg = {type: &quot;Window&quot;, animation: 'none', 
+				iconClass: partCfg.iconClass, 
+    			caption: partCfg.caption, 
+    			isSmallHeader: true,
+    			width: partCfg.width, 
+    			height: partCfg.height,
+    			closable: partCfg.closable,
+    			onMoving: function(x, y, deltaX, deltaY) {
+    				return Z._doMoving(this.el.id, x, y, deltaX, deltaY);
+    			},
+    			onPositionChanged: function(left, top) {
+    				Z._doPosChanged(this.el.id, left, top);
+    			},
+    			onSizeChanged: function(width, height) {
+    				Z._doSizeChanged(this.el.id, width, height);
+    			},
+    			onClosed: function() {
+    				Z._doClosed(this.el.id);
+    			}
+		};
+        var owin = jslet.ui.createControl(winCfg, Z.el);
+        if(partCfg.url) {
+        	owin.setContent(&quot;&lt;iframe src='&quot; + partCfg.url + &quot;' style='width: 100%;height: calc(100% - 5px); border:none' /&gt;&quot;);
+        } else {
+        	if(partCfg.content) {
+        		owin.setContent(partCfg.content);
+        	}
+        }
+        owin.show(partCfg.left, partCfg.top);
+        partCfg.elId = owin.el.id;
+	},
+	
+	_doMoving: function(elId, x, y, deltaX, deltaY) {
+		var Z = this,
+			parts = Z._parts, partCfg,
+			currPartCfg = this._getPartCfgWithElId(elId),
+			left0 = x, top0 = y,
+			right0 = x + currPartCfg.width,
+			bottom0 = y + currPartCfg.height,
+			result = {};
+		for(var i = 0, len = parts.length; i &lt; len; i++) {
+			partCfg = parts[i];
+			if(currPartCfg === partCfg) {
+				continue;
+			}
+			var left = partCfg.left || 0,
+				top = partCfg.top || 0,
+				right = left + partCfg.width,
+				bottom = top + partCfg.height,
+				delta = 10;
+			if(deltaX !== 0 &amp;&amp; (top &gt;= top0 &amp;&amp; top &lt;= bottom0 || bottom &gt;= top0 &amp;&amp; bottom &lt;= bottom0)) {
+				var dLeft = left0 - right,
+					dRight = right0 - left;
+				if(Math.abs(dLeft) &lt; delta) {
+					result.deltaX = deltaX - dLeft;
+				}
+				if(Math.abs(dRight) &lt; delta) {
+					result.deltaX = deltaX - dRight;
+				}
+			}
+			if(deltaY !== 0 &amp;&amp; (left &gt;= left0 &amp;&amp; left &lt;= right0 || right &gt;= left0 &amp;&amp; right &lt;= right0)) {
+				var dTop = top0 - bottom,
+					dBottom = bottom0 - top;
+				if(Math.abs(dTop) &lt; delta) {
+					result.deltaY = deltaY - dTop;
+				}
+				if(Math.abs(dBottom) &lt; delta) {
+					result.deltaY = deltaY - dBottom;
+				}
+			}
+		} //end for
+		this._partChanged = true;		
+		return result;
+	},
+	
+	_doPosChanged: function(elId, left, top) {
+		var partCfg = this._getPartCfgWithElId(elId);
+		if(partCfg) {
+			partCfg.left = left;
+			partCfg.top = top;
+			this._partChanged = true;		
+		}
+	},
+	
+	_doSizeChanged: function(elId, width, height) {
+		var partCfg = this._getPartCfgWithElId(elId);
+		if(partCfg) {
+			partCfg.width = width;
+			partCfg.height = height;
+			this._partChanged = true;		
+		}
+	},
+	
+	_doClosed: function(elId) {
+		var partCfg;
+		for(var i = 0, len = this._parts.length; i &lt; len; i++) {
+			partCfg = this._parts[i];
+			if(partCfg.elId == elId) {
+				this._parts.splice(i, 1);
+				this._partChanged = true;
+				return;
+			}
+		}
+	},
+	
+	_getPartCfgWithElId: function(elId) {
+		var Z = this,
+			parts = Z._parts;
+		if(!parts) {
+			return null;
+		}
+		var partCfg;
+		for(var i = 0, len = parts.length; i &lt; len; i++) {
+			partCfg = parts[i];
+			if(partCfg.elId === elId) {
+				return partCfg;
+			}
+		}
+		return null;
+	},
+	
+<span id='jslet-ui-Portal-method-destroy'>	/**
+</span>	 * @override
+	 */
+	destroy: function($super){
+		var jqEl = jQuery(this.el);
+		jqEl.off();
+		$super();
+	}
+});
+
+jslet.ui.register('Portal', jslet.ui.Portal);
+jslet.ui.Desktop.htmlTemplate = '&lt;div&gt;&lt;/div&gt;';</pre>
+</body>
+</html>

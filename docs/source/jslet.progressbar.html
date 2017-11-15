@@ -51,8 +51,6 @@ jslet.ui.ProgressBar = jslet.Class.create(jslet.ui.Control, {
 		
 		Z._labelText = '0%';
 		
-		Z._binded = false;
-		
 		$super(el, params);
 	},
 
@@ -98,7 +96,7 @@ jslet.ui.ProgressBar = jslet.Class.create(jslet.ui.Control, {
 			return this._labelText;
 		}
 		this._labelText = labelText;
-		if(this._binded) {
+		if(this.binded) {
 			var jqEl = jQuery(this.el);
 			var jqLabel = jqEl.find('.jl-progressbar-label');
 			jqLabel.text(labelText);
@@ -112,7 +110,6 @@ jslet.ui.ProgressBar = jslet.Class.create(jslet.ui.Control, {
 	 */
 	bind: function () {
 		this.renderAll();
-		this._binded = true;
 	},
 
 <span id='jslet-ui-ProgressBar-method-renderAll'>	/**
@@ -130,7 +127,7 @@ jslet.ui.ProgressBar = jslet.Class.create(jslet.ui.Control, {
 	
 	_setValue: function() {
 		var Z = this;
-		if(!Z._binded) {
+		if(!Z.binded) {
 			return;
 		}
 		var jqEl = jQuery(Z.el);

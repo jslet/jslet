@@ -11,9 +11,6 @@
 		factory();
 	}
 })(function() {
-	//取URL里的menuid参数
-	var menuId = jslet.urlUtil.getParam(window.location.href, 'menuid');
-	
 	var barMenuCfg = {
 		type : 'MenuBar',
 		items: [{
@@ -22,12 +19,12 @@
 			items: [{
 				name: '说明', url: 'readme.html', autoOpen: true
 			}, {
-				id: 'glance', name: '惊鸿一瞥', url: 'glance/glance.html', debounce: false, autoOpen: (menuId === 'glance')
+				id: 'glance', name: '惊鸿一瞥', url: 'glance/glance.html', debounce: true
 			}, {
 				name: '-'
-			}, {name: '如何开始',
+			}, {
 				items: [{
-					name: '如何开始', url: 'starting/starting.html', autoOpen: (menuId === 'starting')
+					id: 'starting', name: '如何开始', url: 'starting/starting.html'
 				}, {
 					name: 'RequireJs加载', url: 'starting/requirejs.html'
 				}]
@@ -87,7 +84,7 @@
 		}, {
 			name: 'DB-服务器交互',
 			iconClass : 'fa fa-server',
-			items: [{
+			items: [{name: 'Mock', items: [{
 				name: '基本操作', url: 'glance/glance.html'
 			}, {
 				name: '查询（含查询条件）', url: 'dataset/c-clonedataset.html'
@@ -99,7 +96,15 @@
 				name: '提交所选数据（审核数据）', url: 'dataset/d-submitselected.html'
 			}, {
 				name: '大数据量查询', url: 'dataset/d-performance.html'
-			}]
+			}]},
+			{name: 'Java', items: [
+			   {id: 'jv-readme', name: 'Java-与Java对接说明', url: 'java/readme.html'},
+			   {id: 'jv-user', name: 'Java-用户管理(服务端有实体)', url: 'java/user.html'},
+			   {id: 'jv-employee', name: 'Java-员工管理(服务端无实体)', url: 'java/employee.html'},
+			   {id: 'jv-order', name: 'Java-订单管理(主子结构)', url: 'java/order.html'},
+			   {id: 'jv-auditlog', name: 'Java-字段变更日志', url: 'java/auditlog.html'}
+			   ]}
+			]
 		}, {
 			name: 'UI-表单控件',
 			iconClass : 'fa fa-tasks',
@@ -227,11 +232,11 @@
 		}, {
 			name: 'UI-报表打印', iconClass: 'fa fa-diamond',
 			items: [{
-				name: '列表打印', url: 'report/report.html'
+				id: 'rpt-list', name: '列表打印', url: 'report/report.html'
 			}, {
-				name: '主子表打印', url: 'report/reportmd.html'
+				id: 'rpt-md', name: '主子表打印', url: 'report/reportmd.html'
 			}, {
-				name: '标签打印（套打）', url: 'report/preformatted.html'
+				id: 'rpt-fmt', name: '标签打印（套打）', url: 'report/preformatted.html'
 			}]
 		}, {
 			name: 'UI-对话框控件', iconClass: 'fa fa-diamond',
@@ -261,6 +266,8 @@
 			name: 'UI-布局控件', iconClass : 'fa fa-columns',
 			items: [{
 				name: 'Desktop', url: 'control/layout/desktop.html'
+			}, {
+				name: 'Portal', url: 'control/layout/portal.html'
 			}, {
 				name: 'Window', url: 'control/layout/window.html'
 			}, {
@@ -297,6 +304,36 @@
 		}]
 	};
 
+	function setAutoOpen(menuId, menuCfgs) {
+		if(!menuCfgs) {
+			return false;
+		}
+		var menuCfg;
+		for(var i = 0, len = menuCfgs.length; i < len; i++) {
+			menuCfg = menuCfgs[i];
+			if(menuCfg.items) {
+				if(setAutoOpen(menuId, menuCfg.items)) {
+					return true;
+				}
+			} else {
+				if(menuId == menuCfg.id) {
+					menuCfg.autoOpen = true;
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+	
+	//取URL里的menuid参数
+	var menuIds = jslet.urlUtil.getParam(window.location.href, 'menuids');
+	if(menuIds) {
+		menuIds = menuIds.split(',');
+		for(var i = 0, len = menuIds.length; i < len; i++) {
+			setAutoOpen(menuIds[i], barMenuCfg.items);
+		}
+	}
+	
 	//用于Desktop控件的菜单onLoadMenu事件
 	window.doLoadMenu = function() {
 		return barMenuCfg.items;

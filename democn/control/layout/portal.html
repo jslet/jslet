@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="../../css/demo.css" />
+    
+    <title>Jslet - Portal控件（jslet.ui.Portal）</title>
+    <script type="text/javascript" data-main="../../config.js" src="../../lib/requirejs/require.min.js"></script>
+    <script type="text/javascript">
+	    require(['control/layout/portal']);
+    </script>
+</head>
+<body>
+    <div class="demo-header">
+    <h4 id="top">Jslet - Portal控件（jslet.ui.Portal）</h4>
+	</div>
+	<hr />
+	<div>
+	<button id="btnAdd" class="btn btn-default btn-sm">增加</button>
+	<button id="btnRemove" class="btn btn-default btn-sm">删除</button>
+	<button id="btnSetCaption" class="btn btn-default btn-sm">设置标题</button>
+	<button id="btnSetContent" class="btn btn-default btn-sm">设置内容</button>
+	</div>
+    <div id="portal" data-jslet="type:'Portal'" 
+	style="width: 100%;height: 410px"></div>
+	
+	<div class="demo-desc">
+	<h4>演示内容：</h4>
+	<ol>
+	<li>可调节每个部件的位置（拖动窗口标题）和大小（拖动窗口边框）；</li>
+	<li>部件可最大化/最小化，可关闭；</li>
+	<li>支持磁吸功能，即调整部件位置时，靠近旁边部件的边时，自动吸附过去，方便调整部件位置。</li>
+	
+	</ol>
+	</div>
+	
+	<hr />
+	<h4>源码</h4>
+    <pre class="prettyprint linenums"><code>
+	var parts = [
+	        {id: 'p1', caption: 'Part1', url: 'sidemenu.html', left: 0, top: 0, width: 350, height: 250,closable: false},
+	        {id: 'p2', caption: 'Part2', url: 'tabcontrol.html', left: 351, top: 0, width: 350, height: 250},
+	        {id: 'p3', caption: 'Part3', url: '../../glance/glance.html', left: 0, top: 251, width: 350, height: 250},
+	        {id: 'p4', caption: 'Part4', url: '../../dataset/b-action.html', left: 351, top: 251, width: 350, height: 250},
+	];
+	
+   jslet.ui.install(function() {
+		jslet('#portal').parts(parts);
+   });
+
+   var partNo = 10;
+   //增加部件
+   $('#btnAdd').on('click', function() {
+	   var newId = 'new' + partNo++;
+	   var partCfg = {id: newId, caption: 'New Part' + partNo, width: 200, height: 200};
+	   jslet('#portal').addPart(partCfg).setPartContent(newId, '<p3>New Part ' + partNo + '</p3>');
+   });
+   
+   //删除部件
+   $('#btnRemove').on('click', function() {
+	   var newId = 'new' + --partNo;
+	   jslet('#portal').removePart(newId);
+   });
+   
+   //设置部件标题
+   $('#btnSetCaption').on('click', function() {
+	   jslet('#portal').setPartCaption('p1', '新标题');
+   });
+   
+   //设置部件内容
+   $('#btnSetContent').on('click', function() {
+	   jslet('#portal').setPartContent('p1', '&lt;p2>新的内容&lt;/p2>');
+   });
+   
+   
+	</code></pre>
+
+    <script type="text/javascript">
+		window.LOADER_BASE_URL = "../../lib/prettify";
+    </script>
+    <script type="text/javascript" src="../../lib/prettify/run_prettify.js"></script>
+		
+</body>
+</html>

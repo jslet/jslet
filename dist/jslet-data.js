@@ -8922,6 +8922,24 @@ jslet.data.Dataset.prototype = {
 			throw new Error('Can\'t find any field value converter!');
 		}
 		var text = convert.valueToText(fldObj, value, isEditing);
+		var encrypted = fldObj.encrypted(); 
+		if(!isEditing && encrypted && text) {
+			var start = encrypted.start || 0,
+				end = encrypted.end;
+			if(end === undefined || end === null || end < start) {
+				end = 10000;
+			}
+			var txtLen = text.length;
+			end = txtLen < end? txtLen: end;
+			var oldText = text;
+			text = oldText.substring(0, start); 
+			for(var k = start; k < end; k++) {
+				text += '*';
+			}
+			if(txtLen > end) {
+				text += oldText.substring(end); 
+			}
+		}
 		//Put display value into cache
 		if(!isEditing) {
 			jslet.data.FieldValueCache.put(currRec, fldName, text, valueIndex);
@@ -10025,17 +10043,24 @@ jslet.data.Dataset.prototype = {
 		if(Z._onDataQuerying) {
 			Z._onDataQuerying(result);
 		}
+		var metas = result.meta;
+		if(metas && metas.main) {
+			Z._createDatasetByMeta(Z._name, metas.main);
+		}
 		var mainData = result.main;
 		if (mainData) {
 			Z.records(mainData);
 		}
-		var extraData = result.extraEntities;
-		if(extraData) {
+		var others = result.others;
+		if(others) {
 			var dsName, dsObj;
-			for (dsName in extraData) {
+			for (dsName in others) {
+				if(metas && metas[dsName]) {
+					Z._createDatasetByMeta(Z._name, metas[dsName]);
+				}
 				dsObj = jslet.data.getDataset(dsName);
 				if (dsObj) {
-					dsObj.records(extraData[dsName]);
+					dsObj.records(others[dsName]);
 				} else {
 					console.warn(dsName + ' is returned from server, but this datase does not exist!');
 				}
@@ -10055,6 +10080,21 @@ jslet.data.Dataset.prototype = {
 		Z.refreshControl(evt);
 		if(result && result.info) {
 			jslet.showInfo(result.info);
+		}
+	},
+	
+	_createDatasetByMeta: function(dsName, dsMeta) {
+		var dsObj = jslet.data.getDataset(dsName);
+		var fields = dsMetaFields;
+		if(!dsObj) {
+			dsObj = new jslet.data.Dataset({name: dsName, fields: fields});
+		} else {
+			dsObj.clearFields();
+			var fldCfg;
+			for(var i = 0, len = fields.length; i < len; i++) {
+				fldCfg = fields[i];
+				dsObj.createField(fldCfg);
+			}
 		}
 	},
 	
@@ -10107,9 +10147,6 @@ jslet.data.Dataset.prototype = {
 					reqData.simpleCriteria = criteria;
 				}
 			}
-			if(Z.csrfToken) {
-				reqData.csrfToken = Z.csrfToken;
-			}
 			reqData = jslet.data.record2Json(reqData);
 			var url = Z._queryUrl;
 			return Z._dataProvider.sendRequest(Z, url, reqData)
@@ -10149,9 +10186,6 @@ jslet.data.Dataset.prototype = {
 		for (i = 0, cnt = records.length; i < cnt; i++) {
 			rec = records[i];
 			pRec = {};
-			if(recClazz) {
-				pRec["@type"] = recClazz;
-			}
 			rec[jslet.global.changeStateField] = changeFlag + i;
 			var fldValue;
 			for(var prop in rec) {
@@ -10170,17 +10204,19 @@ jslet.data.Dataset.prototype = {
 	},
 	
 	_doSaveSuccess: function(result, dataset) {
-		if (!result) {
-			if(result && result.info) {
-				jslet.showInfo(result.info);
-			}
-			return;
+		var Z = dataset,
+			changedRecs, 
+			needCalc = false;
+		if (!result || !result.main || result.main.length === 0) {
+			changedRecs = Z._pendingRecords;
+		} else {
+			changedRecs = result.main;
+			needCalc = true;
 		}
-		var mainData = result.main;
-		var Z = dataset;
-		Z._dataTransformer.refreshSubmittedData(mainData);
-
-		Z._calcAggregatedValueDebounce.call(Z);
+		Z._dataTransformer.refreshSubmittedData(changedRecs);
+		if(needCalc) {
+			Z._calcAggregatedValueDebounce.call(Z);
+		}
 		Z.selection.removeAll();
 		if(Z._onDataSubmitted) {
 			Z._onDataSubmitted.call(Z);
@@ -10270,7 +10306,7 @@ jslet.data.Dataset.prototype = {
 	 *       console.log('done'); 
 	 *     });
 	 * 
-	 * @param {Object} extraInfo extraInfo to submit to server
+	 * @param {Object} extraData extraData to submit to server
 	 * @param {Object} options Options.
 	 * @param {jslet.data.RecordRange} options.range Record range, the default value is jslet.data.RecordRange.SELECTED
 	 * @param {String[]} options.includeFields Array of field names which need be submitted to server;
@@ -10281,22 +10317,22 @@ jslet.data.Dataset.prototype = {
 	 * 
 	 * @return {Object} jQuery promise.
 	 */
-	submit: function(extraInfo, options) {
-		return this._innerSubmit(extraInfo, options);
+	submit: function(extraData, options) {
+		return this._innerSubmit(extraData, options);
 	},
 	
 	/**
 	 * Submit deleted data to server. 
 	 * 
-	 * @param {Object} extraInfo extraInfo to submit to server
+	 * @param {Object} extraData extraData to submit to server
 	 * 
 	 * @return {Object} jQuery promise.
 	 */
-	submitDeleted: function(extraInfo) {
-		return this._innerSubmit(extraInfo, options, true);		
+	submitDeleted: function(extraData) {
+		return this._innerSubmit(extraData, options, true);		
 	},
 	
-	_innerSubmit: function(extraInfo, options, onlyDeleted) {
+	_innerSubmit: function(extraData, options, onlyDeleted) {
 		var Z = this;
 		var range = options && options.range,
 			includeFields = options && options.includeFields,
@@ -10330,13 +10366,18 @@ jslet.data.Dataset.prototype = {
 		}
 		Z._submitting = true;
 		try {
-			var reqData = {main: changedRecs};
-			if(extraInfo) {
-				reqData.extraInfo = extraInfo;
+			var reqData = {},
+				dsName = Z.name();
+			reqData.mainName = dsName;
+			reqData.main = changedRecs;
+			var dataMetas = {};
+			reqData.meta = dataMetas;
+			Z._getSubmitMeta(Z, dataMetas, 'main');
+			
+			if(extraData) {
+				reqData.extraData = extraData;
 			}
-			if(Z.csrfToken) {
-				reqData.csrfToken = Z.csrfToken;
-			}
+			Z._pendingRecords = changedRecs;
 			reqData = jslet.data.record2Json(reqData, Z._getExcludeFields(includeFields, excludeFields));
 			var url = Z._submitUrl;
 			return Z._dataProvider.sendRequest(Z, url, reqData)
@@ -10344,9 +10385,45 @@ jslet.data.Dataset.prototype = {
 			.fail(Z._doApplyError)
 			.always(function(){
 				Z._submitting = false;
+				Z._pendingRecords = null;
 			});
 		} catch(e) {
+			console.error(e);
 			Z._submitting = false;
+			Z._pendingRecords = null;
+		}
+	},
+	
+	_getSubmitMeta: function(dsObj, dataMetas, dsName) {
+		var Z = this,
+			fields = [], fldObj,
+			dataMeta = {fields: fields},
+			fldMeta, dataType,
+			clazzName = Z.recordClass();
+		if(clazzName) {
+			dataMeta.recordClass = clazzName;
+		}
+		if(!dsName) {
+			dsName = dsObj.name();
+		}
+		dataMetas[dsName] = dataMeta;
+		var fldList = dsObj._fields;
+		for(var i = 0, len = fldList.length; i < len; i++) {
+			fldObj = fldList[i];
+			dataType = fldObj.dataType();
+			if(dataType === jslet.data.DataType.DATE) {
+				fldMeta = {name: fldObj.name(), dataType: dataType};
+				fields.push(fldMeta);
+				continue;
+			}
+			if(dataType === jslet.data.DataType.DATASET) {
+				fldMeta = {name: fldObj.name(), dataType: dataType};
+				var dsDetail = fldObj.detailDataset();
+				fldMeta.detailDataset = dsDetail.name();
+				Z._getSubmitMeta(dsDetail, dataMeta);
+				fields.push(fldMeta);
+				continue;
+			}
 		}
 	},
 	
@@ -10423,7 +10500,7 @@ jslet.data.Dataset.prototype = {
 	 *     dsObj.submitSelected('../audit.do', null, options);
 	 * 
 	 * @param {String} url Submitting URL.
-	 * @param {Object} extraInfo extraInfo to submit to server
+	 * @param {Object} extraData extraData to submit to server
 	 * @param {Object} options Options.
 	 * @param {jslet.data.RecordRange} options.range Record range, the default value is jslet.data.RecordRange.SELECTED
 	 * @param {Boolean} options.deleteOnSuccess If processing successfully at server side, delete the selected record or not.
@@ -10435,7 +10512,7 @@ jslet.data.Dataset.prototype = {
 	 *      if detailRange is a object value, the value pattern is: {detailDatasetName: jslet.data.RecordRange}
 	 * 
 	 */
-	submitSelected: function (url, extraInfo, options) {
+	submitSelected: function (url, extraData, options) {
 		var Z = this;
 		Z.confirm();
 		var range = options && options.range,
@@ -10464,14 +10541,20 @@ jslet.data.Dataset.prototype = {
 			}
 	
 			Z._deleteOnSuccess_ = deleteOnSuccess;
-			var reqData = {main: changedRecs};
-			if(Z.csrfToken) {
-				reqData.csrfToken = Z.csrfToken;
-			}
-			if(extraInfo) {
-				reqData.extraInfo = extraInfo;
+			
+			var reqData = {},
+				dsName = Z.name();
+			reqData.mainName = dsName;
+			reqData.main = changedRecs;
+			var dataMetas = {};
+			reqData.meta = dataMetas;
+			Z._getSubmitMeta(Z, dataMetas, 'main');
+			
+			if(extraData) {
+				reqData.extraData = extraData;
 			}
 			reqData = jslet.data.record2Json(reqData, Z._getExcludeFields(includeFields, excludeFields));
+			console.log(reqData);
 			return Z._dataProvider.sendRequest(Z, url, reqData)
 			.done(Z._doSubmitSelectedSuccess)
 			.fail(Z._doApplyError)
@@ -11582,46 +11665,6 @@ jslet.data.createDataset = function(dsName, fieldConfig, dsCfg, maxCreatingLevel
 	return dsObj;
 };
 
-//
-//jslet.data.createCrossDataset = function(sourceDataset, labelField, valueField, crossDsName) {
-//	if(!crossDsName) { 
-//		crossDsName = sourceDataset.name()+'_cross'; 
-//	} 
-//	jslet.Checker.test('createCrossDataset#labelField', labelField).required().isString();
-//	jslet.Checker.test('createCrossDataset#valueField', valueField).required().isString();
-//
-//	if(jslet.isString(sourceDataset)) {
-//		sourceDataset = jslet.data.getDataset(sourceDataset);
-//	}
-//	jslet.Checker.test('createCrossDataset#sourceDataset', sourceDataset).required().isClass(jslet.data.Dataset.className);
-//	
-//	var lblFldObj = sourceDataset.getField(labelField);
-//	if(!lblFldObj) {
-//		throw new Error('Not found field: ' + labelField);
-//	}
-//	var lblLkFld = lblFldObj.lookup(); 
-//	if(!lblLkFld) { 
-//		throw new Error(sourceDataset.name() + '.' + labelField + ' must have lookup dataset!'); 
-//	} 
-//	var valueFldObj = sourceDataset.getField(valueField); 
-//	if(!valeFldObj) {
-//		throw new Error('Not found field: ' + valeFldObj);
-//	}
-//	if(valeFldObj.getType() != jslet.data.DataType.NUMBER) {
-//		hasTotalField = false;
-//	}
-//	
-//	var labelFldNames = labelField.split(',');
-//		
-//	{name: '', horiFields:[{field:'', subTotal: false, showAll:false}, 
-//	           vertFields:[{field:'', subTotal: false, showAll:false}], 
-//	           cellFields:'',
-//	           totalPosition: 'before/after',
-//	           indent: true}
-//	
-//	
-//}
-
 jslet.data.ChangeLog = function(dataset) {
 	this._dataset = dataset;
 	this._changedRecords = null;
@@ -11760,10 +11803,6 @@ jslet.data.DataTransformer.prototype = {
 	
 	_convertRecord: function(dsObj, chgRec, detailRange, recInfo, recClazz) {
 		var fldObj, newRec = {}, detailLog;
-		if(recClazz) {
-			newRec["@type"] = recClazz;
-		}
-
 		for(var fldName in chgRec) {
 			if(fldName === '_jl_') {
 				continue;
@@ -12561,9 +12600,9 @@ jslet.data.Field = function (dsObj, fldCfg, parentFldObj) {
 	Z._valueFollow = false;
 	Z._trimBlank = true;
 	Z._focused = false;
+	Z._encrypted = null;
 	Z._aggregated = false;
 	Z._aggregatedBy = null;
-
 	Z._extendHostName = null;
 	Z._crossSource = null;
 	
@@ -12708,6 +12747,8 @@ jslet.data.Field.prototype = {
 		setPropValue('trimBlank');
 		
 		setPropValue('focused');
+		setPropValue('encrypted');
+		
 		setPropValue('antiXss');
 		setPropValue('validChars');
 		
@@ -14836,6 +14877,36 @@ jslet.data.Field.prototype = {
 	/**
 	 * @property
 	 * 
+	 * Set or get whether the field is encrypted or not. <br />
+	 * It can be an object like: {start: 5, end: 8}. Example:
+	 * 
+	 *     @example
+	 *     fldObj.encrypted({start: 5, end: 8});
+	 *     //If field value is : '0123456789', the display text will be '01234***890'.
+	 *      
+	 * @param {Object | undefined} encrypted An plan object.
+	 * @param {Integer} encrypted.start The start position to be encrypted, start with 0.
+	 * @param {Integer} encrypted.end The end position to be encrypted(Not include the end position).
+	 * 
+	 * @return {this | Object}
+	 */
+	encrypted: function(encrypted) {
+		var Z = this;
+		if(encrypted === undefined) {
+			return Z._encrypted;
+		}
+		jslet.Checker.test('Field.encrypted', encrypted).isPlanObject();
+		if(encrypted) {
+			jslet.Checker.test('Field.encrypted.start', encrypted.start).isGTEZero();
+			jslet.Checker.test('Field.encrypted.end', encrypted.end).isGTEZero();
+		}
+		Z._encrypted = encrypted;
+		return this;
+	},
+	
+	/**
+	 * @property
+	 * 
 	 * Set or get whether the field value is aggregated.
 	 * 
 	 * @param {Boolean | undefined} aggregated.
@@ -15067,6 +15138,7 @@ jslet.data.Field.prototype = {
 		result.valueFollow(Z._valueFollow);
 		result.trimBlank(Z._trimBlank);
 		result.focused(Z._focused);
+		result.encrypted(Z._encrypted);
 		result.aggregated(Z._aggregated);
 		result.aggregatedBy(Z._aggregatedBy);
 
@@ -17691,6 +17763,98 @@ if (!jslet.data) {
 	jslet.data = {};
 }
 
+/**
+ * @enum
+ * 
+ */
+jslet.data.ApplyAction = {QUERY: 'query', SAVE: 'save', SELECTED: 'selected'};
+
+/**
+ * @class
+ * Data provider to communicate to server side.
+ */
+jslet.data.DataProvider = function() {
+	
+	/**
+	 * Send request to server.
+	 * 
+	 * @param {jslet.data.Dataset} dataset Dataset Object, see {@link jslet.data.Dataset}.
+	 * @param {String} url Request URL.
+	 * @param {String} reqData The request data which need to send to server.
+	 */
+	this.sendRequest = function(dataset, url, reqData) {
+		var settings;
+		if(jslet.global.beforeSubmit) {
+			settings = jslet.global.beforeSubmit({url: url});
+		}
+		if(!settings) {
+			settings = {};
+		}
+		settings.type = 'POST';
+		settings.contentType = 'application/json';
+		settings.mimeType = 'application/json';
+		settings.dataType = 'json';
+		settings.data = reqData;
+		settings.context = dataset;
+		if(dataset.csrfToken) {
+			var headers = settings.headers || {};
+			headers.csrfToken = dataset.csrfToken;
+			settings.headers = headers;
+		}
+		
+		var defer = jQuery.Deferred();
+		jQuery.ajax(url, settings)
+		.done(function(data, textStatus, jqXHR) {
+			if(data) {
+				if(data.csrfToken) {
+					this.csrfToken = data.csrfToken;
+				}
+				var errorCode = data.errorCode;
+				if (errorCode) {
+					defer.reject(data, this);
+					return;
+				}
+			}
+			defer.resolve(data, this);
+		})
+		.fail(function( jqXHR, textStatus, errorThrown ) {
+			var data = jqXHR.responseJSON,
+				result;
+			if(data && data.errorCode) {
+				result = {errorCode: data.errorCode, errorMessage: data.errorMessage};
+			} else {
+				var errorCode = textStatus,
+					errorMessage = textStatus;
+				if(textStatus == 'error') {
+					errorCode = '0000';
+					errorMessage = jsletlocale.Common.ConnectError;
+				}
+				result = {errorCode: errorCode, errorMessage: errorMessage};
+			}
+			defer.reject(result, this);
+		})
+		.always(function(dataOrJqXHR, textStatus, jqXHRorErrorThrown) {
+			if(dataOrJqXHR && jslet.isFunction(dataOrJqXHR.done)) { //fail
+				var data = dataOrJqXHR.responseJSON,
+					result;
+				if(data && data.errorCode) {
+					result = {errorCode: data.errorCode, errorMessage: data.errorMessage};
+				} else {
+					result = {errorCode: textStatus, errorMessage: jqXHRorErrorThrown};
+				}
+				defer.always(result, this);
+			} else {
+				defer.always(dataOrJqXHR, this);
+			}
+		});
+		return defer.promise();
+	};
+};
+
+if (!jslet.data) {
+	jslet.data = {};
+}
+
 jslet.data.XLSXXPorter = {
 	/*
 	 * Import data into the specifed dataset from Excel file.
@@ -18107,98 +18271,6 @@ jslet.data.XPorter.prototype = {
 };
 
 jslet.data.defaultXPorter = new jslet.data.XPorter();
-if (!jslet.data) {
-	jslet.data = {};
-}
-
-/**
- * @enum
- * 
- */
-jslet.data.ApplyAction = {QUERY: 'query', SAVE: 'save', SELECTED: 'selected'};
-
-/**
- * @class
- * Data provider to communicate to server side.
- */
-jslet.data.DataProvider = function() {
-	
-	/**
-	 * Send request to server.
-	 * 
-	 * @param {jslet.data.Dataset} dataset Dataset Object, see {@link jslet.data.Dataset}.
-	 * @param {String} url Request URL.
-	 * @param {String} reqData The request data which need to send to server.
-	 */
-	this.sendRequest = function(dataset, url, reqData) {
-		var settings;
-		if(jslet.global.beforeSubmit) {
-			settings = jslet.global.beforeSubmit({url: url});
-		}
-		if(!settings) {
-			settings = {};
-		}
-		settings.type = 'POST';
-		settings.contentType = 'application/json';
-		settings.mimeType = 'application/json';
-		settings.dataType = 'json';
-		settings.data = reqData;
-		settings.context = dataset;
-		if(dataset.csrfToken) {
-			var headers = settings.headers || {};
-			headers.csrfToken = dataset.csrfToken;
-			settings.headers = headers;
-		}
-		
-		var defer = jQuery.Deferred();
-		jQuery.ajax(url, settings)
-		.done(function(data, textStatus, jqXHR) {
-			if(data) {
-				if(data.csrfToken) {
-					this.csrfToken = data.csrfToken;
-				}
-				var errorCode = data.errorCode;
-				if (errorCode) {
-					defer.reject(data, this);
-					return;
-				}
-			}
-			defer.resolve(data, this);
-		})
-		.fail(function( jqXHR, textStatus, errorThrown ) {
-			var data = jqXHR.responseJSON,
-				result;
-			if(data && data.errorCode) {
-				result = {errorCode: data.errorCode, errorMessage: data.errorMessage};
-			} else {
-				var errorCode = textStatus,
-					errorMessage = textStatus;
-				if(textStatus == 'error') {
-					errorCode = '0000';
-					errorMessage = jsletlocale.Common.ConnectError;
-				}
-				result = {errorCode: errorCode, errorMessage: errorMessage};
-			}
-			defer.reject(result, this);
-		})
-		.always(function(dataOrJqXHR, textStatus, jqXHRorErrorThrown) {
-			if(dataOrJqXHR && jslet.isFunction(dataOrJqXHR.done)) { //fail
-				var data = dataOrJqXHR.responseJSON,
-					result;
-				if(data && data.errorCode) {
-					result = {errorCode: data.errorCode, errorMessage: data.errorMessage};
-				} else {
-					result = {errorCode: textStatus, errorMessage: jqXHRorErrorThrown};
-				}
-				defer.always(result, this);
-			} else {
-				defer.always(dataOrJqXHR, this);
-			}
-		});
-		return defer.promise();
-	};
-};
-
 /**
  * @class
  * 

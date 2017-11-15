@@ -139,7 +139,7 @@ jslet.ui.DBSelect = jslet.Class.create(jslet.ui.DBFieldControl, {
 		if(Z.el.multiple) {
 			jqEl.on('click', 'option', Z._doCheckLimitCount);
 		}
-		jqEl.addClass('form-control');//Bootstrap class
+		jqEl.addClass('form-control input-sm');//Bootstrap class
 		Z.doMetaChanged('required');
 	}, // end bind
 

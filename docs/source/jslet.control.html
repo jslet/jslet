@@ -21,6 +21,7 @@
 * Control Class, base class for all control.
 */
 jslet.ui.Control = jslet.Class.create({
+	
 <span id='jslet-ui-Control-method-initialize'>	/**
 </span>	 * @protected
 	 * 
@@ -32,7 +33,8 @@ jslet.ui.Control = jslet.Class.create({
 	initialize: function (el, ctrlParams) {
 		var Z = this;
 		Z.el = el;
-
+		Z.binded = false;
+		
 		Z.allProperties = null;
 		ctrlParams = jslet.ui._evalParams(ctrlParams);
 		if (Z.isValidTemplateTag	&amp;&amp; !Z.isValidTemplateTag(Z.el)) {
@@ -67,6 +69,7 @@ jslet.ui.Control = jslet.Class.create({
 			jqEl.addClass(Z._styleClass);
 		}
 		Z.afterBind();
+		Z.binded = true;
 	},
 
 <span id='jslet-ui-Control-method-beforeBind'>	/**

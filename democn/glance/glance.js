@@ -35,6 +35,7 @@
     //创建“员工信息”数据集
     var dsEmployee = new jslet.data.Dataset(getMeta('employee'));
 	dsEmployee.enableContextRule();
+//	dsEmployee.queryUrl("http://127.0.0.1:8080/employee/find")
 	
 	/********************************** 结束定义数据集 ************************************************/
 	
@@ -87,8 +88,18 @@
 		chartDlg.show();
 	});
 
-	//创建控件，创建完成后，查询数据
+	dsEmployee.query();
+	//创建控件
 	jslet.ui.install(function() {
-		dsEmployee.query();
+		try {
+			//界面创建完毕后，显示整个页面，这样就可避免整个在创建过程中页面跳动，
+			//此功能需要菜单项增加debounce:true属性，如：
+			//{id: 'glance', name: '惊鸿一瞥', url: 'glance/glance.html', debounce: true}
+			jslet.ui.desktopUtil.showTabPanel();
+			//加入此代码后，只要employee数据集的数据有变动，会在页签（TabItem）上增加一个星号（*），关闭此页签时，也会有提示
+			jslet.ui.desktopUtil.registerEditableDataset('employee');
+		} catch(e) {
+			console.log('此页面不在jslet.ui.DeskTop中打开，所以报错！');
+		}
 	});
 });
