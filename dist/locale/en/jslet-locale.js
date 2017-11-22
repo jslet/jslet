@@ -472,7 +472,7 @@ locale.ChartDialog = {
 };
 
 locale.Report = {
-	tips: 'Connecting Jslet report assistant failed! Open it first!',
+	tips: 'Connecting Jslet report assistant failed! <a href="https://github.com/jslet/jslet/raw/master/report/JsletReport.exe" target="_blank">Download</a> and open it first!',
 	tips1: 'If it\'s running, it need to be certificated, continue?',
 	ignoreWarning: 'It\'s opening the certificate page now, the browser will pop up the warning message, ignore it and continue to open the page!',
 	notFoundDs: 'Not found dataset: {0}'	

@@ -472,8 +472,8 @@ locale.ChartDialog = {
 };
 
 locale.Report = {
-	tips: '无法连接Jslet报表助手，请先打开!<br />如果已经打开，则可能未认证！',
-	tips1: '现在需要Jslet报表助手认证吗？',
+	tips: '无法连接Jslet报表助手，请先<a href="https://github.com/jslet/jslet/raw/master/report/JsletReport.exe" download target="_blank">下载</a>并运行!',
+	tips1: '如果已经打开，则可能未认证！现在需要Jslet报表助手认证吗？',
 	ignoreWarning: '现在需要打开认证页面，浏览器会弹出警告信息，请忽略此警告信息，直至看到认证成功消息！',
 	notFoundDs: '找不到数据集: {0}，请检查参数顺序或者数据集是否存在！'	
 };

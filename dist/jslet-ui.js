@@ -2924,1773 +2924,6 @@ jslet.Clipboard();
  * @class
  * @extend jslet.ui.Control
  * 
- * Calendar. Example:
- * 
- *     @example
- *     //1. Declaring:
- *       <div data-jslet='type:"Calendar"' />
- *
- *     //2. Binding
- *       <div id='ctrlId' />
- *       //js snippet 
- *       var el = document.getElementById('ctrlId');
- *       jslet.ui.bindControl(el, {type:"Calendar"});
- *	
- *     //3. Create dynamically
- *       jslet.ui.createControl({type:"Calendar"}, document.body);
- */
-jslet.ui.Calendar = jslet.Class.create(jslet.ui.Control, {
-	/**
-	 * @protected
-	 * @override
-	 */
-	initialize: function ($super, el, params) {
-		var Z = this;
-		Z.el = el;
-		Z.allProperties = 'styleClass,value,onDateSelected,minDate,maxDate';
-
-		Z._value = null;
-		
-		Z._onDateSelected = null;
-		
-		Z._minDate = null;
-
-		Z._maxDate = null;
-		
-		Z._currYear = 0;
-		Z._currMonth = 0;
-		Z._currDate = 0;
-		
-		$super(el, params);
-	},
-
-	/**
-	 * @property
-	 * 
-	 * Calendar value.
-	 * 
-	 * @param {Date | undefined} value calendar value.
-	 * 
-	 * @return {this | Date}
-	 */
-	value: function(value) {
-		if(value === undefined) {
-			return this._value;
-		}
-		jslet.Checker.test('Calendar.value', value).isDate();
-		this._value = value;
-		return this;
-	},
-	
-	/**
-	 * @property
-	 * 
-	 * Set or get minimum date of calendar range.
-	 * 
-	 * @param {Date | undefined} minDate Minimum date of calendar range.
-	 * 
-	 * @return {this | Date}
-	 */
-	minDate: function(minDate) {
-		if(minDate === undefined) {
-			return this._minDate;
-		}
-		jslet.Checker.test('Calendar.minDate', minDate).isDate();
-		this._minDate = minDate;
-		return this;
-	},
-	
-	/**
-	 * @property
-	 * 
-	 * Set or get maximum date of calendar range.
-	 * 
-	 * @param {Date | undefined} maxDate Maximum date of calendar range.
-	 * 
-	 * @return {this | Date}
-	 */
-	maxDate: function(maxDate) {
-		if(maxDate === undefined) {
-			return this._maxDate;
-		}
-		jslet.Checker.test('Calendar.maxDate', maxDate).isDate();
-		this._maxDate = maxDate;
-		return this;
-	},
-		
-	/**
-	 * @event
-	 * 
-	 * Fired when user select a date. Example:
-	 * 
-	 *     @example
-	 *     calendar.onDateSelected(function(value){});
-	 *
-	 * @param {Function | undefined} onDateSelected Date selected event handler.
-	 * @param {Date} onDateSelected.value Calendar value.
-	 * 
-	 * @return {this | Function}
-	 */
-	onDateSelected: function(onDateSelected) {
-		if(onDateSelected === undefined) {
-			return this._onDateSelected;
-		}
-		jslet.Checker.test('Calendar.onDateSelected', onDateSelected).isFunction();
-		this._onDateSelected = onDateSelected;
-		return this;
-	},
-	
-	/**
-	 * @protected
-	 * @override
-	 */
-	bind: function () {
-		this.renderAll();
-	},
-
-	/**
-	 * @override
-	 */
-	renderAll: function () {
-		var Z = this,
-			jqEl = jQuery(Z.el);
-		if (!jqEl.hasClass('jl-calendar')) {
-			jqEl.addClass('jl-calendar panel panel-default');
-		}
-		var calendarLocale = jsletlocale.Calendar;
-		var template = ['<div class="jl-cal-header">',
-			'<a class="jl-cal-btn jl-cal-yprev" title="', calendarLocale.yearPrev,
-			'" href="javascript:;">&lt;&lt;</a><a href="javascript:;" class="jl-cal-btn jl-cal-mprev" title="', calendarLocale.monthPrev, '">&lt;',
-			'</a><a href="javascript:;" class="jl-cal-title"></a><a href="javascript:;" class="jl-cal-btn jl-cal-mnext" title="', calendarLocale.monthNext, '">&gt;',
-			'</a><a href="javascript:;" class="jl-cal-btn jl-cal-ynext" title="', calendarLocale.yearNext, '">&gt;&gt;</a>',
-		'</div>',
-		'<div class="jl-cal-body">',
-			'<table cellpadding="0" cellspacing="0">',
-				'<thead><tr><th class="jl-cal-weekend">',
-				calendarLocale.Sun,
-					'</th><th>',
-					calendarLocale.Mon,
-						'</th><th>',
-					calendarLocale.Tue,
-						'</th><th>',
-					calendarLocale.Wed,
-						'</th><th>',
-					calendarLocale.Thu,
-						'</th><th>',
-					calendarLocale.Fri,
-						'</th><th class="jl-cal-weekend">',
-					calendarLocale.Sat,
-						'</th></tr></thead><tbody>',
-						'<tr><td class="jl-cal-weekend"><a href="javascript:;"></a></td><td><a href="javascript:;"></a></td><td><a href="javascript:;"></a></td><td><a href="javascript:;"></a></td><td><a href="javascript:;"></a></td><td><a href="javascript:;"></a></td><td class="jl-cal-weekend"><a href="javascript:;"></a></td></tr>',
-						'<tr><td class="jl-cal-weekend"><a href="javascript:;"></a></td><td><a href="javascript:;"></a></td><td><a href="javascript:;"></a></td><td><a href="javascript:;"></a></td><td><a href="javascript:;"></a></td><td><a href="javascript:;"></a></td><td class="jl-cal-weekend"><a href="javascript:;"></a></td></tr>',
-						'<tr><td class="jl-cal-weekend"><a href="javascript:;"></a></td><td><a href="javascript:;"></a></td><td><a href="javascript:;"></a></td><td><a href="javascript:;"></a></td><td><a href="javascript:;"></a></td><td><a href="javascript:;"></a></td><td class="jl-cal-weekend"><a href="javascript:;"></a></td></tr>',
-						'<tr><td class="jl-cal-weekend"><a href="javascript:;"></a></td><td><a href="javascript:;" class="jl-cal-disable"></a></td><td><a href="javascript:;"></a></td><td><a href="javascript:;"></a></td><td><a href="javascript:;"></a></td><td><a href="javascript:;"></a></td><td class="jl-cal-weekend"><a href="javascript:;"></a></td></tr>',
-						'<tr><td class="jl-cal-weekend"><a href="javascript:;"></a></td><td><a href="javascript:;" class="jl-cal-disable"></a></td><td><a href="javascript:;"></a></td><td><a href="javascript:;"></a></td><td><a href="javascript:;"></a></td><td><a href="javascript:;"></a></td><td class="jl-cal-weekend"><a href="javascript:;"></a></td></tr>',
-						'<tr><td class="jl-cal-weekend"><a href="javascript:;"></a></td><td><a href="javascript:;"></a></td><td><a href="javascript:;"></a></td><td><a href="javascript:;"></a></td><td><a href="javascript:;"></a></td><td><a href="javascript:;"></a></td><td class="jl-cal-weekend"><a href="javascript:;"></a></td></tr>',
-						'</tbody></table></div><div class="jl-cal-footer"><a class="jl-cal-today" href="javascript:;">', calendarLocale.today, '</a></div>'];
-
-		jqEl.html(template.join(''));
-		var jqTable = jqEl.find('.jl-cal-body table');
-		Z._currYear = -1;
-		jqTable.on('click', Z._doTableClick);
-		
-		var dvalue = Z._value && jslet.isDate(Z._value) ? Z._value : new Date();
-		this.setValue(dvalue);
-		jqEl.find('.jl-cal-today').click(function (event) {
-			var d = new Date();
-			Z.setValue(new Date(d.getFullYear(), d.getMonth(), d.getDate()));
-			Z._fireSelectedEvent();
-		});
-		
-		jqEl.find('.jl-cal-yprev').click(function (event) {
-			Z.incYear(-1);
-		});
-		
-		jqEl.find('.jl-cal-mprev').click(function (event) {
-			Z.incMonth(-1);
-		});
-		
-		jqEl.find('.jl-cal-ynext').click(function (event) {
-			Z.incYear(1);
-		});
-		
-		jqEl.find('.jl-cal-mnext').click(function (event) {
-			Z.incMonth(1);
-		});
-		
-		jqEl.on('keydown', function(event){
-			var ctrlKey = event.ctrlKey,
-				keyCode = event.keyCode;
-			var delta = 0;
-			if(keyCode == jslet.ui.KeyCode.UP) {
-				if(ctrlKey) {
-					Z.incYear(-1);
-				} else {
-					Z.incDate(-7);
-				}
-				event.preventDefault();
-				return;
-			} 
-			if(keyCode == jslet.ui.KeyCode.DOWN) {
-				if(ctrlKey) {
-					Z.incYear(1);
-				} else {
-					Z.incDate(7);
-				}
-				event.preventDefault();
-				return;
-			}
-			if(keyCode == jslet.ui.KeyCode.LEFT) {
-				if(ctrlKey) {
-					Z.incMonth(-1);
-				} else {
-					Z.incDate(-1);
-				}
-				event.preventDefault();
-				return;
-			}
-			if(keyCode == jslet.ui.KeyCode.RIGHT) {
-				if(ctrlKey) {
-					Z.incMonth(1);
-				} else {
-					Z.incDate(1);
-				}
-				event.preventDefault();
-				return;
-			}
-		});
-	},
-	
-	_getNotNullDate: function() {
-		var value =this._value;
-		if(!value) {
-			value = new Date();
-		}
-		return value;
-	},
-	
-	incDate: function(deltaDay) {
-		var value = this._getNotNullDate();
-		value.setDate(value.getDate() + deltaDay);
-		this.setValue(value);
-	},
-	
-	incMonth: function(deltaMonth) {
-		var value = this._getNotNullDate(),
-			oldDate = value.getDate();
-		value.setMonth(value.getMonth() + deltaMonth);
-		if(oldDate >=29) {
-			var newDate = value.getDate();
-			if(oldDate != newDate) {
-				value = new Date(value.getFullYear(), value.getMonth(), 1) - 24*3600*1000;
-				value = new Date(value);
-			}
-		}
-		this.setValue(value);
-	},
-	
-	incYear: function(deltaYear) {
-		var value = this._getNotNullDate(),
-			oldDate = value.getDate();
-		value.setFullYear(value.getFullYear() + deltaYear);
-		if(oldDate >=29) {
-			var newDate = value.getDate();
-			if(oldDate != newDate) {
-				value = new Date(value.getFullYear(), value.getMonth(), 1) - 24*3600*1000;
-				value = new Date(value);
-			}
-		}
-		this.setValue(value);
-	},
-	
-	_innerSetValue: function(value) {
-		var Z = this,
-			oldValue = Z._getNotNullDate();
-		if(value) { //Overwrite Year/Month/Date part, keep time part.
-			oldValue.setFullYear(value.getFullYear(), value.getMonth(), value.getDate());
-		}
-		Z._value = oldValue;
-	},
-	
-	/**
-	 * Set date value of calendar.
-	 * 
-	 * @param {Date} value Calendar date.
-	 */
-	setValue: function (value) {
-		if (!value) {
-			return;
-		}
-
-		var Z = this;
-		if (Z._minDate && value < Z._minDate) {
-			value = new Date(Z._minDate.getTime());
-		}
-		if (Z._maxDate && value > Z._maxDate) {
-			value = new Date(Z._maxDate.getTime());
-		}
-		Z._innerSetValue(value);
-		var y = value.getFullYear(), 
-			m = value.getMonth();
-		if (Z._currYear == y && Z._currMonth == m) {
-			Z._setCurrDateCls();
-		} else {
-			Z._refreshDateCell(y, m);
-		}
-	},
-
-	/**
-	 * @override.
-	 */
-	focus: function() {
-		var Z = this,
-			jqEl = jQuery(Z.el);
-		jqEl.find('.jl-cal-current')[0].focus();
-	},
-	
-	_checkNaviState: function () {
-		var Z = this,
-			jqEl = jQuery(Z.el), flag, btnToday;
-		if (Z._minDate) {
-			var minY = Z._minDate.getFullYear(),
-				minM = Z._minDate.getMonth(),
-				btnYearPrev = jqEl.find('.jl-cal-yprev')[0];
-			flag = (Z._currYear <= minY);
-			btnYearPrev.style.visibility = (flag ? 'hidden' : 'visible');
-
-			flag = (Z._currYear == minY && Z._currMonth <= minM);
-			var btnMonthPrev = jqEl.find('.jl-cal-mprev')[0];
-			btnMonthPrev.style.visibility = (flag ? 'hidden' : 'visible');
-
-			flag = (Z._minDate > new Date());
-			btnToday = jqEl.find('.jl-cal-today')[0];
-			btnToday.style.visibility = (flag ? 'hidden' : 'visible');
-		}
-
-		if (Z._maxDate) {
-			var maxY = Z._maxDate.getFullYear(),
-				maxM = Z._maxDate.getMonth(),
-				btnYearNext = jqEl.find('.jl-cal-ynext')[0];
-			flag = (Z._currYear >= maxY);
-			btnYearNext.jslet_disabled = flag;
-			btnYearNext.style.visibility = (flag ? 'hidden' : 'visible');
-
-			flag = (Z._currYear == maxY && Z._currMonth >= maxM);
-			var btnMonthNext = jqEl.find('.jl-cal-mnext')[0];
-			btnMonthNext.jslet_disabled = flag;
-			btnMonthNext.style.visibility = (flag ? 'hidden' : 'visible');
-
-			flag = (Z._maxDate < new Date());
-			btnToday = jqEl.find('.jl-cal-today')[0];
-			btnToday.style.visibility = (flag ? 'hidden' : 'visible');
-		}
-	},
-
-	_refreshDateCell: function (year, month) {
-		var Z = this,
-			jqEl = jQuery(Z.el),
-			monthnames = jsletlocale.Calendar.monthNames,
-			mname = monthnames[month],
-			otitle = jqEl.find('.jl-cal-title')[0];
-		otitle.innerHTML = mname + ',' + year;
-		var otable = jqEl.find('.jl-cal-body table')[0],
-			rows = otable.tBodies[0].rows,
-			firstDay = new Date(year, month, 1),
-			w1 = firstDay.getDay(),
-			oneDayMs = 86400000, //24 * 60 * 60 * 1000
-			date = new Date(firstDay.getTime() - (w1 + 1) * oneDayMs);
-		date = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-
-		var rowCnt = rows.length, otr, otd, m, oa;
-		for (var i = 1; i <= rowCnt; i++) {
-			otr = rows[i - 1];
-			for (var j = 1, tdCnt = otr.cells.length; j <= tdCnt; j++) {
-				otd = otr.cells[j - 1];
-				date = new Date(date.getTime() + oneDayMs);
-				oa = otd.firstChild;
-				if (Z._minDate && date < Z._minDate || Z._maxDate && date > Z._maxDate) {
-					oa.innerHTML = '';
-					otd.jslet_date_value = null;
-					continue;
-				} else {
-					oa.innerHTML = date.getDate();
-					otd.jslet_date_value = date;
-				}
-				m = date.getMonth();
-				if (m != month) {
-					jQuery(otd).addClass('jl-cal-disable');
-				} else {
-					jQuery(otd).removeClass('jl-cal-disable');
-				}
-			} //end for j
-		} //end for i
-		Z._currYear = year;
-		Z._currMonth = month;
-		Z._setCurrDateCls();
-		Z._checkNaviState();
-	},
-	
-	_fireSelectedEvent: function() {
-		var Z = this;
-		if (Z._onDateSelected) {
-			Z._onDateSelected.call(Z, Z._value);
-		}
-	},
-	
-	_doTableClick: function (event) {
-		event = jQuery.event.fix( event || window.event );
-		var node = event.target,
-			otd = node.parentNode;
-		
-		if (otd && otd.tagName && otd.tagName.toLowerCase() == 'td') {
-			if (!otd.jslet_date_value) {
-				return;
-			}
-			var el = jslet.ui.findFirstParent(otd, function (node) { return node.jslet; });
-			var Z = el.jslet;
-			Z._innerSetValue(otd.jslet_date_value);
-			Z._setCurrDateCls();
-			try{
-				otd.firstChild.focus();
-			}catch(e){
-			}
-			Z._fireSelectedEvent();
-		}
-	},
-
-	_setCurrDateCls: function () {
-		var Z = this;
-		if (!jslet.isDate(Z._value)) {
-			return;
-		}
-		var currM = Z._value.getMonth(),
-			currY = Z._value.getFullYear(),
-			currD = Z._value.getDate(),
-			jqEl = jQuery(Z.el),
-			otable = jqEl.find('.jl-cal-body table')[0],
-			rows = otable.tBodies[0].rows,
-			rowCnt = rows.length, otr, otd, m, d, y, date, jqLink;
-		for (var i = 0; i < rowCnt; i++) {
-			otr = rows[i];
-			for (var j = 0, tdCnt = otr.cells.length; j < tdCnt; j++) {
-				otd = otr.cells[j];
-				date = otd.jslet_date_value;
-				if (!date) {
-					continue;
-				}
-				m = date.getMonth();
-				y = date.getFullYear();
-				d = date.getDate();
-				jqLink = jQuery(otd.firstChild);
-				if (y == currY && m == currM && d == currD) {
-					if (!jqLink.hasClass('jl-cal-current')) {
-						jqLink.addClass('jl-cal-current');
-					}
-					try{
-						otd.firstChild.focus();
-					} catch(e){
-					}
-				} else {
-					jqLink.removeClass('jl-cal-current');
-				}
-			}
-		}
-	},
-	
-	/**
-	 * @override
-	 */
-	destroy: function($super){
-		var jqEl = jQuery(this.el);
-		jqEl.off();
-		jqEl.find('.jl-cal-body table').off();
-		jqEl.find('.jl-cal-today').off();
-		jqEl.find('.jl-cal-yprev').off();
-		jqEl.find('.jl-cal-mprev').off();
-		jqEl.find('.jl-cal-mnext').off();
-		jqEl.find('.jl-cal-ynext').off();
-		$super();
-	}
-});
-jslet.ui.register('Calendar', jslet.ui.Calendar);
-jslet.ui.Calendar.htmlTemplate = '<div></div>';
-
-/**
-* @class
-* 
-* MessageBox, it can be used to display info, warn, error, confirm, prompt dialog.
-*/
-jslet.ui.MessageBox = function () {
-
-	/**
-	 * Show message box.
-	 * 
-	 * @param {String} message Message text.
-	 * @param {String} caption Caption text.
-	 * @param {String} iconClass Caption icon class.
-	 * @param {String[]} buttons Array of button names, it's the subset of array ['ok','cancel', 'yes', 'no'], like : ['ok','cancel'].
-	 * @param {Function} callbackFn Callback function when user click one button. 
-	 * @param {String} callbackFn.button Button name which clicked, optional value: ok, cancel, yes, no. 
-	 * @param {String} callbackFn.value Text which user inputted. 
-	 * @param {Integer} hasInput Value inputting flag, options: 0 - none, 1 - single line input, 2 - multiple line input.
-	 * @param {String} defaultValue The default value of Input element, if 'hasInput' = 0, this argument is be ignored.
-	 * @param {Function} validateFn Validate function of input element, if 'hasInput' = 0, this argument is be ignored.
-	 * @param {String} validateFn.value The value which need to be validated, if 'hasInput' = 0, this argument is be ignored.
-	 */
-	this.show = function (message, caption, iconClass, buttons, callbackFn, hasInput, defaultValue, validateFn) {
-
-		var opt = { type: 'window', caption: caption, isCenter: true, resizable: false, minimizable: false, maximizable: false, stopEventBubbling: true, animation: 'fade'};
-		var owin = jslet.ui.createControl(opt);
-		var iconHtml = '';
-		if (iconClass) {
-			iconHtml = '<div class="jl-msg-icon ';
-			if (iconClass == 'info' || iconClass == 'error' || iconClass == 'question' || iconClass == 'warning') {
-				iconHtml += 'jl-msg-icon-' + iconClass;
-			} else {
-				iconHtml += iconClass;
-			}
-			iconHtml += '"><i class="fa ';
-			switch (iconClass) {
-	            case 'info':
-	            	iconHtml += 'fa-info';
-	                break;
-	            case 'error':
-	            	iconHtml += 'fa-times';
-	                break;
-	            case 'success':
-	            	iconHtml += 'fa-check';
-	                break;
-	            case 'warning':
-	            	iconHtml += 'fa-exclamation';
-	                break;
-	            case 'question':
-	            	iconHtml += 'fa-question';
-	                break;
-	            default :
-	            	iconHtml += 'fa-info';
-                 	break;
-	        }
-			iconHtml += '"></i></div>';
-		}
-
-		var btnCount = buttons.length;
-		var btnHtml = [], btnName, i;
-		if (jsletlocale.isRtl){
-			for (i = btnCount - 1; i >=0; i--) {
-				btnName = buttons[i];
-				btnHtml.push('<button class="jl-msg-button btn btn-default btn-xs" ');
-				btnHtml.push(' data-jsletname="');
-				btnHtml.push(btnName);
-				btnHtml.push('">');
-				btnHtml.push(jsletlocale.MessageBox[btnName]);
-				btnHtml.push('</button>');
-			}
-		} else {
-			for (i = 0; i < btnCount; i++) {
-				btnName = buttons[i];
-				btnHtml.push('<button class="jl-msg-button btn btn-default btn-xs" ');
-				btnHtml.push('" data-jsletname="');
-				btnHtml.push(btnName);
-				btnHtml.push('">');
-				btnHtml.push(jsletlocale.MessageBox[btnName]);
-				btnHtml.push('</button>');
-			}
-		}
-		var inputHtml = ['<br />'];
-		if (hasInput) {
-			if (hasInput == 1) {
-				inputHtml.push('<input type="text"');
-			} else {
-				inputHtml.push('<textarea rows="5"');
-			}
-			inputHtml.push(' style="width:');
-			inputHtml.push('98%"');
-			if (defaultValue !== null && defaultValue !== undefined) {
-				inputHtml.push(' value="');
-				inputHtml.push(defaultValue);
-				inputHtml.push('"');
-			}
-			if (hasInput == 1) {
-				inputHtml.push(' />');
-			} else {
-				inputHtml.push('></textarea>');
-			}
-		}
-		if(message) {
-			message = message.replace('\n', '<br />');
-		}
-		var html = ['<div class="jl-msg-container">', iconHtml, '<div class="' + (hasInput? 'jl-msg-message-noicon': 'jl-msg-message') + '">',
-					message, inputHtml.join(''), '</div>', '</div>',
-					'<div class="jl-msg-tool"><div>', btnHtml.join(''), '</div></div>'
-		];
-
-		owin.setContent(html.join(''));
-		var jqEl = jQuery(owin.el);
-		var toolBar = jqEl.find('.jl-msg-tool')[0].firstChild;
-		var inputCtrl = null;
-		if (hasInput == 1) {
-			inputCtrl = jqEl.find('.jl-msg-container input')[0];
-		} else {
-			inputCtrl = jqEl.find('.jl-msg-container textarea')[0];
-		}
-		
-		jQuery(toolBar).on('click', 'button', function(event) {
-			var obtn = event.currentTarget;
-			var btnName = jQuery(obtn).attr('data-jsletname');
-			var value = null;
-			if (hasInput && btnName == 'ok') {
-				value = inputCtrl.value;
-				if (validateFn && !validateFn(value)) {
-					inputCtrl.focus();
-					return;
-				}
-			}
-			owin.close();
-			if (callbackFn) {
-				callbackFn(btnName, value);
-			}
-		});
-
-		owin.showModal();
-		owin.setZIndex(99981);
-		var k = btnCount - 1;
-		if (jsletlocale.isRtl) {
-			k = 0;
-		}
-		if(inputCtrl) {
-			inputCtrl.focus();
-		} else {
-			var toolBtn = toolBar.childNodes[k];
-			if(toolBtn) {
-				toolBtn.focus();
-			}
-		}
-		return owin;
-	};
-};
-
-/**
- * Show info message. Example:
- * 
- *     @example
- *     jslet.ui.info('Finished!', 'Tips');
- *     jslet.ui.info('Finished!', 'Tips', function(){console.log('info')});
- *     jslet.ui.info('Finished!', 'Tips', null, 1000); //Auto close after 1 second.
- *     
- * @member jslet.ui
- * 
- * @param {String} message Message text.
- * @param {String} caption Caption text.
- * @param {Function} callbackFn Callback function when user click one button.
- * @param {Integer} timeout Auto close message box after 'timeout'(ms) elapses. 
- */
-jslet.ui.info = jslet.ui.alert = function (message, caption, callbackFn, timeout) {
-	var omsgBox = new jslet.ui.MessageBox();
-	if (!caption) {
-		caption = jsletlocale.MessageBox.info;
-	}
-	var owin = omsgBox.show(message, caption, 'info', ['ok'], callbackFn);
-	if(timeout) {
-		timeout = parseInt(timeout);
-		if(!window.isNaN(timeout)) {
-			window.setTimeout(function() {
-				owin.close();
-			}, timeout);
-		}
-	}
-};
-
-
-/**
- * Show error message. Example:
- * 
- *     @examle
- *     jslet.ui.error('You have made a mistake!', 'Error');
- *     jslet.ui.error('You have made a mistake!', 'Error', function(){console.log('error')});
- *     jslet.ui.error('You have made a mistake!', 'Error', null, 1000); //Auto close after 1 second.
- * 
- * @member jslet.ui
- * 
- * @param {String} message Message text.
- * @param {String} caption Caption text.
- * @param {Function} callbackFn Callback function when user click one button.
- * @param {Integer} timeout Auto close message box after 'timeout'(ms) elapses. 
- */
-jslet.ui.error = function (message, caption, callbackFn, timeout) {
-	var omsgBox = new jslet.ui.MessageBox();
-	if (!caption) {
-		caption = jsletlocale.MessageBox.error;
-	}
-	var owin = omsgBox.show(message, caption, 'error', ['ok'], callbackFn);
-	if(timeout) {
-		timeout = parseInt(timeout);
-		if(!window.isNaN(timeout)) {
-			window.setTimeout(function() {
-				owin.close();
-			}, timeout);
-		}
-	}
-};
-
-/**
- * Show warning message. Example:
- * 
- *     @example
- *     jslet.ui.warn('Program will be shut down!', 'Warning');
- *     jslet.ui.warn('Program will be shut down!', 'Warning', function(){console.log('warning')});
- *     jslet.ui.warn('Program will be shut down!', 'Warning', null, 1000); //Auto close after 1 second.
- *     
- * @member jslet.ui
- * 
- * @param {String} message Message text.
- * @param {String} caption Caption text.
- * @param {Function} callbackFn Callback function when user click one button.
- * @param {Integer} timeout Auto close message box after 'timeout'(ms) elapses. 
- */
-jslet.ui.warn = function (message, caption, callbackFn, timeout) {
-	var omsgBox = new jslet.ui.MessageBox();
-	if (!caption) {
-		caption = jsletlocale.MessageBox.warn;
-	}
-	var owin = omsgBox.show(message, caption, 'warning', ['ok'], callbackFn);
-	if(timeout) {
-		timeout = parseInt(timeout);
-		if(!window.isNaN(timeout)) {
-			window.setTimeout(function() {
-				owin.close();
-			}, timeout);
-		}
-	}
-};
-
-/**
- * Show confirm message. Example:
- * 
- *     @example
- *     var callbackFn = function(button){
- *       alert('Button: ' + button + ' clicked!');
- *     }
- *     jslet.ui.confirm('Are you sure?', 'Confirm', callbackFn);//show Ok/Cancel
- *     jslet.ui.confirm('Are you sure?', 'Confirm', callbackFn, true);//show Yes/No/Cancel
- * 
- * @member jslet.ui
- * 
- * @param {String} message Message text.
- * @param {String} caption Caption text.
- * @param {Function} callbackFn Callback function when user click one button. 
- * @param {String} callbackFn.button Button name which clicked, optional value: ok, cancel, yes, no. 
- */
-jslet.ui.confirm = function(message, caption, callbackFn, isYesNo){
-	var omsgBox = new jslet.ui.MessageBox();
-	if (!caption) {
-		caption = jsletlocale.MessageBox.confirm;
-	}
-	if (!isYesNo) {
-		omsgBox.show(message, caption, 'question',['ok', 'cancel'], callbackFn);	
-	} else {
-		omsgBox.show(message, caption, 'question', ['yes', 'no', 'cancel'], callbackFn);
-	}
-};
-
-/**
- * Prompt user to input some value. Example:
- * 
- *     @example
- *     var callbackFn = function(button, value){
- *       alert('Button: ' + button + ', value:' + value);
- *     };
- *     
- *     var validateFn = function(value){
- *       if (!value){
- *         alert('Please input some thing!');
- *         return false;
- *       }
- *       return true;
- *     };
- *     
- *     jslet.ui.prompt('Input your name: ', 'Prompt', callbackFn, 'Bob', validateFn);
- *     jslet.ui.prompt('Input your comments: ', 'Prompt', callbackFn, null, validateFn, true);
- * 
- * @member jslet.ui
- * 
- * @param {String} message Message text.
- * @param {String} caption Caption text.
- * @param {Function} callbackFn Callback function when user click one button. 
- * @param {String} callbackFn.button Button name which clicked, optional value: ok, cancel, yes, no. 
- * @param {String} callbackFn.value Text which user inputted. 
- * @param {String} defaultValue The default value of Input element, if 'hasInput' = 0, this argument is be ignored.
- * @param {Function} validateFn Validate function of input element, if 'hasInput' = 0, this argument is be ignored.
- * @param {String} validateFn.value The value which need to be validated, if 'hasInput' = 0, this argument is be ignored.
- * @param {Boolean} isMultiLine True - user can input multiple lines text, false - only one line text.
- */
-jslet.ui.prompt = function (message, caption, callbackFn, defaultValue, validateFn, isMultiLine) {
-	var omsgBox = new jslet.ui.MessageBox();
-	if (!caption && !message) {
-		caption = jsletlocale.MessageBox.prompt;
-	}
-	if (!isMultiLine) {
-		omsgBox.show(message, caption, null, ['ok', 'cancel'], callbackFn, 1, defaultValue, validateFn);
-	} else {
-		omsgBox.show(message, caption, null, ['ok', 'cancel'], callbackFn, 2, defaultValue, validateFn);
-	}
-};
-
-/**
-* @class 
-* 
-* Overlay panel. Example:
-* 
-*     @example
-*     var overlay = new jslet.ui.OverlayPanel(Z.el.parentNode);
-*     overlay.setZIndex(999, '#ddd');
-*     overlay.show();
-* 
-* @param {HtmlElement} container HTML Element that OverlayPanel will cover.
-* @param {String} color Color String.
-*/
-jslet.ui.OverlayPanel = function (container, color) {
-	var odiv = document.createElement('div');
-	jQuery(odiv).addClass('jl-overlay').on('click', function(event){
-		event = jQuery.event.fix( event || window.event );
-		var srcEle = event.target;
-		if(!jslet.ui.PopupPanel.popupElement.checkAndHide(srcEle)) {
-			return;
-		}
-		event.stopPropagation();
-		event.preventDefault();
-	});
-	
-	if (color) {
-		odiv.style.backgroundColor = color;
-	}
-	var left, top, width, height;
-	if (!container) {
-		var jqBody = jQuery(document.body);
-		left = 0;
-		top = 0;
-		width = jqBody.width();
-		height = jqBody.height();
-	} else {
-		width = jQuery(container).width();
-		height = jQuery(container).height();
-	}
-	odiv.style.left = '0px';
-	odiv.style.top = '0px';
-	odiv.style.bottom = '0px';
-	odiv.style.right = '0px';
-	if (!container) {
-		document.body.appendChild(odiv);
-	} else {
-		container.appendChild(odiv);
-	}
-	odiv.style.display = 'none';
-
-	var oldResizeHanlder = null;
-	if (!container) {
-		oldResizeHanlder = window.onresize;
-
-		window.onresize = function () {
-			odiv.style.width = document.body.scrollWidth + 'px';
-			odiv.style.height = document.body.scrollHeight + 'px';
-		};
-	} else {
-		oldResizeHanlder = container.onresize;
-		container.onresize = function () {
-			var width = jQuery(container).width() - 12;
-			var height = jQuery(container).height() - 12;
-			odiv.style.width = width + 'px';
-			odiv.style.height = height + 'px';
-		};
-	}
-
-	this.overlayPanel = odiv;
-
-	/**
-	 * Show overlay panel.
-	 */
-	this.show = function () {
-		odiv.style.display = 'block';
-		return odiv;
-	};
-
-	/**
-	 * Hide overlay panel.
-	 */
-	this.hide = function () {
-		odiv.style.display = 'none';
-		return odiv;
-	};
-	
-	/**
-	 * Set Z-index.
-	 * 
-	 * @param {Integer} zIndex Z-Index.
-	 */
-	this.setZIndex = function(zIndex){
-		this.overlayPanel.style.zIndex = zIndex;
-	};
-
-	/**
-	 * Destroy overlay panel.
-	 */
-	this.destroy = function () {
-		this.hide();
-		if (!container) {
-			window.onresize = oldResizeHanlder;
-			document.body.removeChild(odiv);
-		} else {
-			container.onresize = oldResizeHanlder;
-			container.removeChild(odiv);
-		}
-		jQuery(this.overlayPanel).off();
-	};
-};
-
-/**
- * @private
- * @class
- * 
- * Popup Panel. Example: 
- * 
- *     @example
- *     var popPnl = new jslet.ui.PopupPanel();
- *     popPnl.contentElement(document.getElementById('id'));
- *     popPnl.show(10, 10, 100, 100);
- * 
- *     popPnl.hide(); //or
- *     popPnl.destroy();
- *  
- */
-jslet.ui.PopupPanel = function (excludedEl) {
-	this._onHidePopup = null;
-	this._excludedEl = excludedEl;
-	this._contentEl = null;
-};
-
-jslet.ui.PopupPanel.prototype = {
-	/**
-	 * Event handler when hide popup panel: function(){}
-	 */
-	onHidePopup: function(onHidePopup) {
-		if(onHidePopup === undefined) {
-			return this._onHidePopup;
-		}
-		this._onHidePopup = onHidePopup;
-		return this;
-	},
-	
-	excludedElement: function(excludedEl) {
-		if(excludedEl === undefined) {
-			return this._excludedEl;
-		}
-		this._excludedEl = excludedEl;
-		return this;
-	},
-	
-	contentElement: function(contentEl) {
-		if(contentEl === undefined) {
-			return this._contentEl;
-		}
-		this._contentEl = contentEl;
-		return this;
-	},
-	
-	show: function(left, top, width, height, ajustX, ajustY) {
-		jslet.ui.PopupPanel.popupElement.show(this, left, top, width, height, ajustX, ajustY);
-	},
-	
-	hide: function() {
-		jslet.ui.PopupPanel.popupElement.hide();
-	},
-	
-	destroy: function() {
-		this._onHidePopup = null;
-		this._excludedEl = null;
-		this._contentEl = null;
-	}
-};
-
-(function () {
-	var PopupElement = function() {
-		var sharedPopPnl = null;
-		var activePopup = null;
-		
-		var inPopupPanel = function (htmlElement) {
-			if (!htmlElement || htmlElement === document) {
-				return false;
-			}
-			if (jQuery(htmlElement).hasClass('jl-popup-panel')) {
-				return true;
-			} else {
-				return inPopupPanel(htmlElement.parentNode);
-			}
-		};
-		var self = this;
-		var documentClickHandler = function (event) {
-			if(!activePopup) {
-				return;
-			}
-			event = jQuery.event.fix( event || window.event );
-			var srcEle = event.target;
-			self.checkAndHide(srcEle);
-		};
-		
-		function createPanel() {
-			if(sharedPopPnl) {
-				return;
-			}
-			var p = document.createElement('div');
-			p.style.display = 'none';
-			p.className = 'jl-popup-panel jl-opaque jl-border-box dropdown-menu';
-			p.style.position = 'absolute';
-			p.style.zIndex = 99000;
-			document.body.appendChild(p);
-			
-			jQuery(document).on('click', documentClickHandler);
-			sharedPopPnl = p;
-		}
-		
-		function changeContent(newPopup) {
-			var oldContent = sharedPopPnl.childNodes[0];
-			if (oldContent) {
-				sharedPopPnl.removeChild(oldContent);
-			}
-			if(newPopup) {
-				var content = newPopup.contentElement();
-				if(!content) {
-					return;
-				}
-				sharedPopPnl.appendChild(content);
-				content.style.border = 'none';
-			}
-		}
-		
-		this.show = function(activePop, left, top, width, height, ajustX, ajustY) {
-			createPanel();
-			if(activePopup !== activePop) {
-				this.hide();
-				changeContent(activePop);
-			}
-			activePopup = activePop;
-			
-			left = parseInt(left);
-			top = parseInt(top);
-			
-			if (height) {
-				sharedPopPnl.style.height = parseInt(height) + 'px';
-			}
-			if (width) {
-				sharedPopPnl.style.width = parseInt(width) + 'px';
-			}
-			var jqWin = jQuery(window),
-				winWidth = jqWin.scrollLeft() + jqWin.width(),
-				winHeight = jqWin.scrollTop() + jqWin.height(),
-				panel = jQuery(sharedPopPnl),
-				w = panel.outerWidth(),
-				h = panel.outerHeight();
-			if (jsletlocale.isRtl) {
-				left -= w;
-			}
-			if(left + w > winWidth) {
-				left += winWidth - left - w - 1;
-			}
-			if(top + h > winHeight) {
-				top -= (h + 2 + ajustY);
-			}
-			if(left < 0) {
-				left = 1;
-			}
-			if(top < 0) {
-				top = 1;
-			}
-			
-			if (top) {
-				sharedPopPnl.style.top = top + 'px';
-			}
-			if (left) {
-				sharedPopPnl.style.left = left + 'px';
-			}
-			sharedPopPnl.style.display = 'block';
-		};
-		
-		this.hide = function() {
-			if(activePopup) {
-				if (sharedPopPnl) {
-					sharedPopPnl.style.display = 'none';
-				}
-				var hideCallBack = activePopup.onHidePopup();
-				if(hideCallBack) {
-					hideCallBack.call(activePopup);
-				}
-				activePopup = null;
-			}
-		};
-		
-		/**
-		 * Check the specified element is in the active popup panel or not. If it is not in the popup panel, hide the popup panel. 
-		 */
-		this.checkAndHide = function(el) {
-			if(!activePopup) {
-				return true;
-			}
-			if (jslet.ui.isChild(activePopup.excludedElement(), el) ||
-					inPopupPanel(el)) {
-					return false;
-			}
-			this.hide();
-			return true;
-		};
-		
-		this.destroy = function() {
-			if(!sharedPopPnl) {
-				return;
-			}
-			document.body.removeChild(sharedPopPnl);
-			jQuery(sharedPopPnl).off();
-			jQuery(document).off('click', documentClickHandler);
-		}; 
-	};
-	
-	jslet.ui.PopupPanel.popupElement = new PopupElement();
-})();
-
-
-/**
- * @class
- * @extend jslet.ui.Control
- * 
- * ProgressBar. Example:
- * 
- *     @example
- *     var jsletParam = {type:"ProgressBar",value:10, labelText: 'Starting...']};
- * 
- *     //1. Declaring:
- *       <div data-jslet='jsletParam' style="width: 300px"></div>
- *  
- *     //2. Binding
- *       <div id='ctrlId'></div>
- *     //Js snippet
- *       var el = document.getElementById('ctrlId');
- *      jslet.ui.bindControl(el, jsletParam);
- *
- *     //3. Create dynamically
- *      jslet.ui.createControl(jsletParam, document.body);
- *
- */
-jslet.ui.ProgressBar = jslet.Class.create(jslet.ui.Control, {
-	/**
-	 * @protected
-	 * @override
-	 */
-	initialize: function ($super, el, params) {
-		var Z = this;
-		Z.el = el;
-		Z.allProperties = 'styleClass,value,labelText';
-
-		Z._value = 0;
-		
-		Z._labelText = '0%';
-		
-		$super(el, params);
-	},
-
-	/**
-	 * @property
-	 * 
-	 * Set or get progress bar value.
-	 * 
-	 * @param {Integer | undefined} value Progress bar value.
-	 * 
-	 * @return {this | Integer}
-	 */
-	value: function(value) {
-		if(value === undefined) {
-			return this._value;
-		}
-		value = parseInt(value);
-		if(!value) {
-			value = 0;
-		}
-		if(value < 0) {
-			value = 0;
-		}
-		if(value > 100) {
-			value = 100;
-		}
-		this._value = value;
-		this._setValue();
-		return this;
-	},
-	
-	/**
-	 * @property
-	 * 
-	 * Set or get progress bar label text.
-	 * 
-	 * @param {String | undefined} labelText Progress bar label text.
-	 * 
-	 * @return {this | String}
-	 */
-	labelText: function(labelText) {
-		if(labelText === undefined) {
-			return this._labelText;
-		}
-		this._labelText = labelText;
-		if(this.binded) {
-			var jqEl = jQuery(this.el);
-			var jqLabel = jqEl.find('.jl-progressbar-label');
-			jqLabel.text(labelText);
-		}
-		return this;
-	},
-		
-	/**
-	 * @protected
-	 * @override
-	 */
-	bind: function () {
-		this.renderAll();
-	},
-
-	/**
-	 * @override
-	 */
-	renderAll: function () {
-		var Z = this;
-		var jqEl = jQuery(Z.el);
-		if (!jqEl.hasClass('jl-progressbar')) {
-			jqEl.addClass('jl-progressbar jl-border-box jl-round5');
-		}
-		jqEl.attr('role', 'progressbar').attr('aria-valuemax', '100').attr('aria-valuemin', '0').attr('aria-valuenow', this._value);
-		jqEl.html('<div class="jl-progressbar-label">' + Z._labelText + '</div><div class="jl-progressbar-value"></div>');
-	},
-	
-	_setValue: function() {
-		var Z = this;
-		if(!Z.binded) {
-			return;
-		}
-		var jqEl = jQuery(Z.el);
-		var jqLabel = jqEl.find('.jl-progressbar-label');
-		var jqValue = jqEl.find('.jl-progressbar-value');
-		Z._oldValue = -1;
-		var value = Z._value, strValue = value + '%';
-		if(value != Z._oldValue) {
-			jqLabel.text(strValue);
-			jqValue.css('width', strValue);
-			jqEl.attr('aria-valuenow', value);
-			Z._oldValue = value;
-		}
-	},
-	
-	/**
-	 * @override
-	 */
-	destroy: function($super){
-		$super();
-	}
-});
-jslet.ui.register('ProgressBar', jslet.ui.ProgressBar);
-jslet.ui.ProgressBar.htmlTemplate = '<div></div>';
-
-/**
- * @class
- * @extend jslet.ui.Control
- * 
- * ProgressBar. Example:
- * 
- *     @example
- *     var progressObj = jslet.ui.ProgressPopup(document.body, 'saving...');
- *     progressObj.value(40);
- *     progressObj.show();
- *
- * @param {HtmlElement} container The container where the progress popup control show in.
- * @param {String} caption The progress caption.
- * @param {Boolean} cancellable True - the progress popup can be cancelled, false - otherwise.
- * @param {Function} onCancelled The cancelled event, fired when user clicking the close button.
- * 
- */
-jslet.ui.ProgressPopup = function(container, caption, cancellable, onCancelled) {
-	jslet.Checker.test('ProgressPopus#container', container).isHTMLElement();
-	jslet.Checker.test('ProgressPopus#onCancelled', onCancelled).isFunction();
-	
-	this._dialog = null;
-	this._value = 0;
-	this._cancellable = false;
-	if(cancellable !== undefined) {
-		this._cancellable = !!cancellable;
-	}
-	this._onCancelled = onCancelled;
-	
-	this.initialize(container || document.body, caption || '');
-};
-
-jslet.ui.ProgressPopup.prototype = {
-		
-	initialize: function(container, caption) {
-		var opt = { type: 'window', caption: caption, isCenter: true, resizable: true, minimizable: false, closable: this._cancellable, maximizable: false, 
-				width: 500, height: 80, animation: 'fade', onClosed: this._onCancelled};
-		var owin = jslet.ui.createControl(opt, container);
-		var html = '<div name="progressBar" data-jslet="type: \'ProgressBar\'" style="width: 100%"/>';
-		owin.setContent(html);
-		this._dialog = owin;
-		jslet.ui.install(owin.el);
-	},
-	
-	/**
-	 * Show progress popup control.
-	 * 
-	 * @return {this}
-	 */
-	show: function() {
-		this._dialog.showModal();
-		return this;
-	},
-	
-	/**
-	 * @property
-	 * 
-	 * Set or get progress bar value.
-	 * 
-	 * @param {Integer | undefined} value Progress bar value.
-	 * 
-	 * @return {this | Integer}
-	 */
-	value: function(value) {
-		if(value === undefined) {
-			return this._value;
-		}
-		value = parseInt(value);
-		if(!value) {
-			value = 0;
-		}
-		if(value < 0) {
-			value = 0;
-		}
-		if(value > 100) {
-			value = 100;
-		}
-		this._value = value;
-		var progressBar = jQuery(this._dialog.el).find('[name=progressBar]')[0].jslet;
-		progressBar.value(value);
-	},
-	
-	/**
-	 * Close and destroy the progress popup control.
-	 */
-	destroy: function(){
-		if(this._dialog) {
-			this._dialog.close();
-			this._dialog = null;
-		}
-	}
-};
-
-/**
- * @class 
- * @extend jslet.ui.DBFieldControl
- * 
- * DBRating. A control which usually displays some star to user, and user can click to rate something. Example:
- * 
- *     @example
- *      var jsletParam = {type:"DBRating",dataset:"employee",field:"grade", itemCount: 5};
- * 
- *     //1. Declaring:
- *      <div data-jslet='type:"DBRating",dataset:"employee",field:"grade"', itemCount: 5' />
- *      or
- *      <div data-jslet='jsletParam' />
- * 
- *     //2. Binding
- *      <div id="ctrlId"  />
- *      //Js snippet
- *      var el = document.getElementById('ctrlId');
- *      jslet.ui.bindControl(el, jsletParam);
- *
- *     //3. Create dynamically
- *      jslet.ui.createControl(jsletParam, document.body);
- */
-jslet.ui.Rating = jslet.Class.create(jslet.ui.DBFieldControl, {
-	_isDBControl: false,
-	
-	/**
-	 * @protected
-	 * @override
-	 */
-	initialize: function ($super, el, params) {
-		var Z = this;
-		Z.allProperties = 'styleClass,value,itemCount,splitCount,readOnly';
-		
-		Z._itemCount = 5;
-
-		Z._splitCount = 0;
-		
-		Z._itemWidth = 0;
-		
-		Z._value = 0;
-		
-		Z._readOnly = false;
-		
-		Z._isReady = false;
-		
-		$super(el, params);
-	},
-
-	/**
-	 * @property
-	 * 
-	 * Set or get the rate item count, In other words, the count of 'Star' sign.
-	 * 
-	 * @param {Integer | undefined} itemCount Rate item count.
-	 * 
-	 * @return {this | Integer}
-	 */
-	itemCount: function(itemCount) {
-		if(itemCount === undefined) {
-			return this._itemCount;
-		}
-		jslet.Checker.test('DBRating.itemCount', itemCount).isGTZero();
-		this._itemCount = parseInt(itemCount);
-		return this;
-	},
-
-	/**
-	 * @property
-	 * 
-	 * Set or get the rating value.
-	 * 
-	 * @param {Number | undefined} value Rating value.
-	 * 
-	 * @return {this | Number}
-	 */
-	value: function(value) {
-		if(value === undefined) {
-			return this._value;
-		}
-		jslet.Checker.test('DBRating.value', value).isGTZero();
-		this._value = value;
-		if(this._isReady) {
-			this._setValue(value);
-		}
-		return this;
-	},
-
-	/**
-	 * @property
-	 * 
-	 * Identity whether the rating is read only or not.
-	 * 
-	 * @param {Boolean | undefined} readOnly True - the rating is read only, false - otherwise.
-	 * 
-	 * @return {this | Boolean}
-	 */
-	readOnly: function(readOnly) {
-		if(readOnly === undefined) {
-			return this._readOnly;
-		}
-		this._readOnly = readOnly? true: false;
-		return this;
-	},
-
-	/**
-	 * @property
-	 * 
-	 * Value splitCount for one item. <br />
-	 * if "splitCount" is 0.5, the possible value will be 0.5, 1, 1.5, ... <br />
-	 * if "splitCount" is 0.25, the possible value will be 0.25, 0.5, 0.75, 1, 1.25, 1.5, ... 
-	 * 
-	 * @param {Integer | undefined} splitCount 
-	 * 
-	 * @return {this | Integer}
-	 */
-	splitCount: function(splitCount) {
-		if(splitCount === undefined) {
-			return this._splitCount;
-		}
-		jslet.Checker.test('DBRating.splitCount', splitCount).isGTEZero();
-		this._splitCount = splitCount;
-		return this;
-	},
-
-	/**
-	 * @protected
-	 * @override
-	 */
-	isValidTemplateTag: function (el) {
-		return el.tagName.toLowerCase() == 'div';
-	},
-
-	/**
-	 * @protected
-	 * @override
-	 */
-	bind: function () {
-		var Z = this,
-			jqEl = jQuery(Z.el);
-		if (!jqEl.hasClass('jl-rating')) {
-			jqEl.addClass('jl-rating');
-		}
-
-		Z.renderAll();
-		jqEl.on('mousemove', 'td', jQuery.proxy(Z._mouseMove, Z));
-		jqEl.on('mouseleave', jQuery.proxy(Z._mouseOut, Z));
-		jqEl.on('mouseup', 'td', jQuery.proxy(Z._mouseUp, Z));
-		Z._isReady = true;
-	},
-
-	/**
-	 * @override
-	 */
-	renderAll: function () {
-		var Z = this,
-			jqEl = jQuery(Z.el),
-			i, len, 
-			html1 = '',
-			html2 = '',
-			sTd = '<td><i class="fa fa-star" aria-hidden="true"></i></td>';
-		for(i = 0, len = Z._itemCount; i < len; i++) {
-			html1 += sTd;
-			html2 += sTd;
-		}
-		var html = '<div class="jl-rating"><table><tr>' + html1 +
-			'</tr></table><div class="jl-rating-value"><table><tr>' + html2 + 
-			'</tr></table></div></div>';
-		jqEl.html(html);
-		window.setTimeout(function() {
-			Z._itemWidth = jqEl.find('td:first').outerWidth();
-			Z._setValue(Z._value);
-		}, 5);
-		return this;
-	},
-
-	_mouseMove: function domove(event) {
-		var Z = this;
-		if (Z._readOnly) {
-			return;
-		}
-		var jqEl = jQuery(Z.el);
-		jqEl.find('.jl-rating-value').width(Z._getMovedWidth(event));
-		Z._changed = true;
-	},
-
-	_getMovedWidth: function(event) {
-		var otd = event.currentTarget,
-			cellIndex = otd.cellIndex;
-		return this._itemWidth * cellIndex + event.offsetX;
-	},
-	
-	_mouseOut: function doout(event) {
-		var Z = this;
-		if (Z._readOnly) {
-			return;
-		}
-		if(Z._changed) {
-			Z._setValue(Z._value);
-		}
-	},
-
-	_mouseUp: function dodown(event) {
-		var Z = this;
-		if (Z._readOnly) {
-			return;
-		}
-		Z._changed = false;
-		var jqEl = jQuery(Z.el),
-			movedWidth = Z._getMovedWidth(event);
-
-		Z._value = Z._round(Z._itemCount * movedWidth / (Z._itemCount * Z._itemWidth));
-		Z.doUIChanged();
-	},
-	
-	_round: function(value) {
-		var splitCount = this._splitCount;
-		if(!splitCount || splitCount === 1) {
-			return Math.ceil(value);
-		}
-		var intPart = parseInt(value),
-			decPart = value - intPart,
-			unit = 1 / splitCount,
-			ceil;
-		for(var i = 1, len = splitCount; i <= len; i++) {
-			ceil = i * unit;
-			if(decPart < ceil) {
-				return intPart + ceil; 
-			}
-		}
-		return value;
-	},
-	
-	_setValue: function(value) {
-		jslet.Checker.test('Rating.value', value).isNumber();
-		if(value < 0) {
-			value = 0;
-		}
-		var Z = this,
-			itemCnt = Z._itemCount;
-		if(value > itemCnt) {
-			value = itemCnt;
-		}
-		var jqEl = jQuery(Z.el);
-		jqEl.find('.jl-rating-value').width(value * Z._itemWidth);
-	},
-	
-	/**
-	 * @override
-	 */
-	destroy: function($super){
-		var jqEl = jQuery(this.el);
-		jqEl.off();
-		
-		$super();
-	}
-	
-});
-
-jslet.ui.register('Rating', jslet.ui.Rating);
-jslet.ui.Rating.htmlTemplate = '<Div></Div>';
-
-/**
-* @class 
-* 
-* TipPanel. Example:
-* 
-*     @example
-*     var tipPnl = new jslet.ui.TipPanel();
-*     tipPnl.show('Hello world', 10, 10);
-*/
-jslet.ui.TipPanel = function () {
-	this._hideTimerId = null;
-	this._showTimerId = null;
-	this._oldElement = null;
-	var p = document.createElement('div');
-	jQuery(p).addClass('jl-tip-panel');
-	document.body.appendChild(p);
-	this._tipPanel = p;
-
-	/**
-	 * Show tips at specified position. Example:
-	 * 
-	 *     @example
-	 *     tipPnl.show('foo...', event);
-	 *     tipPnl.show('foo...', 100, 200);
-	 * 
-	 * @param {String} tips Tips text.
-	 * @param {Integer | MouseEvent} leftOrEvent Position left or mouse event, if it is mouse event, the "top" argument is undefined.
-	 * @param {Integer | undefined} top Position top.
-	 */
-	this.show = function (tips, leftOrEvent, top) {
-		var Z = this;
-		var len = arguments.length;
-		var isSameCtrl = false, left = leftOrEvent;
-		if (len == 2) { //this.show(tips)
-			var evt = left;
-			evt = jQuery.event.fix( evt );
-
-			top = evt.pageY + 16; left = evt.pageX + 2;
-			var ele = evt.currentTarget;
-			isSameCtrl = (ele === Z._oldElement);
-			Z._oldElement = ele;
-		} else {
-			left = parseInt(left);
-			top = parseInt(top);
-		}
-
-		if (Z._hideTimerId) {
-			window.clearTimeout(Z._hideTimerId);
-			if (isSameCtrl) {
-				return;
-			}
-		}
-
-		this._showTimerId = window.setTimeout(function () {
-			var p = Z._tipPanel;
-			p.innerHTML = tips;
-			p.style.left = left + 'px';
-			p.style.top = top + 'px';
-			Z._tipPanel.style.display = 'block';
-			Z._showTimerId = null;
-		}, 300);
-	};
-
-	/**
-	 * Hide tip panel.
-	 */
-	this.hide = function () {
-		var Z = this;
-		if (Z._showTimerId) {
-			window.clearTimeout(Z._showTimerId);
-			return;
-		}
-		Z._hideTimerId = window.setTimeout(function () {
-			Z._tipPanel.style.display = 'none';
-			Z._hideTimerId = null;
-			Z._oldElement = null;
-		}, 300);
-	};
-};
-
-/**
- * @class 
- * 
- * WaitingBox. Example:
- * 
- *     @example
- *     var wb = new jslet.ui.WaitingBox(document.getElementById("test"), "Gray", true);
- *	   wb.show("Please wait a moment...");
- * 
- * @param {HtmlElement} container The container which waiting box resides on.
- * @param {String} overlayColor Overlay color.
- * @param {Boolean} tipsAtNewLine Tips is at new line or not. If false, tips and waiting icon is at the same line.
- */
-jslet.ui.WaitingBox = function (container, overlayColor, tipsAtNewLine) {
-	var overlay = new jslet.ui.OverlayPanel(container);
-	var s = '<div class="jl-waitingbox jl-round4"><i class="fa fa-spinner fa-pulse fa-2x fa-fw jl-waitingbox-icon"></i>';
-		s += '<span class="jl-waitingbox-text"></span></div>';
-
-	jQuery(overlay.overlayPanel).html(s);
-
-	/**
-	 * Show waiting box.
-	 * 
-	 * @param {String} tips Tips.
-	 */
-	this.show = function (tips) {
-		var p = overlay.overlayPanel,
-			box = p.firstChild,
-			tipPanel = box.childNodes[1];
-		tipPanel.innerHTML = tips ? tips : '';
-		var jqPnl = jQuery(p),
-			ph = jqPnl.height(),
-			pw = jqPnl.width();
-
-		setTimeout(function () {
-			var jqBox = jQuery(box);
-			box.style.top = Math.round((ph - jqBox.height()) / 2) + 'px';
-			box.style.left = Math.round((pw - jqBox.width()) / 2) + 'px';
-		}, 10);
-
-		overlay.show();
-	};
-
-	/**
-	 * Hide waiting box.
-	 */
-	this.hide = function () {
-		overlay.hide();
-	};
-
-	/**
-	 * Destroy waiting box.
-	 */
-	this.destroy = function () {
-		overlay.overlayPanel.innerHTML = '';
-		overlay.destroy();
-	};
-};
-
-/**
- * @class
- * @extend jslet.ui.Control
- * 
  * Accordion. Example:
  * 
  *     @example
@@ -10415,6 +8648,1773 @@ jslet.ui.Window = jslet.Class.create(jslet.ui.Control, {
 });
 jslet.ui.register('Window', jslet.ui.Window);
 jslet.ui.Window.htmlTemplate = '<div></div>';
+
+/**
+ * @class
+ * @extend jslet.ui.Control
+ * 
+ * Calendar. Example:
+ * 
+ *     @example
+ *     //1. Declaring:
+ *       <div data-jslet='type:"Calendar"' />
+ *
+ *     //2. Binding
+ *       <div id='ctrlId' />
+ *       //js snippet 
+ *       var el = document.getElementById('ctrlId');
+ *       jslet.ui.bindControl(el, {type:"Calendar"});
+ *	
+ *     //3. Create dynamically
+ *       jslet.ui.createControl({type:"Calendar"}, document.body);
+ */
+jslet.ui.Calendar = jslet.Class.create(jslet.ui.Control, {
+	/**
+	 * @protected
+	 * @override
+	 */
+	initialize: function ($super, el, params) {
+		var Z = this;
+		Z.el = el;
+		Z.allProperties = 'styleClass,value,onDateSelected,minDate,maxDate';
+
+		Z._value = null;
+		
+		Z._onDateSelected = null;
+		
+		Z._minDate = null;
+
+		Z._maxDate = null;
+		
+		Z._currYear = 0;
+		Z._currMonth = 0;
+		Z._currDate = 0;
+		
+		$super(el, params);
+	},
+
+	/**
+	 * @property
+	 * 
+	 * Calendar value.
+	 * 
+	 * @param {Date | undefined} value calendar value.
+	 * 
+	 * @return {this | Date}
+	 */
+	value: function(value) {
+		if(value === undefined) {
+			return this._value;
+		}
+		jslet.Checker.test('Calendar.value', value).isDate();
+		this._value = value;
+		return this;
+	},
+	
+	/**
+	 * @property
+	 * 
+	 * Set or get minimum date of calendar range.
+	 * 
+	 * @param {Date | undefined} minDate Minimum date of calendar range.
+	 * 
+	 * @return {this | Date}
+	 */
+	minDate: function(minDate) {
+		if(minDate === undefined) {
+			return this._minDate;
+		}
+		jslet.Checker.test('Calendar.minDate', minDate).isDate();
+		this._minDate = minDate;
+		return this;
+	},
+	
+	/**
+	 * @property
+	 * 
+	 * Set or get maximum date of calendar range.
+	 * 
+	 * @param {Date | undefined} maxDate Maximum date of calendar range.
+	 * 
+	 * @return {this | Date}
+	 */
+	maxDate: function(maxDate) {
+		if(maxDate === undefined) {
+			return this._maxDate;
+		}
+		jslet.Checker.test('Calendar.maxDate', maxDate).isDate();
+		this._maxDate = maxDate;
+		return this;
+	},
+		
+	/**
+	 * @event
+	 * 
+	 * Fired when user select a date. Example:
+	 * 
+	 *     @example
+	 *     calendar.onDateSelected(function(value){});
+	 *
+	 * @param {Function | undefined} onDateSelected Date selected event handler.
+	 * @param {Date} onDateSelected.value Calendar value.
+	 * 
+	 * @return {this | Function}
+	 */
+	onDateSelected: function(onDateSelected) {
+		if(onDateSelected === undefined) {
+			return this._onDateSelected;
+		}
+		jslet.Checker.test('Calendar.onDateSelected', onDateSelected).isFunction();
+		this._onDateSelected = onDateSelected;
+		return this;
+	},
+	
+	/**
+	 * @protected
+	 * @override
+	 */
+	bind: function () {
+		this.renderAll();
+	},
+
+	/**
+	 * @override
+	 */
+	renderAll: function () {
+		var Z = this,
+			jqEl = jQuery(Z.el);
+		if (!jqEl.hasClass('jl-calendar')) {
+			jqEl.addClass('jl-calendar panel panel-default');
+		}
+		var calendarLocale = jsletlocale.Calendar;
+		var template = ['<div class="jl-cal-header">',
+			'<a class="jl-cal-btn jl-cal-yprev" title="', calendarLocale.yearPrev,
+			'" href="javascript:;">&lt;&lt;</a><a href="javascript:;" class="jl-cal-btn jl-cal-mprev" title="', calendarLocale.monthPrev, '">&lt;',
+			'</a><a href="javascript:;" class="jl-cal-title"></a><a href="javascript:;" class="jl-cal-btn jl-cal-mnext" title="', calendarLocale.monthNext, '">&gt;',
+			'</a><a href="javascript:;" class="jl-cal-btn jl-cal-ynext" title="', calendarLocale.yearNext, '">&gt;&gt;</a>',
+		'</div>',
+		'<div class="jl-cal-body">',
+			'<table cellpadding="0" cellspacing="0">',
+				'<thead><tr><th class="jl-cal-weekend">',
+				calendarLocale.Sun,
+					'</th><th>',
+					calendarLocale.Mon,
+						'</th><th>',
+					calendarLocale.Tue,
+						'</th><th>',
+					calendarLocale.Wed,
+						'</th><th>',
+					calendarLocale.Thu,
+						'</th><th>',
+					calendarLocale.Fri,
+						'</th><th class="jl-cal-weekend">',
+					calendarLocale.Sat,
+						'</th></tr></thead><tbody>',
+						'<tr><td class="jl-cal-weekend"><a href="javascript:;"></a></td><td><a href="javascript:;"></a></td><td><a href="javascript:;"></a></td><td><a href="javascript:;"></a></td><td><a href="javascript:;"></a></td><td><a href="javascript:;"></a></td><td class="jl-cal-weekend"><a href="javascript:;"></a></td></tr>',
+						'<tr><td class="jl-cal-weekend"><a href="javascript:;"></a></td><td><a href="javascript:;"></a></td><td><a href="javascript:;"></a></td><td><a href="javascript:;"></a></td><td><a href="javascript:;"></a></td><td><a href="javascript:;"></a></td><td class="jl-cal-weekend"><a href="javascript:;"></a></td></tr>',
+						'<tr><td class="jl-cal-weekend"><a href="javascript:;"></a></td><td><a href="javascript:;"></a></td><td><a href="javascript:;"></a></td><td><a href="javascript:;"></a></td><td><a href="javascript:;"></a></td><td><a href="javascript:;"></a></td><td class="jl-cal-weekend"><a href="javascript:;"></a></td></tr>',
+						'<tr><td class="jl-cal-weekend"><a href="javascript:;"></a></td><td><a href="javascript:;" class="jl-cal-disable"></a></td><td><a href="javascript:;"></a></td><td><a href="javascript:;"></a></td><td><a href="javascript:;"></a></td><td><a href="javascript:;"></a></td><td class="jl-cal-weekend"><a href="javascript:;"></a></td></tr>',
+						'<tr><td class="jl-cal-weekend"><a href="javascript:;"></a></td><td><a href="javascript:;" class="jl-cal-disable"></a></td><td><a href="javascript:;"></a></td><td><a href="javascript:;"></a></td><td><a href="javascript:;"></a></td><td><a href="javascript:;"></a></td><td class="jl-cal-weekend"><a href="javascript:;"></a></td></tr>',
+						'<tr><td class="jl-cal-weekend"><a href="javascript:;"></a></td><td><a href="javascript:;"></a></td><td><a href="javascript:;"></a></td><td><a href="javascript:;"></a></td><td><a href="javascript:;"></a></td><td><a href="javascript:;"></a></td><td class="jl-cal-weekend"><a href="javascript:;"></a></td></tr>',
+						'</tbody></table></div><div class="jl-cal-footer"><a class="jl-cal-today" href="javascript:;">', calendarLocale.today, '</a></div>'];
+
+		jqEl.html(template.join(''));
+		var jqTable = jqEl.find('.jl-cal-body table');
+		Z._currYear = -1;
+		jqTable.on('click', Z._doTableClick);
+		
+		var dvalue = Z._value && jslet.isDate(Z._value) ? Z._value : new Date();
+		this.setValue(dvalue);
+		jqEl.find('.jl-cal-today').click(function (event) {
+			var d = new Date();
+			Z.setValue(new Date(d.getFullYear(), d.getMonth(), d.getDate()));
+			Z._fireSelectedEvent();
+		});
+		
+		jqEl.find('.jl-cal-yprev').click(function (event) {
+			Z.incYear(-1);
+		});
+		
+		jqEl.find('.jl-cal-mprev').click(function (event) {
+			Z.incMonth(-1);
+		});
+		
+		jqEl.find('.jl-cal-ynext').click(function (event) {
+			Z.incYear(1);
+		});
+		
+		jqEl.find('.jl-cal-mnext').click(function (event) {
+			Z.incMonth(1);
+		});
+		
+		jqEl.on('keydown', function(event){
+			var ctrlKey = event.ctrlKey,
+				keyCode = event.keyCode;
+			var delta = 0;
+			if(keyCode == jslet.ui.KeyCode.UP) {
+				if(ctrlKey) {
+					Z.incYear(-1);
+				} else {
+					Z.incDate(-7);
+				}
+				event.preventDefault();
+				return;
+			} 
+			if(keyCode == jslet.ui.KeyCode.DOWN) {
+				if(ctrlKey) {
+					Z.incYear(1);
+				} else {
+					Z.incDate(7);
+				}
+				event.preventDefault();
+				return;
+			}
+			if(keyCode == jslet.ui.KeyCode.LEFT) {
+				if(ctrlKey) {
+					Z.incMonth(-1);
+				} else {
+					Z.incDate(-1);
+				}
+				event.preventDefault();
+				return;
+			}
+			if(keyCode == jslet.ui.KeyCode.RIGHT) {
+				if(ctrlKey) {
+					Z.incMonth(1);
+				} else {
+					Z.incDate(1);
+				}
+				event.preventDefault();
+				return;
+			}
+		});
+	},
+	
+	_getNotNullDate: function() {
+		var value =this._value;
+		if(!value) {
+			value = new Date();
+		}
+		return value;
+	},
+	
+	incDate: function(deltaDay) {
+		var value = this._getNotNullDate();
+		value.setDate(value.getDate() + deltaDay);
+		this.setValue(value);
+	},
+	
+	incMonth: function(deltaMonth) {
+		var value = this._getNotNullDate(),
+			oldDate = value.getDate();
+		value.setMonth(value.getMonth() + deltaMonth);
+		if(oldDate >=29) {
+			var newDate = value.getDate();
+			if(oldDate != newDate) {
+				value = new Date(value.getFullYear(), value.getMonth(), 1) - 24*3600*1000;
+				value = new Date(value);
+			}
+		}
+		this.setValue(value);
+	},
+	
+	incYear: function(deltaYear) {
+		var value = this._getNotNullDate(),
+			oldDate = value.getDate();
+		value.setFullYear(value.getFullYear() + deltaYear);
+		if(oldDate >=29) {
+			var newDate = value.getDate();
+			if(oldDate != newDate) {
+				value = new Date(value.getFullYear(), value.getMonth(), 1) - 24*3600*1000;
+				value = new Date(value);
+			}
+		}
+		this.setValue(value);
+	},
+	
+	_innerSetValue: function(value) {
+		var Z = this,
+			oldValue = Z._getNotNullDate();
+		if(value) { //Overwrite Year/Month/Date part, keep time part.
+			oldValue.setFullYear(value.getFullYear(), value.getMonth(), value.getDate());
+		}
+		Z._value = oldValue;
+	},
+	
+	/**
+	 * Set date value of calendar.
+	 * 
+	 * @param {Date} value Calendar date.
+	 */
+	setValue: function (value) {
+		if (!value) {
+			return;
+		}
+
+		var Z = this;
+		if (Z._minDate && value < Z._minDate) {
+			value = new Date(Z._minDate.getTime());
+		}
+		if (Z._maxDate && value > Z._maxDate) {
+			value = new Date(Z._maxDate.getTime());
+		}
+		Z._innerSetValue(value);
+		var y = value.getFullYear(), 
+			m = value.getMonth();
+		if (Z._currYear == y && Z._currMonth == m) {
+			Z._setCurrDateCls();
+		} else {
+			Z._refreshDateCell(y, m);
+		}
+	},
+
+	/**
+	 * @override.
+	 */
+	focus: function() {
+		var Z = this,
+			jqEl = jQuery(Z.el);
+		jqEl.find('.jl-cal-current')[0].focus();
+	},
+	
+	_checkNaviState: function () {
+		var Z = this,
+			jqEl = jQuery(Z.el), flag, btnToday;
+		if (Z._minDate) {
+			var minY = Z._minDate.getFullYear(),
+				minM = Z._minDate.getMonth(),
+				btnYearPrev = jqEl.find('.jl-cal-yprev')[0];
+			flag = (Z._currYear <= minY);
+			btnYearPrev.style.visibility = (flag ? 'hidden' : 'visible');
+
+			flag = (Z._currYear == minY && Z._currMonth <= minM);
+			var btnMonthPrev = jqEl.find('.jl-cal-mprev')[0];
+			btnMonthPrev.style.visibility = (flag ? 'hidden' : 'visible');
+
+			flag = (Z._minDate > new Date());
+			btnToday = jqEl.find('.jl-cal-today')[0];
+			btnToday.style.visibility = (flag ? 'hidden' : 'visible');
+		}
+
+		if (Z._maxDate) {
+			var maxY = Z._maxDate.getFullYear(),
+				maxM = Z._maxDate.getMonth(),
+				btnYearNext = jqEl.find('.jl-cal-ynext')[0];
+			flag = (Z._currYear >= maxY);
+			btnYearNext.jslet_disabled = flag;
+			btnYearNext.style.visibility = (flag ? 'hidden' : 'visible');
+
+			flag = (Z._currYear == maxY && Z._currMonth >= maxM);
+			var btnMonthNext = jqEl.find('.jl-cal-mnext')[0];
+			btnMonthNext.jslet_disabled = flag;
+			btnMonthNext.style.visibility = (flag ? 'hidden' : 'visible');
+
+			flag = (Z._maxDate < new Date());
+			btnToday = jqEl.find('.jl-cal-today')[0];
+			btnToday.style.visibility = (flag ? 'hidden' : 'visible');
+		}
+	},
+
+	_refreshDateCell: function (year, month) {
+		var Z = this,
+			jqEl = jQuery(Z.el),
+			monthnames = jsletlocale.Calendar.monthNames,
+			mname = monthnames[month],
+			otitle = jqEl.find('.jl-cal-title')[0];
+		otitle.innerHTML = mname + ',' + year;
+		var otable = jqEl.find('.jl-cal-body table')[0],
+			rows = otable.tBodies[0].rows,
+			firstDay = new Date(year, month, 1),
+			w1 = firstDay.getDay(),
+			oneDayMs = 86400000, //24 * 60 * 60 * 1000
+			date = new Date(firstDay.getTime() - (w1 + 1) * oneDayMs);
+		date = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+
+		var rowCnt = rows.length, otr, otd, m, oa;
+		for (var i = 1; i <= rowCnt; i++) {
+			otr = rows[i - 1];
+			for (var j = 1, tdCnt = otr.cells.length; j <= tdCnt; j++) {
+				otd = otr.cells[j - 1];
+				date = new Date(date.getTime() + oneDayMs);
+				oa = otd.firstChild;
+				if (Z._minDate && date < Z._minDate || Z._maxDate && date > Z._maxDate) {
+					oa.innerHTML = '';
+					otd.jslet_date_value = null;
+					continue;
+				} else {
+					oa.innerHTML = date.getDate();
+					otd.jslet_date_value = date;
+				}
+				m = date.getMonth();
+				if (m != month) {
+					jQuery(otd).addClass('jl-cal-disable');
+				} else {
+					jQuery(otd).removeClass('jl-cal-disable');
+				}
+			} //end for j
+		} //end for i
+		Z._currYear = year;
+		Z._currMonth = month;
+		Z._setCurrDateCls();
+		Z._checkNaviState();
+	},
+	
+	_fireSelectedEvent: function() {
+		var Z = this;
+		if (Z._onDateSelected) {
+			Z._onDateSelected.call(Z, Z._value);
+		}
+	},
+	
+	_doTableClick: function (event) {
+		event = jQuery.event.fix( event || window.event );
+		var node = event.target,
+			otd = node.parentNode;
+		
+		if (otd && otd.tagName && otd.tagName.toLowerCase() == 'td') {
+			if (!otd.jslet_date_value) {
+				return;
+			}
+			var el = jslet.ui.findFirstParent(otd, function (node) { return node.jslet; });
+			var Z = el.jslet;
+			Z._innerSetValue(otd.jslet_date_value);
+			Z._setCurrDateCls();
+			try{
+				otd.firstChild.focus();
+			}catch(e){
+			}
+			Z._fireSelectedEvent();
+		}
+	},
+
+	_setCurrDateCls: function () {
+		var Z = this;
+		if (!jslet.isDate(Z._value)) {
+			return;
+		}
+		var currM = Z._value.getMonth(),
+			currY = Z._value.getFullYear(),
+			currD = Z._value.getDate(),
+			jqEl = jQuery(Z.el),
+			otable = jqEl.find('.jl-cal-body table')[0],
+			rows = otable.tBodies[0].rows,
+			rowCnt = rows.length, otr, otd, m, d, y, date, jqLink;
+		for (var i = 0; i < rowCnt; i++) {
+			otr = rows[i];
+			for (var j = 0, tdCnt = otr.cells.length; j < tdCnt; j++) {
+				otd = otr.cells[j];
+				date = otd.jslet_date_value;
+				if (!date) {
+					continue;
+				}
+				m = date.getMonth();
+				y = date.getFullYear();
+				d = date.getDate();
+				jqLink = jQuery(otd.firstChild);
+				if (y == currY && m == currM && d == currD) {
+					if (!jqLink.hasClass('jl-cal-current')) {
+						jqLink.addClass('jl-cal-current');
+					}
+					try{
+						otd.firstChild.focus();
+					} catch(e){
+					}
+				} else {
+					jqLink.removeClass('jl-cal-current');
+				}
+			}
+		}
+	},
+	
+	/**
+	 * @override
+	 */
+	destroy: function($super){
+		var jqEl = jQuery(this.el);
+		jqEl.off();
+		jqEl.find('.jl-cal-body table').off();
+		jqEl.find('.jl-cal-today').off();
+		jqEl.find('.jl-cal-yprev').off();
+		jqEl.find('.jl-cal-mprev').off();
+		jqEl.find('.jl-cal-mnext').off();
+		jqEl.find('.jl-cal-ynext').off();
+		$super();
+	}
+});
+jslet.ui.register('Calendar', jslet.ui.Calendar);
+jslet.ui.Calendar.htmlTemplate = '<div></div>';
+
+/**
+* @class
+* 
+* MessageBox, it can be used to display info, warn, error, confirm, prompt dialog.
+*/
+jslet.ui.MessageBox = function () {
+
+	/**
+	 * Show message box.
+	 * 
+	 * @param {String} message Message text.
+	 * @param {String} caption Caption text.
+	 * @param {String} iconClass Caption icon class.
+	 * @param {String[]} buttons Array of button names, it's the subset of array ['ok','cancel', 'yes', 'no'], like : ['ok','cancel'].
+	 * @param {Function} callbackFn Callback function when user click one button. 
+	 * @param {String} callbackFn.button Button name which clicked, optional value: ok, cancel, yes, no. 
+	 * @param {String} callbackFn.value Text which user inputted. 
+	 * @param {Integer} hasInput Value inputting flag, options: 0 - none, 1 - single line input, 2 - multiple line input.
+	 * @param {String} defaultValue The default value of Input element, if 'hasInput' = 0, this argument is be ignored.
+	 * @param {Function} validateFn Validate function of input element, if 'hasInput' = 0, this argument is be ignored.
+	 * @param {String} validateFn.value The value which need to be validated, if 'hasInput' = 0, this argument is be ignored.
+	 */
+	this.show = function (message, caption, iconClass, buttons, callbackFn, hasInput, defaultValue, validateFn) {
+
+		var opt = { type: 'window', caption: caption, isCenter: true, resizable: false, minimizable: false, maximizable: false, stopEventBubbling: true, animation: 'fade'};
+		var owin = jslet.ui.createControl(opt);
+		var iconHtml = '';
+		if (iconClass) {
+			iconHtml = '<div class="jl-msg-icon ';
+			if (iconClass == 'info' || iconClass == 'error' || iconClass == 'question' || iconClass == 'warning') {
+				iconHtml += 'jl-msg-icon-' + iconClass;
+			} else {
+				iconHtml += iconClass;
+			}
+			iconHtml += '"><i class="fa ';
+			switch (iconClass) {
+	            case 'info':
+	            	iconHtml += 'fa-info';
+	                break;
+	            case 'error':
+	            	iconHtml += 'fa-times';
+	                break;
+	            case 'success':
+	            	iconHtml += 'fa-check';
+	                break;
+	            case 'warning':
+	            	iconHtml += 'fa-exclamation';
+	                break;
+	            case 'question':
+	            	iconHtml += 'fa-question';
+	                break;
+	            default :
+	            	iconHtml += 'fa-info';
+                 	break;
+	        }
+			iconHtml += '"></i></div>';
+		}
+
+		var btnCount = buttons.length;
+		var btnHtml = [], btnName, i;
+		if (jsletlocale.isRtl){
+			for (i = btnCount - 1; i >=0; i--) {
+				btnName = buttons[i];
+				btnHtml.push('<button class="jl-msg-button btn btn-default btn-xs" ');
+				btnHtml.push(' data-jsletname="');
+				btnHtml.push(btnName);
+				btnHtml.push('">');
+				btnHtml.push(jsletlocale.MessageBox[btnName]);
+				btnHtml.push('</button>');
+			}
+		} else {
+			for (i = 0; i < btnCount; i++) {
+				btnName = buttons[i];
+				btnHtml.push('<button class="jl-msg-button btn btn-default btn-xs" ');
+				btnHtml.push('" data-jsletname="');
+				btnHtml.push(btnName);
+				btnHtml.push('">');
+				btnHtml.push(jsletlocale.MessageBox[btnName]);
+				btnHtml.push('</button>');
+			}
+		}
+		var inputHtml = ['<br />'];
+		if (hasInput) {
+			if (hasInput == 1) {
+				inputHtml.push('<input type="text"');
+			} else {
+				inputHtml.push('<textarea rows="5"');
+			}
+			inputHtml.push(' style="width:');
+			inputHtml.push('98%"');
+			if (defaultValue !== null && defaultValue !== undefined) {
+				inputHtml.push(' value="');
+				inputHtml.push(defaultValue);
+				inputHtml.push('"');
+			}
+			if (hasInput == 1) {
+				inputHtml.push(' />');
+			} else {
+				inputHtml.push('></textarea>');
+			}
+		}
+		if(message) {
+			message = message.replace('\n', '<br />');
+		}
+		var html = ['<div class="jl-msg-container">', iconHtml, '<div class="' + (hasInput? 'jl-msg-message-noicon': 'jl-msg-message') + '">',
+					message, inputHtml.join(''), '</div>', '</div>',
+					'<div class="jl-msg-tool"><div>', btnHtml.join(''), '</div></div>'
+		];
+
+		owin.setContent(html.join(''));
+		var jqEl = jQuery(owin.el);
+		var toolBar = jqEl.find('.jl-msg-tool')[0].firstChild;
+		var inputCtrl = null;
+		if (hasInput == 1) {
+			inputCtrl = jqEl.find('.jl-msg-container input')[0];
+		} else {
+			inputCtrl = jqEl.find('.jl-msg-container textarea')[0];
+		}
+		
+		jQuery(toolBar).on('click', 'button', function(event) {
+			var obtn = event.currentTarget;
+			var btnName = jQuery(obtn).attr('data-jsletname');
+			var value = null;
+			if (hasInput && btnName == 'ok') {
+				value = inputCtrl.value;
+				if (validateFn && !validateFn(value)) {
+					inputCtrl.focus();
+					return;
+				}
+			}
+			owin.close();
+			if (callbackFn) {
+				callbackFn(btnName, value);
+			}
+		});
+
+		owin.showModal();
+		owin.setZIndex(99981);
+		var k = btnCount - 1;
+		if (jsletlocale.isRtl) {
+			k = 0;
+		}
+		if(inputCtrl) {
+			inputCtrl.focus();
+		} else {
+			var toolBtn = toolBar.childNodes[k];
+			if(toolBtn) {
+				toolBtn.focus();
+			}
+		}
+		return owin;
+	};
+};
+
+/**
+ * Show info message. Example:
+ * 
+ *     @example
+ *     jslet.ui.info('Finished!', 'Tips');
+ *     jslet.ui.info('Finished!', 'Tips', function(){console.log('info')});
+ *     jslet.ui.info('Finished!', 'Tips', null, 1000); //Auto close after 1 second.
+ *     
+ * @member jslet.ui
+ * 
+ * @param {String} message Message text.
+ * @param {String} caption Caption text.
+ * @param {Function} callbackFn Callback function when user click one button.
+ * @param {Integer} timeout Auto close message box after 'timeout'(ms) elapses. 
+ */
+jslet.ui.info = jslet.ui.alert = function (message, caption, callbackFn, timeout) {
+	var omsgBox = new jslet.ui.MessageBox();
+	if (!caption) {
+		caption = jsletlocale.MessageBox.info;
+	}
+	var owin = omsgBox.show(message, caption, 'info', ['ok'], callbackFn);
+	if(timeout) {
+		timeout = parseInt(timeout);
+		if(!window.isNaN(timeout)) {
+			window.setTimeout(function() {
+				owin.close();
+			}, timeout);
+		}
+	}
+};
+
+
+/**
+ * Show error message. Example:
+ * 
+ *     @examle
+ *     jslet.ui.error('You have made a mistake!', 'Error');
+ *     jslet.ui.error('You have made a mistake!', 'Error', function(){console.log('error')});
+ *     jslet.ui.error('You have made a mistake!', 'Error', null, 1000); //Auto close after 1 second.
+ * 
+ * @member jslet.ui
+ * 
+ * @param {String} message Message text.
+ * @param {String} caption Caption text.
+ * @param {Function} callbackFn Callback function when user click one button.
+ * @param {Integer} timeout Auto close message box after 'timeout'(ms) elapses. 
+ */
+jslet.ui.error = function (message, caption, callbackFn, timeout) {
+	var omsgBox = new jslet.ui.MessageBox();
+	if (!caption) {
+		caption = jsletlocale.MessageBox.error;
+	}
+	var owin = omsgBox.show(message, caption, 'error', ['ok'], callbackFn);
+	if(timeout) {
+		timeout = parseInt(timeout);
+		if(!window.isNaN(timeout)) {
+			window.setTimeout(function() {
+				owin.close();
+			}, timeout);
+		}
+	}
+};
+
+/**
+ * Show warning message. Example:
+ * 
+ *     @example
+ *     jslet.ui.warn('Program will be shut down!', 'Warning');
+ *     jslet.ui.warn('Program will be shut down!', 'Warning', function(){console.log('warning')});
+ *     jslet.ui.warn('Program will be shut down!', 'Warning', null, 1000); //Auto close after 1 second.
+ *     
+ * @member jslet.ui
+ * 
+ * @param {String} message Message text.
+ * @param {String} caption Caption text.
+ * @param {Function} callbackFn Callback function when user click one button.
+ * @param {Integer} timeout Auto close message box after 'timeout'(ms) elapses. 
+ */
+jslet.ui.warn = function (message, caption, callbackFn, timeout) {
+	var omsgBox = new jslet.ui.MessageBox();
+	if (!caption) {
+		caption = jsletlocale.MessageBox.warn;
+	}
+	var owin = omsgBox.show(message, caption, 'warning', ['ok'], callbackFn);
+	if(timeout) {
+		timeout = parseInt(timeout);
+		if(!window.isNaN(timeout)) {
+			window.setTimeout(function() {
+				owin.close();
+			}, timeout);
+		}
+	}
+};
+
+/**
+ * Show confirm message. Example:
+ * 
+ *     @example
+ *     var callbackFn = function(button){
+ *       alert('Button: ' + button + ' clicked!');
+ *     }
+ *     jslet.ui.confirm('Are you sure?', 'Confirm', callbackFn);//show Ok/Cancel
+ *     jslet.ui.confirm('Are you sure?', 'Confirm', callbackFn, true);//show Yes/No/Cancel
+ * 
+ * @member jslet.ui
+ * 
+ * @param {String} message Message text.
+ * @param {String} caption Caption text.
+ * @param {Function} callbackFn Callback function when user click one button. 
+ * @param {String} callbackFn.button Button name which clicked, optional value: ok, cancel, yes, no. 
+ */
+jslet.ui.confirm = function(message, caption, callbackFn, isYesNo){
+	var omsgBox = new jslet.ui.MessageBox();
+	if (!caption) {
+		caption = jsletlocale.MessageBox.confirm;
+	}
+	if (!isYesNo) {
+		omsgBox.show(message, caption, 'question',['ok', 'cancel'], callbackFn);	
+	} else {
+		omsgBox.show(message, caption, 'question', ['yes', 'no', 'cancel'], callbackFn);
+	}
+};
+
+/**
+ * Prompt user to input some value. Example:
+ * 
+ *     @example
+ *     var callbackFn = function(button, value){
+ *       alert('Button: ' + button + ', value:' + value);
+ *     };
+ *     
+ *     var validateFn = function(value){
+ *       if (!value){
+ *         alert('Please input some thing!');
+ *         return false;
+ *       }
+ *       return true;
+ *     };
+ *     
+ *     jslet.ui.prompt('Input your name: ', 'Prompt', callbackFn, 'Bob', validateFn);
+ *     jslet.ui.prompt('Input your comments: ', 'Prompt', callbackFn, null, validateFn, true);
+ * 
+ * @member jslet.ui
+ * 
+ * @param {String} message Message text.
+ * @param {String} caption Caption text.
+ * @param {Function} callbackFn Callback function when user click one button. 
+ * @param {String} callbackFn.button Button name which clicked, optional value: ok, cancel, yes, no. 
+ * @param {String} callbackFn.value Text which user inputted. 
+ * @param {String} defaultValue The default value of Input element, if 'hasInput' = 0, this argument is be ignored.
+ * @param {Function} validateFn Validate function of input element, if 'hasInput' = 0, this argument is be ignored.
+ * @param {String} validateFn.value The value which need to be validated, if 'hasInput' = 0, this argument is be ignored.
+ * @param {Boolean} isMultiLine True - user can input multiple lines text, false - only one line text.
+ */
+jslet.ui.prompt = function (message, caption, callbackFn, defaultValue, validateFn, isMultiLine) {
+	var omsgBox = new jslet.ui.MessageBox();
+	if (!caption && !message) {
+		caption = jsletlocale.MessageBox.prompt;
+	}
+	if (!isMultiLine) {
+		omsgBox.show(message, caption, null, ['ok', 'cancel'], callbackFn, 1, defaultValue, validateFn);
+	} else {
+		omsgBox.show(message, caption, null, ['ok', 'cancel'], callbackFn, 2, defaultValue, validateFn);
+	}
+};
+
+/**
+* @class 
+* 
+* Overlay panel. Example:
+* 
+*     @example
+*     var overlay = new jslet.ui.OverlayPanel(Z.el.parentNode);
+*     overlay.setZIndex(999, '#ddd');
+*     overlay.show();
+* 
+* @param {HtmlElement} container HTML Element that OverlayPanel will cover.
+* @param {String} color Color String.
+*/
+jslet.ui.OverlayPanel = function (container, color) {
+	var odiv = document.createElement('div');
+	jQuery(odiv).addClass('jl-overlay').on('click', function(event){
+		event = jQuery.event.fix( event || window.event );
+		var srcEle = event.target;
+		if(!jslet.ui.PopupPanel.popupElement.checkAndHide(srcEle)) {
+			return;
+		}
+		event.stopPropagation();
+		event.preventDefault();
+	});
+	
+	if (color) {
+		odiv.style.backgroundColor = color;
+	}
+	var left, top, width, height;
+	if (!container) {
+		var jqBody = jQuery(document.body);
+		left = 0;
+		top = 0;
+		width = jqBody.width();
+		height = jqBody.height();
+	} else {
+		width = jQuery(container).width();
+		height = jQuery(container).height();
+	}
+	odiv.style.left = '0px';
+	odiv.style.top = '0px';
+	odiv.style.bottom = '0px';
+	odiv.style.right = '0px';
+	if (!container) {
+		document.body.appendChild(odiv);
+	} else {
+		container.appendChild(odiv);
+	}
+	odiv.style.display = 'none';
+
+	var oldResizeHanlder = null;
+	if (!container) {
+		oldResizeHanlder = window.onresize;
+
+		window.onresize = function () {
+			odiv.style.width = document.body.scrollWidth + 'px';
+			odiv.style.height = document.body.scrollHeight + 'px';
+		};
+	} else {
+		oldResizeHanlder = container.onresize;
+		container.onresize = function () {
+			var width = jQuery(container).width() - 12;
+			var height = jQuery(container).height() - 12;
+			odiv.style.width = width + 'px';
+			odiv.style.height = height + 'px';
+		};
+	}
+
+	this.overlayPanel = odiv;
+
+	/**
+	 * Show overlay panel.
+	 */
+	this.show = function () {
+		odiv.style.display = 'block';
+		return odiv;
+	};
+
+	/**
+	 * Hide overlay panel.
+	 */
+	this.hide = function () {
+		odiv.style.display = 'none';
+		return odiv;
+	};
+	
+	/**
+	 * Set Z-index.
+	 * 
+	 * @param {Integer} zIndex Z-Index.
+	 */
+	this.setZIndex = function(zIndex){
+		this.overlayPanel.style.zIndex = zIndex;
+	};
+
+	/**
+	 * Destroy overlay panel.
+	 */
+	this.destroy = function () {
+		this.hide();
+		if (!container) {
+			window.onresize = oldResizeHanlder;
+			document.body.removeChild(odiv);
+		} else {
+			container.onresize = oldResizeHanlder;
+			container.removeChild(odiv);
+		}
+		jQuery(this.overlayPanel).off();
+	};
+};
+
+/**
+ * @private
+ * @class
+ * 
+ * Popup Panel. Example: 
+ * 
+ *     @example
+ *     var popPnl = new jslet.ui.PopupPanel();
+ *     popPnl.contentElement(document.getElementById('id'));
+ *     popPnl.show(10, 10, 100, 100);
+ * 
+ *     popPnl.hide(); //or
+ *     popPnl.destroy();
+ *  
+ */
+jslet.ui.PopupPanel = function (excludedEl) {
+	this._onHidePopup = null;
+	this._excludedEl = excludedEl;
+	this._contentEl = null;
+};
+
+jslet.ui.PopupPanel.prototype = {
+	/**
+	 * Event handler when hide popup panel: function(){}
+	 */
+	onHidePopup: function(onHidePopup) {
+		if(onHidePopup === undefined) {
+			return this._onHidePopup;
+		}
+		this._onHidePopup = onHidePopup;
+		return this;
+	},
+	
+	excludedElement: function(excludedEl) {
+		if(excludedEl === undefined) {
+			return this._excludedEl;
+		}
+		this._excludedEl = excludedEl;
+		return this;
+	},
+	
+	contentElement: function(contentEl) {
+		if(contentEl === undefined) {
+			return this._contentEl;
+		}
+		this._contentEl = contentEl;
+		return this;
+	},
+	
+	show: function(left, top, width, height, ajustX, ajustY) {
+		jslet.ui.PopupPanel.popupElement.show(this, left, top, width, height, ajustX, ajustY);
+	},
+	
+	hide: function() {
+		jslet.ui.PopupPanel.popupElement.hide();
+	},
+	
+	destroy: function() {
+		this._onHidePopup = null;
+		this._excludedEl = null;
+		this._contentEl = null;
+	}
+};
+
+(function () {
+	var PopupElement = function() {
+		var sharedPopPnl = null;
+		var activePopup = null;
+		
+		var inPopupPanel = function (htmlElement) {
+			if (!htmlElement || htmlElement === document) {
+				return false;
+			}
+			if (jQuery(htmlElement).hasClass('jl-popup-panel')) {
+				return true;
+			} else {
+				return inPopupPanel(htmlElement.parentNode);
+			}
+		};
+		var self = this;
+		var documentClickHandler = function (event) {
+			if(!activePopup) {
+				return;
+			}
+			event = jQuery.event.fix( event || window.event );
+			var srcEle = event.target;
+			self.checkAndHide(srcEle);
+		};
+		
+		function createPanel() {
+			if(sharedPopPnl) {
+				return;
+			}
+			var p = document.createElement('div');
+			p.style.display = 'none';
+			p.className = 'jl-popup-panel jl-opaque jl-border-box dropdown-menu';
+			p.style.position = 'absolute';
+			p.style.zIndex = 99000;
+			document.body.appendChild(p);
+			
+			jQuery(document).on('click', documentClickHandler);
+			sharedPopPnl = p;
+		}
+		
+		function changeContent(newPopup) {
+			var oldContent = sharedPopPnl.childNodes[0];
+			if (oldContent) {
+				sharedPopPnl.removeChild(oldContent);
+			}
+			if(newPopup) {
+				var content = newPopup.contentElement();
+				if(!content) {
+					return;
+				}
+				sharedPopPnl.appendChild(content);
+				content.style.border = 'none';
+			}
+		}
+		
+		this.show = function(activePop, left, top, width, height, ajustX, ajustY) {
+			createPanel();
+			if(activePopup !== activePop) {
+				this.hide();
+				changeContent(activePop);
+			}
+			activePopup = activePop;
+			
+			left = parseInt(left);
+			top = parseInt(top);
+			
+			if (height) {
+				sharedPopPnl.style.height = parseInt(height) + 'px';
+			}
+			if (width) {
+				sharedPopPnl.style.width = parseInt(width) + 'px';
+			}
+			var jqWin = jQuery(window),
+				winWidth = jqWin.scrollLeft() + jqWin.width(),
+				winHeight = jqWin.scrollTop() + jqWin.height(),
+				panel = jQuery(sharedPopPnl),
+				w = panel.outerWidth(),
+				h = panel.outerHeight();
+			if (jsletlocale.isRtl) {
+				left -= w;
+			}
+			if(left + w > winWidth) {
+				left += winWidth - left - w - 1;
+			}
+			if(top + h > winHeight) {
+				top -= (h + 2 + ajustY);
+			}
+			if(left < 0) {
+				left = 1;
+			}
+			if(top < 0) {
+				top = 1;
+			}
+			
+			if (top) {
+				sharedPopPnl.style.top = top + 'px';
+			}
+			if (left) {
+				sharedPopPnl.style.left = left + 'px';
+			}
+			sharedPopPnl.style.display = 'block';
+		};
+		
+		this.hide = function() {
+			if(activePopup) {
+				if (sharedPopPnl) {
+					sharedPopPnl.style.display = 'none';
+				}
+				var hideCallBack = activePopup.onHidePopup();
+				if(hideCallBack) {
+					hideCallBack.call(activePopup);
+				}
+				activePopup = null;
+			}
+		};
+		
+		/**
+		 * Check the specified element is in the active popup panel or not. If it is not in the popup panel, hide the popup panel. 
+		 */
+		this.checkAndHide = function(el) {
+			if(!activePopup) {
+				return true;
+			}
+			if (jslet.ui.isChild(activePopup.excludedElement(), el) ||
+					inPopupPanel(el)) {
+					return false;
+			}
+			this.hide();
+			return true;
+		};
+		
+		this.destroy = function() {
+			if(!sharedPopPnl) {
+				return;
+			}
+			document.body.removeChild(sharedPopPnl);
+			jQuery(sharedPopPnl).off();
+			jQuery(document).off('click', documentClickHandler);
+		}; 
+	};
+	
+	jslet.ui.PopupPanel.popupElement = new PopupElement();
+})();
+
+
+/**
+ * @class
+ * @extend jslet.ui.Control
+ * 
+ * ProgressBar. Example:
+ * 
+ *     @example
+ *     var jsletParam = {type:"ProgressBar",value:10, labelText: 'Starting...']};
+ * 
+ *     //1. Declaring:
+ *       <div data-jslet='jsletParam' style="width: 300px"></div>
+ *  
+ *     //2. Binding
+ *       <div id='ctrlId'></div>
+ *     //Js snippet
+ *       var el = document.getElementById('ctrlId');
+ *      jslet.ui.bindControl(el, jsletParam);
+ *
+ *     //3. Create dynamically
+ *      jslet.ui.createControl(jsletParam, document.body);
+ *
+ */
+jslet.ui.ProgressBar = jslet.Class.create(jslet.ui.Control, {
+	/**
+	 * @protected
+	 * @override
+	 */
+	initialize: function ($super, el, params) {
+		var Z = this;
+		Z.el = el;
+		Z.allProperties = 'styleClass,value,labelText';
+
+		Z._value = 0;
+		
+		Z._labelText = '0%';
+		
+		$super(el, params);
+	},
+
+	/**
+	 * @property
+	 * 
+	 * Set or get progress bar value.
+	 * 
+	 * @param {Integer | undefined} value Progress bar value.
+	 * 
+	 * @return {this | Integer}
+	 */
+	value: function(value) {
+		if(value === undefined) {
+			return this._value;
+		}
+		value = parseInt(value);
+		if(!value) {
+			value = 0;
+		}
+		if(value < 0) {
+			value = 0;
+		}
+		if(value > 100) {
+			value = 100;
+		}
+		this._value = value;
+		this._setValue();
+		return this;
+	},
+	
+	/**
+	 * @property
+	 * 
+	 * Set or get progress bar label text.
+	 * 
+	 * @param {String | undefined} labelText Progress bar label text.
+	 * 
+	 * @return {this | String}
+	 */
+	labelText: function(labelText) {
+		if(labelText === undefined) {
+			return this._labelText;
+		}
+		this._labelText = labelText;
+		if(this.binded) {
+			var jqEl = jQuery(this.el);
+			var jqLabel = jqEl.find('.jl-progressbar-label');
+			jqLabel.text(labelText);
+		}
+		return this;
+	},
+		
+	/**
+	 * @protected
+	 * @override
+	 */
+	bind: function () {
+		this.renderAll();
+	},
+
+	/**
+	 * @override
+	 */
+	renderAll: function () {
+		var Z = this;
+		var jqEl = jQuery(Z.el);
+		if (!jqEl.hasClass('jl-progressbar')) {
+			jqEl.addClass('jl-progressbar jl-border-box jl-round5');
+		}
+		jqEl.attr('role', 'progressbar').attr('aria-valuemax', '100').attr('aria-valuemin', '0').attr('aria-valuenow', this._value);
+		jqEl.html('<div class="jl-progressbar-label">' + Z._labelText + '</div><div class="jl-progressbar-value"></div>');
+	},
+	
+	_setValue: function() {
+		var Z = this;
+		if(!Z.binded) {
+			return;
+		}
+		var jqEl = jQuery(Z.el);
+		var jqLabel = jqEl.find('.jl-progressbar-label');
+		var jqValue = jqEl.find('.jl-progressbar-value');
+		Z._oldValue = -1;
+		var value = Z._value, strValue = value + '%';
+		if(value != Z._oldValue) {
+			jqLabel.text(strValue);
+			jqValue.css('width', strValue);
+			jqEl.attr('aria-valuenow', value);
+			Z._oldValue = value;
+		}
+	},
+	
+	/**
+	 * @override
+	 */
+	destroy: function($super){
+		$super();
+	}
+});
+jslet.ui.register('ProgressBar', jslet.ui.ProgressBar);
+jslet.ui.ProgressBar.htmlTemplate = '<div></div>';
+
+/**
+ * @class
+ * @extend jslet.ui.Control
+ * 
+ * ProgressBar. Example:
+ * 
+ *     @example
+ *     var progressObj = jslet.ui.ProgressPopup(document.body, 'saving...');
+ *     progressObj.value(40);
+ *     progressObj.show();
+ *
+ * @param {HtmlElement} container The container where the progress popup control show in.
+ * @param {String} caption The progress caption.
+ * @param {Boolean} cancellable True - the progress popup can be cancelled, false - otherwise.
+ * @param {Function} onCancelled The cancelled event, fired when user clicking the close button.
+ * 
+ */
+jslet.ui.ProgressPopup = function(container, caption, cancellable, onCancelled) {
+	jslet.Checker.test('ProgressPopus#container', container).isHTMLElement();
+	jslet.Checker.test('ProgressPopus#onCancelled', onCancelled).isFunction();
+	
+	this._dialog = null;
+	this._value = 0;
+	this._cancellable = false;
+	if(cancellable !== undefined) {
+		this._cancellable = !!cancellable;
+	}
+	this._onCancelled = onCancelled;
+	
+	this.initialize(container || document.body, caption || '');
+};
+
+jslet.ui.ProgressPopup.prototype = {
+		
+	initialize: function(container, caption) {
+		var opt = { type: 'window', caption: caption, isCenter: true, resizable: true, minimizable: false, closable: this._cancellable, maximizable: false, 
+				width: 500, height: 80, animation: 'fade', onClosed: this._onCancelled};
+		var owin = jslet.ui.createControl(opt, container);
+		var html = '<div name="progressBar" data-jslet="type: \'ProgressBar\'" style="width: 100%"/>';
+		owin.setContent(html);
+		this._dialog = owin;
+		jslet.ui.install(owin.el);
+	},
+	
+	/**
+	 * Show progress popup control.
+	 * 
+	 * @return {this}
+	 */
+	show: function() {
+		this._dialog.showModal();
+		return this;
+	},
+	
+	/**
+	 * @property
+	 * 
+	 * Set or get progress bar value.
+	 * 
+	 * @param {Integer | undefined} value Progress bar value.
+	 * 
+	 * @return {this | Integer}
+	 */
+	value: function(value) {
+		if(value === undefined) {
+			return this._value;
+		}
+		value = parseInt(value);
+		if(!value) {
+			value = 0;
+		}
+		if(value < 0) {
+			value = 0;
+		}
+		if(value > 100) {
+			value = 100;
+		}
+		this._value = value;
+		var progressBar = jQuery(this._dialog.el).find('[name=progressBar]')[0].jslet;
+		progressBar.value(value);
+	},
+	
+	/**
+	 * Close and destroy the progress popup control.
+	 */
+	destroy: function(){
+		if(this._dialog) {
+			this._dialog.close();
+			this._dialog = null;
+		}
+	}
+};
+
+/**
+ * @class 
+ * @extend jslet.ui.DBFieldControl
+ * 
+ * DBRating. A control which usually displays some star to user, and user can click to rate something. Example:
+ * 
+ *     @example
+ *      var jsletParam = {type:"DBRating",dataset:"employee",field:"grade", itemCount: 5};
+ * 
+ *     //1. Declaring:
+ *      <div data-jslet='type:"DBRating",dataset:"employee",field:"grade"', itemCount: 5' />
+ *      or
+ *      <div data-jslet='jsletParam' />
+ * 
+ *     //2. Binding
+ *      <div id="ctrlId"  />
+ *      //Js snippet
+ *      var el = document.getElementById('ctrlId');
+ *      jslet.ui.bindControl(el, jsletParam);
+ *
+ *     //3. Create dynamically
+ *      jslet.ui.createControl(jsletParam, document.body);
+ */
+jslet.ui.Rating = jslet.Class.create(jslet.ui.DBFieldControl, {
+	_isDBControl: false,
+	
+	/**
+	 * @protected
+	 * @override
+	 */
+	initialize: function ($super, el, params) {
+		var Z = this;
+		Z.allProperties = 'styleClass,value,itemCount,splitCount,readOnly';
+		
+		Z._itemCount = 5;
+
+		Z._splitCount = 0;
+		
+		Z._itemWidth = 0;
+		
+		Z._value = 0;
+		
+		Z._readOnly = false;
+		
+		Z._isReady = false;
+		
+		$super(el, params);
+	},
+
+	/**
+	 * @property
+	 * 
+	 * Set or get the rate item count, In other words, the count of 'Star' sign.
+	 * 
+	 * @param {Integer | undefined} itemCount Rate item count.
+	 * 
+	 * @return {this | Integer}
+	 */
+	itemCount: function(itemCount) {
+		if(itemCount === undefined) {
+			return this._itemCount;
+		}
+		jslet.Checker.test('DBRating.itemCount', itemCount).isGTZero();
+		this._itemCount = parseInt(itemCount);
+		return this;
+	},
+
+	/**
+	 * @property
+	 * 
+	 * Set or get the rating value.
+	 * 
+	 * @param {Number | undefined} value Rating value.
+	 * 
+	 * @return {this | Number}
+	 */
+	value: function(value) {
+		if(value === undefined) {
+			return this._value;
+		}
+		jslet.Checker.test('DBRating.value', value).isGTZero();
+		this._value = value;
+		if(this._isReady) {
+			this._setValue(value);
+		}
+		return this;
+	},
+
+	/**
+	 * @property
+	 * 
+	 * Identity whether the rating is read only or not.
+	 * 
+	 * @param {Boolean | undefined} readOnly True - the rating is read only, false - otherwise.
+	 * 
+	 * @return {this | Boolean}
+	 */
+	readOnly: function(readOnly) {
+		if(readOnly === undefined) {
+			return this._readOnly;
+		}
+		this._readOnly = readOnly? true: false;
+		return this;
+	},
+
+	/**
+	 * @property
+	 * 
+	 * Value splitCount for one item. <br />
+	 * if "splitCount" is 0.5, the possible value will be 0.5, 1, 1.5, ... <br />
+	 * if "splitCount" is 0.25, the possible value will be 0.25, 0.5, 0.75, 1, 1.25, 1.5, ... 
+	 * 
+	 * @param {Integer | undefined} splitCount 
+	 * 
+	 * @return {this | Integer}
+	 */
+	splitCount: function(splitCount) {
+		if(splitCount === undefined) {
+			return this._splitCount;
+		}
+		jslet.Checker.test('DBRating.splitCount', splitCount).isGTEZero();
+		this._splitCount = splitCount;
+		return this;
+	},
+
+	/**
+	 * @protected
+	 * @override
+	 */
+	isValidTemplateTag: function (el) {
+		return el.tagName.toLowerCase() == 'div';
+	},
+
+	/**
+	 * @protected
+	 * @override
+	 */
+	bind: function () {
+		var Z = this,
+			jqEl = jQuery(Z.el);
+		if (!jqEl.hasClass('jl-rating')) {
+			jqEl.addClass('jl-rating');
+		}
+
+		Z.renderAll();
+		jqEl.on('mousemove', 'td', jQuery.proxy(Z._mouseMove, Z));
+		jqEl.on('mouseleave', jQuery.proxy(Z._mouseOut, Z));
+		jqEl.on('mouseup', 'td', jQuery.proxy(Z._mouseUp, Z));
+		Z._isReady = true;
+	},
+
+	/**
+	 * @override
+	 */
+	renderAll: function () {
+		var Z = this,
+			jqEl = jQuery(Z.el),
+			i, len, 
+			html1 = '',
+			html2 = '',
+			sTd = '<td><i class="fa fa-star" aria-hidden="true"></i></td>';
+		for(i = 0, len = Z._itemCount; i < len; i++) {
+			html1 += sTd;
+			html2 += sTd;
+		}
+		var html = '<div class="jl-rating"><table><tr>' + html1 +
+			'</tr></table><div class="jl-rating-value"><table><tr>' + html2 + 
+			'</tr></table></div></div>';
+		jqEl.html(html);
+		window.setTimeout(function() {
+			Z._itemWidth = jqEl.find('td:first').outerWidth();
+			Z._setValue(Z._value);
+		}, 5);
+		return this;
+	},
+
+	_mouseMove: function domove(event) {
+		var Z = this;
+		if (Z._readOnly) {
+			return;
+		}
+		var jqEl = jQuery(Z.el);
+		jqEl.find('.jl-rating-value').width(Z._getMovedWidth(event));
+		Z._changed = true;
+	},
+
+	_getMovedWidth: function(event) {
+		var otd = event.currentTarget,
+			cellIndex = otd.cellIndex;
+		return this._itemWidth * cellIndex + event.offsetX;
+	},
+	
+	_mouseOut: function doout(event) {
+		var Z = this;
+		if (Z._readOnly) {
+			return;
+		}
+		if(Z._changed) {
+			Z._setValue(Z._value);
+		}
+	},
+
+	_mouseUp: function dodown(event) {
+		var Z = this;
+		if (Z._readOnly) {
+			return;
+		}
+		Z._changed = false;
+		var jqEl = jQuery(Z.el),
+			movedWidth = Z._getMovedWidth(event);
+
+		Z._value = Z._round(Z._itemCount * movedWidth / (Z._itemCount * Z._itemWidth));
+		Z.doUIChanged();
+	},
+	
+	_round: function(value) {
+		var splitCount = this._splitCount;
+		if(!splitCount || splitCount === 1) {
+			return Math.ceil(value);
+		}
+		var intPart = parseInt(value),
+			decPart = value - intPart,
+			unit = 1 / splitCount,
+			ceil;
+		for(var i = 1, len = splitCount; i <= len; i++) {
+			ceil = i * unit;
+			if(decPart < ceil) {
+				return intPart + ceil; 
+			}
+		}
+		return value;
+	},
+	
+	_setValue: function(value) {
+		jslet.Checker.test('Rating.value', value).isNumber();
+		if(value < 0) {
+			value = 0;
+		}
+		var Z = this,
+			itemCnt = Z._itemCount;
+		if(value > itemCnt) {
+			value = itemCnt;
+		}
+		var jqEl = jQuery(Z.el);
+		jqEl.find('.jl-rating-value').width(value * Z._itemWidth);
+	},
+	
+	/**
+	 * @override
+	 */
+	destroy: function($super){
+		var jqEl = jQuery(this.el);
+		jqEl.off();
+		
+		$super();
+	}
+	
+});
+
+jslet.ui.register('Rating', jslet.ui.Rating);
+jslet.ui.Rating.htmlTemplate = '<Div></Div>';
+
+/**
+* @class 
+* 
+* TipPanel. Example:
+* 
+*     @example
+*     var tipPnl = new jslet.ui.TipPanel();
+*     tipPnl.show('Hello world', 10, 10);
+*/
+jslet.ui.TipPanel = function () {
+	this._hideTimerId = null;
+	this._showTimerId = null;
+	this._oldElement = null;
+	var p = document.createElement('div');
+	jQuery(p).addClass('jl-tip-panel');
+	document.body.appendChild(p);
+	this._tipPanel = p;
+
+	/**
+	 * Show tips at specified position. Example:
+	 * 
+	 *     @example
+	 *     tipPnl.show('foo...', event);
+	 *     tipPnl.show('foo...', 100, 200);
+	 * 
+	 * @param {String} tips Tips text.
+	 * @param {Integer | MouseEvent} leftOrEvent Position left or mouse event, if it is mouse event, the "top" argument is undefined.
+	 * @param {Integer | undefined} top Position top.
+	 */
+	this.show = function (tips, leftOrEvent, top) {
+		var Z = this;
+		var len = arguments.length;
+		var isSameCtrl = false, left = leftOrEvent;
+		if (len == 2) { //this.show(tips)
+			var evt = left;
+			evt = jQuery.event.fix( evt );
+
+			top = evt.pageY + 16; left = evt.pageX + 2;
+			var ele = evt.currentTarget;
+			isSameCtrl = (ele === Z._oldElement);
+			Z._oldElement = ele;
+		} else {
+			left = parseInt(left);
+			top = parseInt(top);
+		}
+
+		if (Z._hideTimerId) {
+			window.clearTimeout(Z._hideTimerId);
+			if (isSameCtrl) {
+				return;
+			}
+		}
+
+		this._showTimerId = window.setTimeout(function () {
+			var p = Z._tipPanel;
+			p.innerHTML = tips;
+			p.style.left = left + 'px';
+			p.style.top = top + 'px';
+			Z._tipPanel.style.display = 'block';
+			Z._showTimerId = null;
+		}, 300);
+	};
+
+	/**
+	 * Hide tip panel.
+	 */
+	this.hide = function () {
+		var Z = this;
+		if (Z._showTimerId) {
+			window.clearTimeout(Z._showTimerId);
+			return;
+		}
+		Z._hideTimerId = window.setTimeout(function () {
+			Z._tipPanel.style.display = 'none';
+			Z._hideTimerId = null;
+			Z._oldElement = null;
+		}, 300);
+	};
+};
+
+/**
+ * @class 
+ * 
+ * WaitingBox. Example:
+ * 
+ *     @example
+ *     var wb = new jslet.ui.WaitingBox(document.getElementById("test"), "Gray", true);
+ *	   wb.show("Please wait a moment...");
+ * 
+ * @param {HtmlElement} container The container which waiting box resides on.
+ * @param {String} overlayColor Overlay color.
+ * @param {Boolean} tipsAtNewLine Tips is at new line or not. If false, tips and waiting icon is at the same line.
+ */
+jslet.ui.WaitingBox = function (container, overlayColor, tipsAtNewLine) {
+	var overlay = new jslet.ui.OverlayPanel(container);
+	var s = '<div class="jl-waitingbox jl-round4"><i class="fa fa-spinner fa-pulse fa-2x fa-fw jl-waitingbox-icon"></i>';
+		s += '<span class="jl-waitingbox-text"></span></div>';
+
+	jQuery(overlay.overlayPanel).html(s);
+
+	/**
+	 * Show waiting box.
+	 * 
+	 * @param {String} tips Tips.
+	 */
+	this.show = function (tips) {
+		var p = overlay.overlayPanel,
+			box = p.firstChild,
+			tipPanel = box.childNodes[1];
+		tipPanel.innerHTML = tips ? tips : '';
+		var jqPnl = jQuery(p),
+			ph = jqPnl.height(),
+			pw = jqPnl.width();
+
+		setTimeout(function () {
+			var jqBox = jQuery(box);
+			box.style.top = Math.round((ph - jqBox.height()) / 2) + 'px';
+			box.style.left = Math.round((pw - jqBox.width()) / 2) + 'px';
+		}, 10);
+
+		overlay.show();
+	};
+
+	/**
+	 * Hide waiting box.
+	 */
+	this.hide = function () {
+		overlay.hide();
+	};
+
+	/**
+	 * Destroy waiting box.
+	 */
+	this.destroy = function () {
+		overlay.overlayPanel.innerHTML = '';
+		overlay.destroy();
+	};
+};
 
 /**
  * @class
@@ -29043,11 +29043,16 @@ jslet.ui.DatasetDesigner.htmlTemplate = '<div></div>';
 /* jshint ignore:start */
 function GUID(){var a=function(){return Math.floor(Math.random()*65536).toString(16)};return(a()+a()+a()+a()+a()+a()+a()+a())}function event(a){this.name=a;this.eventAction=null;this.subscribe=function(b){this.eventAction=b};this.fire=function(c,b){if(this.eventAction!=null){this.eventAction(c,b)}}}function sgcStreamToString(b,c){var a=new FileReader();a.readAsText(b);a.onload=function(){vResult=a.result;c(vResult)}}function sgcWSStreamRead(b,c){var a=b.slice(0,10);sgcStreamToString(a,function(f){var e=parseInt(f);var d=b.slice(10,10+e);sgcStreamToString(d,function(h){var g=h;var i=b.slice(10+e,b.size);c(g,i)})})}function sgcWebSocket(){if(arguments.length==0){return}if(typeof arguments[0]=="object"){this.host=arguments[0]["host"];this.subprotocol=arguments[0]["subprotocol"];this.user=arguments[0]["user"];this.password=arguments[0]["password"];this.transport=arguments[0]["transport"]}else{if(typeof arguments[0]=="string"){this.host=arguments[0];this.subprotocol=arguments[1];this.transport=arguments[2]}else{return}}if(this.host==undefined){this.host="127.0.0.1"}if(this.subprotocol==undefined){this.subprotocol=""}if(this.transport==undefined){this.transport=["websocket","sse"]}var a=new event("onopen");var c=new event("onclose");var f=new event("onmessage");var e=new event("onerror");if((window.WebSocket)&&(this.transport.indexOf("websocket")>-1)){var d=new event("onstream");this.open=function(){if((this.host!=="")&&(this.user!=="")&&(this.user!==undefined)){if(this.password==undefined){this.password==""}if((this.subprotocol!=="")&&(this.subprotocol!==undefined)){this.websocket=new WebSocket(this.host+"/sgc/auth/url/"+this.user+"/"+this.password,this.subprotocol)}else{this.websocket=new WebSocket(this.host+"/sgc/auth/url/"+this.user+"/"+this.password)}}else{if((this.host!=="")&&(this.subprotocol!=="")&&(this.subprotocol!==undefined)){this.websocket=new WebSocket(this.host,this.subprotocol)}else{if(this.host!==""){this.websocket=new WebSocket(this.host)}}}this.websocket.onopen=function(){a.fire({name:"onopen",message:""})};this.websocket.onmessage=function(g){if(typeof g.data==="object"){d.fire({name:"onstream",stream:g.data})}else{f.fire({name:"onmessage",message:g.data})}};this.websocket.onclose=function(g){c.fire({name:"onclose",message:"",code:g.code,reason:g.reason,clean:g.wasClean})};this.websocket.onerror=function(g){e.fire({name:"onerror",message:g.data})}};if(this.websocket==undefined){this.open()}this.send=function(g){this.websocket.send(g)};this.close=function(){this.websocket.close()};this.state=function(){switch(this.websocket.readyState){case 0:return"connecting";break;case 1:return"open";break;case 2:return"closing";break;case 3:return"closed";break;default:return"undefined";break}};this.on=function(g,h){if(g=="open"){a.subscribe(h)}else{if(g=="close"){c.subscribe(h)}else{if(g=="message"){f.subscribe(h)}else{if(g=="stream"){d.subscribe(h)}else{if(g=="error"){e.subscribe(h)}}}}}}}else{if((window.EventSource)&&(this.transport.indexOf("sse")>-1)){var b="";this.open=function(){if((this.host!=="")&&(this.user!=="")&&(this.user!==undefined)){if(this.password==undefined){this.password==""}if((this.subprotocol!=="")&&(this.subprotocol!==undefined)){this.EventSource=new EventSource(this.host.replace(/^[a-z]{2,3}\:\/{2}[a-z,0-9,.]{1,}\:[0-9]{1,4}.(.*)/,"$1")+"/sgc/auth/url/"+this.user+"/"+this.password+"/"+this.subprotocol)}else{this.EventSource=new EventSource(this.host.replace(/^[a-z]{2,3}\:\/{2}[a-z,0-9,.]{1,}\:[0-9]{1,4}.(.*)/,"$1")+"/sgc/auth/url/"+this.user+"/"+this.password)}}else{if((this.host!=="")&&(this.subprotocol!=="")&&(this.subprotocol!==undefined)){this.EventSource=new EventSource(this.subprotocol)}else{if(this.host!==""){this.EventSource=new EventSource("/")}}}this.EventSource.onopen=function(){a.fire({name:"onopen",message:""})};this.EventSource.onmessage=function(g){if(b==""){b=g.data}else{f.fire({name:"onmessage",message:g.data})}};this.EventSource.onerror=function(g){e.fire({name:"onerror",message:g.data})}};if(this.EventSource==undefined){this.open()}this.send=function(g){if(b!==""){if(window.XMLHttpRequest){xhr=new XMLHttpRequest()}else{if(window.ActiveXObject){xhr=new ActiveXObject("Microsoft.XMLHTTP")}else{return}}xhr.open("POST","/sgc/xhr/"+b,true);xhr.send(g)}};this.close=function(){this.EventSource.close();c.fire({name:"onclose",message:"",code:1000,reason:"",clean:true})};this.state=function(){switch(this.EventSource.readyState){case 0:return"connecting";break;case 1:return"open";break;case 2:return"closed";break;default:return"undefined";break}};this.on=function(g,h){if(g=="open"){a.subscribe(h)}else{if(g=="close"){c.subscribe(h)}else{if(g=="message"){f.subscribe(h)}else{if(g=="error"){e.subscribe(h)}}}}}}else{alert("WebSockets not supported by your Browser.")}}};
 /* jshint ignore:end */
-var assistantURL, authURL;
+var assistantURL, authURLSSL, isSSL;
 var WsSocket = function(serverIp) {
 	serverIp = serverIp || '127.0.0.1';
-	assistantURL = 'wss://' + serverIp + ':20169';
-	authURL = 'https://' + serverIp + ':20169';
+	isSSL = document.location.protocol == 'https:';
+	if(isSSL) {
+		assistantURL = 'wss://' + serverIp + ':20169';
+	} else {
+		assistantURL = 'ws://' + serverIp + ':20167';
+	}
+	authURLSSL = 'https://' + serverIp + ':20169';
 	
 	this.ws = null;
 	
@@ -29100,16 +29105,16 @@ WsSocket.prototype = {
         
         this.ws.on('error', function(event, msg) {
         	var tips = jsletlocale.Report.tips;
-			if(self.needAlert) {
+			if(isSSL && self.needAlert) {
 				tips += '<br /><br />' + jsletlocale.Report.tips1;
 	            jslet.ui.confirm(tips, null, function(button){
 					if(button == 'ok') {
 						jslet.ui.info(jsletlocale.Report.ignoreWarning);
-						window.open(authURL);
+						window.open(authURLSSL);
 					}
                 });
 			} else {
-				console.error(tips);
+				jslet.ui.info(tips);
 			}
         	this.connected = false;
         });
